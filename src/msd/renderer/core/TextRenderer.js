@@ -350,26 +350,93 @@ export class TextRenderer {
 
   /**
    * Build metadata object with text measurements and style information
+   * Includes status indicator adjustments for attachment points
    * @private
    */
   static _buildMetadata(content, x, y, style, container) {
     const bbox = this._getTextBBox(content, x, y, style, container);
 
+    // Default attachment points based on text bbox
+    const attachmentPoints = {
+      center: [bbox.centerX, bbox.centerY],
+      left: [bbox.left, bbox.centerY],
+      right: [bbox.right, bbox.centerY],
+      top: [bbox.centerX, bbox.top],
+      bottom: [bbox.centerX, bbox.bottom],
+      topLeft: [bbox.left, bbox.top],
+      topRight: [bbox.right, bbox.top],
+      bottomLeft: [bbox.left, bbox.bottom],
+      bottomRight: [bbox.right, bbox.bottom]
+    };
+
+    // ✅ FIXED: Adjust attachment points if status indicator is present
+    if (style.status_indicator) {
+      const fontSize = parseFloat(style.fontSize) || 16;
+      const indicatorSize = style.status_indicator_size !== null && style.status_indicator_size !== undefined ?
+        style.status_indicator_size :
+        (fontSize * 0.3); // Default ratio
+
+      const position = style.status_indicator_position || 'left-center';
+      const padding = style.status_indicator_padding !== null && style.status_indicator_padding !== undefined ?
+        style.status_indicator_padding :
+        indicatorSize;
+
+      // Adjust attachment points based on status indicator position
+      switch (position) {
+        case 'left':
+        case 'left-center':
+          const leftCx = bbox.left - padding - indicatorSize;
+          attachmentPoints.left = [leftCx, bbox.centerY];
+          attachmentPoints.topLeft = [leftCx, bbox.top];
+          attachmentPoints.bottomLeft = [leftCx, bbox.bottom];
+          break;
+        case 'right':
+        case 'right-center':
+          const rightCx = bbox.right + padding + indicatorSize;
+          attachmentPoints.right = [rightCx, bbox.centerY];
+          attachmentPoints.topRight = [rightCx, bbox.top];
+          attachmentPoints.bottomRight = [rightCx, bbox.bottom];
+          break;
+        case 'top':
+          const topCy = bbox.top - padding - indicatorSize;
+          attachmentPoints.top = [bbox.centerX, topCy];
+          attachmentPoints.topLeft = [bbox.left, topCy];
+          attachmentPoints.topRight = [bbox.right, topCy];
+          break;
+        case 'bottom':
+          const bottomCy = bbox.bottom + padding + indicatorSize;
+          attachmentPoints.bottom = [bbox.centerX, bottomCy];
+          attachmentPoints.bottomLeft = [bbox.left, bottomCy];
+          attachmentPoints.bottomRight = [bbox.right, bottomCy];
+          break;
+        case 'top-left':
+          const topLeftCx = bbox.left - padding - indicatorSize;
+          const topLeftCy = bbox.top - padding - indicatorSize;
+          attachmentPoints.topLeft = [topLeftCx, topLeftCy];
+          break;
+        case 'top-right':
+          const topRightCx = bbox.right + padding + indicatorSize;
+          const topRightCy = bbox.top - padding - indicatorSize;
+          attachmentPoints.topRight = [topRightCx, topRightCy];
+          break;
+        case 'bottom-left':
+          const bottomLeftCx = bbox.left - padding - indicatorSize;
+          const bottomLeftCy = bbox.bottom + padding + indicatorSize;
+          attachmentPoints.bottomLeft = [bottomLeftCx, bottomLeftCy];
+          break;
+        case 'bottom-right':
+          const bottomRightCx = bbox.right + padding + indicatorSize;
+          const bottomRightCy = bbox.bottom + padding + indicatorSize;
+          attachmentPoints.bottomRight = [bottomRightCx, bottomRightCy];
+          break;
+      }
+    }
+
     return {
       bounds: bbox,
       fontSize: parseFloat(style.fontSize) || 16,
       fontFamily: style.fontFamily,
-      attachmentPoints: {
-        center: [bbox.centerX, bbox.centerY],
-        left: [bbox.left, bbox.centerY],
-        right: [bbox.right, bbox.centerY],
-        top: [bbox.centerX, bbox.top],
-        bottom: [bbox.centerX, bbox.bottom],
-        topLeft: [bbox.left, bbox.top],
-        topRight: [bbox.right, bbox.top],
-        bottomLeft: [bbox.left, bbox.bottom],
-        bottomRight: [bbox.right, bbox.bottom]
-      }
+      attachmentPoints
     };
   }
 
@@ -392,8 +459,11 @@ export class TextRenderer {
       else if (style.textAnchor === 'end') left = x - metrics.width;
 
       let top = y - (metrics.lineMetrics[0]?.ascent || 0);
-      if (style.dominantBaseline === 'middle') top = y - metrics.height / 2;
-      else if (style.dominantBaseline === 'hanging') top = y;
+      if (style.dominantBaseline === 'middle' || style.dominantBaseline === 'central') {
+        top = y - metrics.height / 2;
+      } else if (style.dominantBaseline === 'hanging') {
+        top = y;
+      }
 
       return {
         left,

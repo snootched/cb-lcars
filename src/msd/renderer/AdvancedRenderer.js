@@ -7,30 +7,38 @@
 import { RendererUtils } from './RendererUtils.js';
 import { OverlayUtils } from './OverlayUtils.js';
 
-import { LineOverlayRenderer } from './LineOverlayRenderer.js';
-import { TextOverlayRenderer } from './TextOverlayRenderer.js';
 import { StatusGridRenderer } from './StatusGridRenderer.js';
-import { ButtonOverlayRenderer } from './ButtonOverlayRenderer.js';
+import { ApexChartsOverlayRenderer } from './ApexChartsOverlayRenderer.js';
 import { MsdControlsRenderer } from '../controls/MsdControlsRenderer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
-import { ActionHelpers } from './ActionHelpers.js'; // ADDED: Import ActionHelpers
-import { ApexChartsOverlayRenderer } from './ApexChartsOverlayRenderer.js';
+import { ActionHelpers } from './ActionHelpers.js';
 import { TemplateProcessor } from '../utils/TemplateProcessor.js';
+
+// Phase 3: Instance-based overlay architecture (COMPLETE)
+import { OverlayBase } from '../overlays/OverlayBase.js';
+import { TextOverlay } from '../overlays/TextOverlay.js';
+import { ButtonOverlay } from '../overlays/ButtonOverlay.js';
+import { LineOverlay } from '../overlays/LineOverlay.js';
+import { ApexChartsOverlay } from '../overlays/ApexChartsOverlay.js';
+import { StatusGridOverlay } from '../overlays/StatusGridOverlay.js';
 
 export class AdvancedRenderer {
   constructor(mountEl, routerCore, systemsManager = null) {
     this.mountEl = mountEl;
     this.routerCore = routerCore;
-    this.systemsManager = systemsManager; // ADDED: Store reference to systems manager
+    this.systemsManager = systemsManager;
     this.overlayElements = new Map();
     this.lastRenderArgs = null;
-    this.lineRenderer = new LineOverlayRenderer(routerCore);
 
     // Track overlay elements for efficient updates
     this.overlayElementCache = new Map(); // overlayId -> DOM element
     this.overlayAttachmentPoints = new Map(); // UNIFIED: All overlay attachment points
     this.textAttachmentPoints = new Map(); // DEPRECATED: Keep for backward compatibility
     this._lineDeps = new Map(); // targetOverlayId -> Set(lineOverlayId)
+
+    // Phase 3: Cache for instance-based overlay renderers
+    // Maps overlay.id -> OverlayBase instance
+    this.overlayRenderers = new Map();
 
     this._performance = {
       renderStart: null,
@@ -109,7 +117,8 @@ export class AdvancedRenderer {
       cblcarsLog.warn('[AdvancedRenderer] Invalid or missing viewBox - deferring attachment point computation:', viewBox);
     }
 
-    this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
+    // Phase 3: Line overlay attachment points are set per-instance during render
+    // (removed global lineRenderer.setOverlayAttachmentPoints call)
 
     this._performance.stages.preparation = performance.now() - prepStart;
 
@@ -542,8 +551,12 @@ export class AdvancedRenderer {
   }  // Individual attachment point computation methods for each overlay type
 
   _computeTextAttachmentPoints(overlay, anchors, container, viewBox) {
-    // Use existing TextOverlayRenderer method with viewBox
-    return TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, container, viewBox);
+    // Use TextOverlay instance if available, otherwise create temporary instance
+    let textOverlay = this.overlayRenderers.get(overlay.id);
+    if (!textOverlay || !(textOverlay instanceof TextOverlay)) {
+      textOverlay = new TextOverlay(overlay, this.systemsManager);
+    }
+    return textOverlay.computeAttachmentPoints(overlay, anchors, container);
   }
 
   _computeStatusGridAttachmentPoints(overlay, anchors, container, viewBox) {
@@ -776,8 +789,8 @@ export class AdvancedRenderer {
         }
       });
 
-      // CRITICAL: Update line renderer with new attachment points
-      this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
+      // Phase 3: Line overlay attachment points are set per-instance during render
+      // (line overlays call setOverlayAttachmentPoints on their own instances)
 
       // ENHANCED: Force comprehensive update after font stabilization
       if (anyFontChanges || changedTargets.size) {
@@ -809,6 +822,7 @@ export class AdvancedRenderer {
         });
 
         // Final safety delayed pass in case font finished loading just after loop
+        // Increased timeout to give more time for fonts to apply
         setTimeout(() => {
           const remaining = overlays.filter(o=>o.type==='text')
             .some(o => {
@@ -821,16 +835,31 @@ export class AdvancedRenderer {
             globalStabilizationNeeded = true;
             requestAnimationFrame(run);
           }
-        }, 180);
+        }, 300); // Increased from 180ms to 300ms
       }
     };
 
     // Wait for font faces if still loading
     const fontAPI = document.fonts;
     if (fontAPI && fontAPI.status !== 'loaded') {
-      fontAPI.ready.then(() => requestAnimationFrame(run)).catch(() => requestAnimationFrame(run));
+      // Wait for fonts to load, then give extra time for them to be applied
+      fontAPI.ready
+        .then(() => {
+          cblcarsLog.debug('[AdvancedRenderer] Fonts loaded, waiting for render...');
+          // Double RAF to ensure fonts are applied before measuring
+          requestAnimationFrame(() => {
+            requestAnimationFrame(run);
+          });
+        })
+        .catch(() => {
+          cblcarsLog.warn('[AdvancedRenderer] Font loading failed, proceeding anyway');
+          requestAnimationFrame(run);
+        });
     } else {
-      requestAnimationFrame(run);
+      // Fonts already loaded, but still give one RAF for safety
+      requestAnimationFrame(() => {
+        requestAnimationFrame(run);
+      });
     }
   }
 
@@ -841,49 +870,103 @@ export class AdvancedRenderer {
       ((o._raw || o.raw || {}).attach_side || (o._raw || o.raw || {}).attach_to)
     );
     if (!lineOverlays.length) return;
+
+    // Phase 3: Line overlays re-render themselves when their dependencies change
+    // This deferred refresh is no longer needed as LineOverlay instances handle updates
     requestAnimationFrame(() => {
       lineOverlays.forEach(ov => {
-        const existingEl = this.overlayElementCache.get(ov.id);
-        if (!existingEl) return;
-        try {
-          // ✅ FIXED: LineRenderer now returns {markup, provenance}
-          const result = this.lineRenderer.render(ov, anchorsRef, viewBox);
-          if (!result) return;
-
-          // ✅ FIXED: Extract markup from result object
-          const markup = typeof result === 'string' ? result : result.markup;
-          if (!markup || typeof markup !== 'string') {
-            cblcarsLog.warn('[AdvancedRenderer] Invalid line render result for', ov.id);
-            return;
+        const renderer = this.overlayRenderers.get(ov.id);
+        if (renderer && typeof renderer.update === 'function') {
+          const existingEl = this.overlayElementCache.get(ov.id);
+          if (existingEl) {
+            try {
+              renderer.update(existingEl, ov, this._sourceData);
+            } catch (e) {
+              cblcarsLog.info('[AdvancedRenderer] Deferred line refresh failed', ov.id, e);
+            }
           }
-
-          // Parse markup into element
-          const temp = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          temp.innerHTML = markup.trim();
-          const newEl = temp.firstElementChild;
-          if (!newEl) return;
-
-          existingEl.replaceWith(newEl);
-          this.overlayElementCache.set(ov.id, newEl);
-
-          // ✅ NEW: Store provenance if available
-          if (result.provenance) {
-            this._storeRendererProvenance(ov.id, result.provenance);
-          }
-        } catch (e) {
-          cblcarsLog.info('[AdvancedRenderer] Deferred line refresh failed', ov.id, e);
         }
       });
       cblcarsLog.debug('[AdvancedRenderer] Deferred line refresh pass complete');
     });
   }
 
+  /**
+   * Get or create a renderer for an overlay
+   *
+   * Phase 3 COMPLETE: All overlay types now use instance-based architecture
+   * - TextOverlay, ButtonOverlay, LineOverlay: Full migration
+   * - ApexChartsOverlay, StatusGridOverlay: Wrapper pattern
+   *
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @returns {OverlayBase|null} Renderer instance or null if no renderer available
+   */
+  _getRendererForOverlay(overlay) {
+    // Check if we already have a renderer cached
+    if (this.overlayRenderers.has(overlay.id)) {
+      return this.overlayRenderers.get(overlay.id);
+    }
 
+    // Check if the overlay itself is already an instance-based renderer
+    // (This will be the case when overlays are migrated to extend OverlayBase)
+    if (overlay instanceof OverlayBase) {
+      this.overlayRenderers.set(overlay.id, overlay);
+      return overlay;
+    }
+
+    // Phase 3: Create instance-based renderers for all overlay types
+
+    // Text overlays use TextOverlay class
+    if (overlay.type === 'text') {
+      const textOverlay = new TextOverlay(overlay, this.systemsManager);
+      this.overlayRenderers.set(overlay.id, textOverlay);
+      return textOverlay;
+    }
+
+    // Button overlays use ButtonOverlay class
+    if (overlay.type === 'button') {
+      const buttonOverlay = new ButtonOverlay(overlay, this.systemsManager);
+      this.overlayRenderers.set(overlay.id, buttonOverlay);
+      return buttonOverlay;
+    }
+
+    // Line overlays use LineOverlay class
+    if (overlay.type === 'line') {
+      const lineOverlay = new LineOverlay(overlay, this.systemsManager, this.routerCore);
+      this.overlayRenderers.set(overlay.id, lineOverlay);
+      return lineOverlay;
+    }
+
+    // ApexCharts overlays use ApexChartsOverlay class (wrapper pattern)
+    if (overlay.type === 'apexchart') {
+      const apexChartsOverlay = new ApexChartsOverlay(overlay, this.systemsManager);
+      this.overlayRenderers.set(overlay.id, apexChartsOverlay);
+      return apexChartsOverlay;
+    }
+
+    // Status grid overlays use StatusGridOverlay class (wrapper pattern)
+    if (overlay.type === 'status_grid') {
+      const statusGridOverlay = new StatusGridOverlay(overlay, this.systemsManager);
+      this.overlayRenderers.set(overlay.id, statusGridOverlay);
+      return statusGridOverlay;
+    }
+
+    // Control overlays are handled separately by MsdControlsRenderer
+    if (overlay.type === 'control') {
+      return null;
+    }
+
+    // Unknown overlay type
+    cblcarsLog.warn(`[AdvancedRenderer] ⚠️ No renderer available for overlay type: ${overlay.type}`);
+    return null;
+  }
 
 
   /**
    * Render individual overlay using appropriate renderer
    *
+   * ✅ ENHANCED: Phase 3A+ - Now supports both instance-based (OverlayBase) and static renderers
    * ✅ ENHANCED: Now collects and stores renderer provenance for debugging
    *
    * @private
@@ -894,80 +977,58 @@ export class AdvancedRenderer {
 
       let result;
 
-      switch (overlay.type) {
-        case 'text':
-          // Update (in case dynamic overlays later): recompute & refresh map
-          const ap = TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, svgContainer);
-          if (ap) this.textAttachmentPoints.set(overlay.id, ap);
+      // Phase 3A+: Try to get instance-based renderer first
+      const renderer = this._getRendererForOverlay(overlay);
 
-          // Get card instance for action support
-          const textCardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
+      if (renderer instanceof OverlayBase) {
+        // Instance-based overlay - all overlays now use this pattern
+        cblcarsLog.debug(`[AdvancedRenderer] 🎯 Using instance-based renderer for ${overlay.id}`);
 
-          cblcarsLog.debug(`[AdvancedRenderer] 🔤 Calling TextOverlayRenderer.render for ${overlay.id}`, {
-            hasCardInstance: !!textCardInstance,
-            hasActions: !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action)
-          });
+        // Handle special cases for different overlay types
 
-          // CHANGED: Now returns { markup, actionInfo, overlayId, provenance }
-          const textResult = TextOverlayRenderer.render(overlay, anchors, viewBox, this.mountEl, textCardInstance);
+        if (overlay.type === 'text') {
+          // Render first, then extract attachment points from metadata
+          result = renderer.render(overlay, anchors, viewBox, svgContainer);
 
-          cblcarsLog.debug(`[AdvancedRenderer] 🔤 TextOverlayRenderer.render result:`, {
-            hasMarkup: !!textResult?.markup,
-            hasActionInfo: !!textResult?.actionInfo,
-            overlayId: textResult?.overlayId,
-            hasProvenance: !!textResult?.provenance
-          });
+          // Extract and cache attachment points from render result
+          if (result && result.metadata && result.metadata.attachmentPoints) {
+            // Format for LineOverlay: needs {points: {...}, bbox: {...}}
+            const formattedAttachmentPoints = {
+              id: overlay.id,
+              points: result.metadata.attachmentPoints,
+              bbox: result.metadata.bbox,
+              center: result.metadata.attachmentPoints.center
+            };
 
-          result = textResult;
-          break;
-
-        case 'line':
+            // Cache in BOTH maps for backward compatibility
+            this.textAttachmentPoints.set(overlay.id, formattedAttachmentPoints);
+            this.overlayAttachmentPoints.set(overlay.id, formattedAttachmentPoints);
+          }
+        } else if (overlay.type === 'line') {
           // Lines need complete anchor set (static + virtual) for overlay-to-overlay connections
           const completeAnchors = this._getCompleteAnchors(anchors, overlay.type);
-          result = this.lineRenderer.render(overlay, completeAnchors, viewBox);
-          break;
 
-        case 'control':
-          // ADDED: Control overlays are handled by MsdControlsRenderer, not SVG renderer
-          cblcarsLog.debug('[AdvancedRenderer] 🎮 Control overlay detected, skipping SVG rendering:', overlay.id);
-          result = ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
-          break;
+          // Set overlay attachment points on LineOverlay instance before rendering
+          if (renderer.setOverlayAttachmentPoints) {
+            renderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
+          }
 
-        case 'status_grid':
-          result = StatusGridRenderer.render(overlay, anchors, viewBox, svgContainer);
-          break;
-
-        case 'button':
-          result = ButtonOverlayRenderer.render(overlay, anchors, viewBox, svgContainer);
-          break;
-
-        case 'apexchart':
-          // FIXED: Pass the correct svgContainer reference
+          result = renderer.render(overlay, completeAnchors, viewBox, svgContainer);
+        } else if (overlay.type === 'apexchart') {
+          // ApexCharts needs the effective container and card instance
           const apexCardInstance = this.systemsManager ? this._resolveCardInstance() : null;
-
-          // Use this.mountEl as the svgContainer if not provided
           const effectiveSvgContainer = svgContainer || this.mountEl;
 
-          cblcarsLog.debug('[AdvancedRenderer] 📊 Rendering ApexCharts with container:', {
-            overlayId: overlay.id,
-            hasContainer: !!effectiveSvgContainer,
-            containerType: effectiveSvgContainer?.tagName,
-            hasMountEl: !!this.mountEl
-          });
+          result = renderer.render(overlay, anchors, viewBox, effectiveSvgContainer, apexCardInstance);
+        } else {
+          // Standard render for most overlay types (button, status_grid, etc.)
+          result = renderer.render(overlay, anchors, viewBox, svgContainer);
+        }
 
-          result = ApexChartsOverlayRenderer.render(
-            overlay,
-            anchors,
-            viewBox,
-            effectiveSvgContainer,
-            apexCardInstance
-          );
-          break;
-
-        default:
-          cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Unknown overlay type: ${overlay.type}`);
-          result = '';
-          break;
+      } else {
+        // No renderer available - this shouldn't happen with Phase 3 complete
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ No renderer instance for overlay ${overlay.id} (type: ${overlay.type})`);
+        return '';
       }
 
       // ✅ NEW: Store renderer provenance after successful render
@@ -1088,90 +1149,6 @@ export class AdvancedRenderer {
   }
 
 
-
-
-
-
-  /**
-   * Render individual overlay using appropriate renderer
-   * @private
-   */
-  /*
-  renderOverlay(overlay, anchors, viewBox, svgContainer) {
-    try {
-      cblcarsLog.debug(`[AdvancedRenderer] 🎨 Rendering overlay: ${overlay.type} (${overlay.id})`);
-
-      switch (overlay.type) {
-        case 'text':
-          // Update (in case dynamic overlays later): recompute & refresh map
-          const ap = TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, svgContainer);
-          if (ap) this.textAttachmentPoints.set(overlay.id, ap);
-
-          // Get card instance for action support
-          const textCardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
-
-          cblcarsLog.debug(`[AdvancedRenderer] 🔤 Calling TextOverlayRenderer.render for ${overlay.id}`, {
-            hasCardInstance: !!textCardInstance,
-            hasActions: !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action)
-          });
-
-          // CHANGED: Now returns { markup, actionInfo, overlayId }
-          const textResult = TextOverlayRenderer.render(overlay, anchors, viewBox, this.mountEl, textCardInstance);
-
-          cblcarsLog.debug(`[AdvancedRenderer] 🔤 TextOverlayRenderer.render result:`, {
-            hasMarkup: !!textResult?.markup,
-            hasActionInfo: !!textResult?.actionInfo,
-            overlayId: textResult?.overlayId
-          });
-
-          // Return the result structure (backward compatible with string check in render())
-          return textResult;
-
-        case 'line':
-          // Lines need complete anchor set (static + virtual) for overlay-to-overlay connections
-          const completeAnchors = this._getCompleteAnchors(anchors, overlay.type);
-          return this.lineRenderer.render(overlay, completeAnchors, viewBox);
-        case 'control':
-          // ADDED: Control overlays are handled by MsdControlsRenderer, not SVG renderer
-          cblcarsLog.debug('[AdvancedRenderer] 🎮 Control overlay detected, skipping SVG rendering:', overlay.id);
-          return ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
-        case 'status_grid':
-          return StatusGridRenderer.render(overlay, anchors, viewBox, svgContainer);
-        case 'button':
-          return ButtonOverlayRenderer.render(overlay, anchors, viewBox, svgContainer);
-        case 'apexchart':
-          // FIXED: Pass the correct svgContainer reference
-          const apexCardInstance = this.systemsManager ? this._resolveCardInstance() : null;
-
-          // Use this.mountEl as the svgContainer if not provided
-          const effectiveSvgContainer = svgContainer || this.mountEl;
-
-          cblcarsLog.debug('[AdvancedRenderer] 📊 Rendering ApexCharts with container:', {
-            overlayId: overlay.id,
-            hasContainer: !!effectiveSvgContainer,
-            containerType: effectiveSvgContainer?.tagName,
-            hasMountEl: !!this.mountEl
-          });
-
-          return ApexChartsOverlayRenderer.render(
-            overlay,
-            anchors,
-            viewBox,
-            effectiveSvgContainer,  // FIXED: Ensure container is passed
-            apexCardInstance
-          );
-
-        default:
-          cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Unknown overlay type: ${overlay.type}`);
-          return '';
-      }
-    } catch (error) {
-      cblcarsLog.error(`[AdvancedRenderer] ❌ Error rendering overlay ${overlay.id}:`, error);
-      return this.renderFallbackOverlay(overlay);
-    }
-  }
-  */
-
   injectSvgContent(svgContent) {
     const svg = this.mountEl.querySelector('svg');
     if (!svg) {
@@ -1250,6 +1227,17 @@ export class AdvancedRenderer {
         return;
       }
 
+      // Phase 3: Use instance-based update method if available
+      const renderer = this.overlayRenderers.get(overlayId);
+      if (renderer && renderer.update) {
+        // Instance-based overlay - use its update method
+        renderer.update(overlayElement, overlay, sourceData);
+        return;
+      }
+
+      // Fallback for any overlays without instance renderers (shouldn't happen with Phase 3 complete)
+      cblcarsLog.warn(`[AdvancedRenderer] No instance renderer found for overlay ${overlayId}, using legacy update`);
+
       // Handle different overlay types
       switch (overlay.type) {
         case 'text':
@@ -1258,10 +1246,6 @@ export class AdvancedRenderer {
 
         case 'status_grid':
           StatusGridRenderer.updateGridData(overlayElement, overlay, sourceData);
-          break;
-
-        case 'button':
-          ButtonOverlayRenderer.updateButtonData(overlayElement, overlay, sourceData);
           break;
 
         case 'apexchart':
@@ -1548,8 +1532,8 @@ export class AdvancedRenderer {
       this._updateStatusIndicatorPosition(group, bb);
     });
 
-    // CRITICAL: Update line renderer with final attachment points
-    this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
+    // Phase 3: Line overlay attachment points are set per-instance during render
+    // (line overlays call setOverlayAttachmentPoints on their own instances)
 
     // Re-render all overlays to apply final updates
     this._rerenderAllDependentOverlays(allOverlays, Object.keys(this._lineDeps), viewBox);
@@ -1647,6 +1631,7 @@ export class AdvancedRenderer {
 
   /**
    * Re-render a single text overlay (used during font stabilization)
+   * Phase 3: Updated to use TextOverlay instance
    * @private
    */
   _reRenderSingleTextOverlay(overlay, anchorsRef, viewBox) {
@@ -1660,8 +1645,15 @@ export class AdvancedRenderer {
       // Get card instance for action support (same as initial render)
       const textCardInstance = this._resolveCardInstance();
 
-      // Re-render the text overlay
-      const result = TextOverlayRenderer.render(overlay, anchorsRef, viewBox, this.mountEl, textCardInstance);
+      // Get or create TextOverlay instance
+      let textOverlay = this.overlayRenderers.get(overlay.id);
+      if (!textOverlay || !(textOverlay instanceof TextOverlay)) {
+        textOverlay = new TextOverlay(overlay, this.systemsManager);
+        this.overlayRenderers.set(overlay.id, textOverlay);
+      }
+
+      // Re-render the text overlay using instance
+      const result = textOverlay.render(overlay, anchorsRef, viewBox, this.mountEl, textCardInstance);
 
       // Handle both string (old format) and object (new format) returns
       let markup, actionInfo;
@@ -1863,35 +1855,20 @@ export class AdvancedRenderer {
 
           this.overlayAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
           this.textAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
-          this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
+          // Phase 3: Line overlay attachment points are set per-instance during render
+          // (line overlays call setOverlayAttachmentPoints on their own instances)
 
-          // CRITICAL: Force line re-render for this overlay
+          // Phase 3: Update dependent line overlays using their instance renderers
           if (this._lineDeps && this._lineDeps.has(overlayId)) {
             const dependentLines = this._lineDeps.get(overlayId);
             dependentLines.forEach(lineId => {
               const lineOverlay = this.lastRenderArgs.overlays.find(o => o.id === lineId);
-              if (lineOverlay) {
+              const lineElement = this.overlayElementCache.get(lineId);
+              const renderer = this.overlayRenderers.get(lineId);
+
+              if (lineOverlay && lineElement && renderer && typeof renderer.update === 'function') {
                 try {
-                  // ✅ FIXED: LineRenderer now returns { markup, provenance }
-                  const lineResult = this.lineRenderer.render(lineOverlay, this._dynamicAnchors, this.lastRenderArgs.resolvedModel.viewBox);
-                  const lineElement = this.overlayElementCache.get(lineId);
-
-                  // ✅ FIXED: Extract markup from result object
-                  if (lineElement && lineResult && lineResult.markup) {
-                    const temp = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                    temp.innerHTML = lineResult.markup.trim();
-                    const newLineElement = temp.firstElementChild;
-
-                    if (newLineElement) {
-                      lineElement.replaceWith(newLineElement);
-                      this.overlayElementCache.set(lineId, newLineElement);
-
-                      // ✅ NEW: Store provenance if available
-                      if (lineResult.provenance) {
-                        this._storeRendererProvenance(lineId, lineResult.provenance);
-                      }
-                    }
-                  }
+                  renderer.update(lineElement, lineOverlay, this._sourceData);
                 } catch (e) {
                   cblcarsLog.warn(`[AdvancedRenderer] Failed to update line ${lineId}:`, e);
                 }
@@ -2034,16 +2011,11 @@ export class AdvancedRenderer {
       this.overlayAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
       this.textAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
 
-      // Update the line renderer's attachment points
-      this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
+      // Phase 3: Line overlay attachment points are set per-instance during render
+      // (line overlays call setOverlayAttachmentPoints on their own instances)
 
-      // Invalidate routing cache
-      if (this.lineRenderer && this.lineRenderer.routingCache) {
-        this.lineRenderer.routingCache.invalidate('anchors', { anchorIds: [overlay.id] });
-      }
-      if (this.lineRenderer && this.lineRenderer.router && typeof this.lineRenderer.router.invalidate === 'function') {
-        this.lineRenderer.router.invalidate(overlay.id);
-      }
+      // Phase 3: Line overlays handle their own routing cache invalidation
+      // No need to manually invalidate global routing cache
 
     } catch (error) {
       cblcarsLog.warn(`[AdvancedRenderer] Error updating attachment points after stabilization for ${overlay.id}:`, error);

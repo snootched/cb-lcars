@@ -220,7 +220,7 @@ export class RendererUtils {
 
     // Adjust for baseline (y is already in viewBox coordinates)
     let top = y - metrics.ascent;
-    if (dominantBaseline === 'middle') {
+    if (dominantBaseline === 'middle' || dominantBaseline === 'central') {
       top = y - metrics.height / 2;
     } else if (dominantBaseline === 'hanging') {
       top = y;

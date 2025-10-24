@@ -1,5 +1,5 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
-import { MsdTemplateEngine } from '../overlays/MsdTemplateEngine.js';
+import { MsdTemplateEngine } from '../templates/MsdTemplateEngine.js';
 import { TemplateProcessor } from '../utils/TemplateProcessor.js';
 
 /**

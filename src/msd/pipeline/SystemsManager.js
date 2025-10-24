@@ -216,8 +216,14 @@ export class SystemsManager {
 
       // Connect re-evaluation to render pipeline
       this.rulesEngine.setReEvaluationCallback(() => {
+        cblcarsLog.info('[SystemsManager] 🔄 RulesEngine re-evaluation callback triggered', {
+          hasReRenderCallback: !!this._reRenderCallback
+        });
         if (this._reRenderCallback) {
+          cblcarsLog.info('[SystemsManager] 📤 Scheduling full re-render from rules change');
           this._scheduleFullReRender();
+        } else {
+          cblcarsLog.warn('[SystemsManager] ⚠️ No _reRenderCallback available, cannot re-render');
         }
       });
 
@@ -424,14 +430,11 @@ export class SystemsManager {
       // PHASE 1: Register entity change listener BEFORE initializing data sources
       // This ensures subscriptions created during initialization can trigger the listener
       this.dataSourceManager.addEntityChangeListener((changedIds) => {
-        cblcarsLog.debug('[SystemsManager] 🔔 Entity change detected via DataSource:', changedIds);
-
         // CRITICAL: Sync our HASS with DataSourceManager's updated HASS
         // Real-time entity updates come via DataSource subscriptions, which update
         // DataSourceManager.hass but NOT SystemsManager._hass. We need to sync them!
         if (this.dataSourceManager && this.dataSourceManager.hass) {
           this._hass = this.dataSourceManager.hass;
-          cblcarsLog.debug('[SystemsManager] 🔄 Synced HASS from DataSourceManager for rule evaluation');
         }
 
         // Mark rules dirty for changed entities
@@ -1045,7 +1048,7 @@ export class SystemsManager {
    * @private
    */
   _propagateHassToSystems(hass) {
-    cblcarsLog.debug('[SystemsManager] 🔄 _propagateHassToSystems: Starting ordered propagation');
+    cblcarsLog.info('[SystemsManager] 🔄 _propagateHassToSystems: Starting ordered propagation');
 
     // 1. DataSourceManager first (provides entity values)
     if (this.dataSourceManager && typeof this.dataSourceManager.ingestHass === 'function') {
@@ -1057,10 +1060,17 @@ export class SystemsManager {
 
     // 2. RulesEngine second (evaluates conditions with fresh data)
     if (this.rulesEngine && typeof this.rulesEngine.ingestHass === 'function') {
-      cblcarsLog.debug('[SystemsManager] 📏 Propagating to RulesEngine');
+      cblcarsLog.info('[SystemsManager] 📏 Propagating to RulesEngine', {
+        hasRulesEngine: !!this.rulesEngine,
+        hasMethod: typeof this.rulesEngine.ingestHass === 'function'
+      });
       this.rulesEngine.ingestHass(hass);
+      cblcarsLog.info('[SystemsManager] ✅ RulesEngine.ingestHass() completed');
     } else {
-      cblcarsLog.debug('[SystemsManager] ⏭️ RulesEngine not ready or no ingestHass method');
+      cblcarsLog.warn('[SystemsManager] ⚠️ RulesEngine not ready or no ingestHass method', {
+        hasRulesEngine: !!this.rulesEngine,
+        hasMethod: this.rulesEngine ? typeof this.rulesEngine.ingestHass : 'no rulesEngine'
+      });
     }
 
     // 3. Controls third (direct HASS access)

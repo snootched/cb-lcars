@@ -338,6 +338,30 @@ export class RulesEngine {
     });
   }
 
+  /**
+   * Ingest fresh HASS state and trigger rule re-evaluation
+   * Called by SystemsManager when HASS updates
+   * @param {Object} hass - Fresh Home Assistant state object
+   */
+  ingestHass(hass) {
+    if (!hass || !hass.states) {
+      cblcarsLog.warn('[RulesEngine] ingestHass: Invalid HASS provided');
+      return;
+    }
+
+    // Mark all rules dirty since any entity could have changed
+    this.markAllDirty();
+
+    // Trigger re-evaluation callback if registered
+    if (this._reEvaluationCallback) {
+      try {
+        this._reEvaluationCallback();
+      } catch (error) {
+        cblcarsLog.error('[RulesEngine] Error in re-evaluation callback:', error);
+      }
+    }
+  }
+
   evaluateRule(rule, getEntity) {
     const startTime = performance.now();
 
@@ -1104,8 +1128,9 @@ function applyStatusGridCellPatch(overlay, patch) {
         cblcarsLog.info('[RulesEngine] 🎯 PATCHING CELL:', {
           cellId: cell.id,
           position: [cell.row, cell.col],
-          originalColor: cell.color,
-          patchColor: patch.style.color,
+          originalColor: cell.color || cell.cell_color,
+          patchColor: patch.style.color || patch.style.cell_color,
+          patchBracketColor: patch.style.bracket_color,
           patch: patch.style
         });
 
@@ -1113,21 +1138,47 @@ function applyStatusGridCellPatch(overlay, patch) {
           ...cell,
           // CHANGED: Store patches in a separate property to prevent cascade during style resolution
           _rulePatch: patch.style,
+
           // Apply cell-level style overrides
-          color: patch.style.color || cell.color,
+          // Support both 'color' and 'cell_color' (StatusGrid uses 'cell_color')
+          color: patch.style.color || patch.style.cell_color || cell.color || cell.cell_color,
+          cell_color: patch.style.cell_color || patch.style.color || cell.cell_color || cell.color,
+
+          // StatusGrid-specific properties
+          bracket_color: patch.style.bracket_color !== undefined ? patch.style.bracket_color : cell.bracket_color,
+          cell_opacity: patch.style.cell_opacity !== undefined ? patch.style.cell_opacity : cell.cell_opacity,
+          lcars_button_preset: patch.style.lcars_button_preset !== undefined ? patch.style.lcars_button_preset : cell.lcars_button_preset,
+          text_layout: patch.style.text_layout !== undefined ? patch.style.text_layout : cell.text_layout,
+          label_color: patch.style.label_color !== undefined ? patch.style.label_color : cell.label_color,
+          value_color: patch.style.value_color !== undefined ? patch.style.value_color : cell.value_color,
+
+          // Border properties
+          border: patch.style.border !== undefined ? patch.style.border : cell.border,
+
+          // Generic properties
           radius: patch.style.radius !== undefined ? patch.style.radius : cell.radius,
           font_size: patch.style.font_size !== undefined ? patch.style.font_size : cell.font_size,
+
           // Support content override
           content: patch.content !== undefined ? patch.content : cell.content,
           label: patch.label !== undefined ? patch.label : cell.label,
+
           // Support visibility control
-          visible: patch.visible !== undefined ? patch.visible : (cell.visible !== undefined ? cell.visible : true)
+          visible: patch.visible !== undefined ? patch.visible : (cell.visible !== undefined ? cell.visible : true),
+
+          // Merge style object for StatusGrid style resolution
+          style: {
+            ...(cell.style || {}),
+            ...(patch.style || {})
+          }
         };
 
         cblcarsLog.info('[RulesEngine] ✅ CELL PATCHED RESULT:', {
           cellId: patchedCell.id,
           newColor: patchedCell.color,
-          hadColorChange: cell.color !== patchedCell.color
+          newCellColor: patchedCell.cell_color,
+          newBracketColor: patchedCell.bracket_color,
+          hadColorChange: (cell.color || cell.cell_color) !== (patchedCell.color || patchedCell.cell_color)
         });
 
         return patchedCell;
@@ -1179,56 +1230,3 @@ function matchesStatusGridCellTarget(cell, cellTarget) {
 // PHASE 1: New HASS Ingestion Method (Step 1 - Add alongside existing)
 // ============================================================================
 
-/**
- * NEW: Ingest fresh HASS and mark affected rules dirty
- * This supplements the real-time entity subscription mechanism
- * Used for: initialization, reconnection, manual refresh
- * @param {Object} hass - Home Assistant state object
- */
-RulesEngine.prototype.ingestHass = function(hass) {
-  if (!hass || !hass.states) {
-    cblcarsLog.warn('[RulesEngine] ingestHass: Invalid HASS provided');
-    return;
-  }
-
-  cblcarsLog.debug('[RulesEngine] 📥 ingestHass: Processing fresh HASS', {
-    entityCount: Object.keys(hass.states).length,
-    ruleCount: this.rules.length
-  });
-
-  // Cache entity IDs for performance
-  const currentEntityIds = new Set(Object.keys(hass.states));
-  const previousEntityIds = this._hassEntities;
-
-  // Detect which entities changed
-  const changedEntities = new Set();
-
-  // Check for new or modified entities
-  for (const entityId of currentEntityIds) {
-    if (!previousEntityIds.has(entityId)) {
-      changedEntities.add(entityId);
-    }
-  }
-
-  // Check for removed entities
-  for (const entityId of previousEntityIds) {
-    if (!currentEntityIds.has(entityId)) {
-      changedEntities.add(entityId);
-    }
-  }
-
-  // Update cached entity list
-  this._hassEntities = currentEntityIds;
-
-  // Mark rules that depend on changed entities as dirty
-  if (changedEntities.size > 0) {
-    cblcarsLog.debug(`[RulesEngine] 🔄 Marking rules dirty for ${changedEntities.size} changed entities`);
-    this.markEntitiesDirty(Array.from(changedEntities));
-  } else {
-    cblcarsLog.debug('[RulesEngine] ⏭️ No entity changes detected');
-  }
-
-  cblcarsLog.debug('[RulesEngine] ✅ ingestHass: Complete', {
-    dirtyRules: this.dirtyRules.size
-  });
-};

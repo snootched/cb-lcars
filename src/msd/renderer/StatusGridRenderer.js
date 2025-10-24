@@ -528,16 +528,10 @@ export class StatusGridRenderer extends BaseRenderer {
 
     const cellStyle = cellConfig?.style || {};
 
-    cblcarsLog.debug('[StatusGridRenderer] 🎨 Layer 5: Applying cell styles', {
-      cellId: cellConfig?.id,
-      stylePropertyCount: Object.keys(cellStyle).length,
-      hasRulePatch: !!cellConfig?._rulePatch
-    });
-
     // Create new style object (immutable)
     const mergedStyle = { ...baseStyle };
 
-    // ADDED: Apply rule patches first (these have highest priority)
+    // Apply rule patches first (these have highest priority)
     if (cellConfig._rulePatch) {
       Object.entries(cellConfig._rulePatch).forEach(([property, value]) => {
         if (value !== undefined && value !== null) {
@@ -547,12 +541,6 @@ export class StatusGridRenderer extends BaseRenderer {
           // Rule patches override everything
           mergedStyle[property] = resolvedValue;
           priorityTracker.explicit.set(property, 'rule_patch');
-
-          cblcarsLog.debug(`[StatusGridRenderer] ✓ Rule patch ${property}:`, {
-            raw: value,
-            resolved: resolvedValue,
-            wasToken: value !== resolvedValue
-          });
         }
       });
     }
@@ -571,12 +559,6 @@ export class StatusGridRenderer extends BaseRenderer {
         // Cell.style has highest priority
         mergedStyle[property] = resolvedValue;
         priorityTracker.explicit.set(property, 'cell_style');
-
-        cblcarsLog.debug(`[StatusGridRenderer] ✓ Cell style ${property}:`, {
-          raw: value,
-          resolved: resolvedValue,
-          wasToken: value !== resolvedValue
-        });
       }
     });
 
@@ -600,12 +582,6 @@ export class StatusGridRenderer extends BaseRenderer {
         // Direct properties override cell.style
         mergedStyle[property] = resolvedValue;
         priorityTracker.explicit.set(property, 'cell_direct');
-
-        cblcarsLog.debug(`[StatusGridRenderer] ✓ Cell direct ${property}:`, {
-          raw: value,
-          resolved: resolvedValue,
-          wasToken: value !== resolvedValue
-        });
       }
     });
 
@@ -1294,12 +1270,6 @@ export class StatusGridRenderer extends BaseRenderer {
    * @returns {Object} Complete cell styling with proper inheritance and token resolution
    */
   _resolveCellStyle(cellConfig, gridStyle, cellWidth, cellHeight) {
-    cblcarsLog.debug('[StatusGridRenderer] 🎯 Resolving cell style using unified system', {
-      cellId: cellConfig?.id,
-      hasCellPreset: !!(cellConfig?.lcars_button_preset || cellConfig?.style?.lcars_button_preset),
-      hasCellStyle: !!(cellConfig?.style)
-    });
-
     // Create a minimal overlay object for the unified system
     // It will inherit from gridStyle which already has overlay-level resolution
     const overlayForCell = {
@@ -1374,13 +1344,6 @@ export class StatusGridRenderer extends BaseRenderer {
     // Store for reference
     finalCellStyle.standardStyles = cellStandardStyles;
     finalCellStyle.mergedConfig = mergedConfigForRendererUtils;
-
-    cblcarsLog.debug('[StatusGridRenderer] ✅ Cell style resolved via unified system', {
-      cellId: cellConfig?.id,
-      priorityLayers: finalCellStyle._priorityTracker ? Array.from(finalCellStyle._priorityTracker.layers) : [],
-      color: finalCellStyle.color,
-      hasTokenResolution: !!finalCellStyle._priorityTracker
-    });
 
     return finalCellStyle;
   }
@@ -3049,6 +3012,9 @@ export class StatusGridRenderer extends BaseRenderer {
 
   /**
    * Update status grid overlay data when DataSource changes
+   *
+   * ✅ ENHANCED: Now handles both content AND style updates for cells
+   *
    * @param {Element} gridElement - DOM element for the status grid
    * @param {Object} overlay - Overlay configuration
    * @param {Object} sourceData - New DataSource data
@@ -3062,23 +3028,30 @@ export class StatusGridRenderer extends BaseRenderer {
       // Create instance for non-static methods
       const instance = new StatusGridRenderer();
 
-      // Get updated cells with new data
+      // Get updated cells with new data (for content changes)
       const style = overlay.finalStyle || overlay.style || {};
-      const updatedCells = instance.updateCellsWithData(overlay, style, sourceData);
+      const cellsWithContentChanges = instance.updateCellsWithData(overlay, style, sourceData);
 
-      if (updatedCells && updatedCells.length > 0) {
-        // Update individual cell content in DOM using ButtonRenderer
-        let hasUpdates = false;
+      // CRITICAL FIX: Need to check ALL cells for style changes, not just cells with content changes!
+      // Get all cells from overlay for style checking
+      const gridStyle = instance._resolveStatusGridStyles(style, overlay.id, overlay);
+      const allCells = instance._resolveCellConfigurations(overlay, gridStyle);
 
-        updatedCells.forEach(cell => {
-          const cellElement = gridElement.querySelector(`[data-button-id="${cell.id}"]`);
-          if (cellElement) {
+      let hasUpdates = false;
+
+      // Update all cells (check both content AND style)
+      allCells.forEach(cell => {
+        const cellElement = gridElement.querySelector(`[data-button-id="${cell.id}"]`);
+        if (cellElement) {
+          // 1. Update content if this cell had content changes
+          const cellWithContentChange = cellsWithContentChanges?.find(c => c.id === cell.id);
+          if (cellWithContentChange) {
             const buttonConfig = {
-              id: cell.id,
-              label: cell.label,
-              content: cell.content,
-              _raw: cell._raw || cell.config,
-              _originalContent: cell._originalContent
+              id: cellWithContentChange.id,
+              label: cellWithContentChange.label,
+              content: cellWithContentChange.content,
+              _raw: cellWithContentChange._raw || cellWithContentChange.config,
+              _originalContent: cellWithContentChange._originalContent
             };
 
             const updated = ButtonRenderer.updateButtonData(cellElement, buttonConfig, sourceData);
@@ -3086,21 +3059,66 @@ export class StatusGridRenderer extends BaseRenderer {
               hasUpdates = true;
             }
           }
-        });
 
-        if (hasUpdates) {
-          // Update grid timestamp
-          const timestamp = new Date().toISOString();
-          gridElement.setAttribute('data-last-update', timestamp);
-          cblcarsLog.debug(`[StatusGridRenderer] ✅ Updated ${updatedCells.length} cells in grid ${overlay.id}`);
+          // 2. ALWAYS check for style changes (not just content-changed cells!)
+          const styleUpdated = instance._updateCellStyle(cellElement, cell, overlay);
+          if (styleUpdated) {
+            hasUpdates = true;
+          }
         }
+      });
 
-        return hasUpdates;
+      if (hasUpdates) {
+        // Update grid timestamp
+        const timestamp = new Date().toISOString();
+        gridElement.setAttribute('data-last-update', timestamp);
+        cblcarsLog.debug(`[StatusGridRenderer] ✅ Updated ${allCells.length} cells in grid ${overlay.id}`);
       }
 
-      return false;
+      return hasUpdates;
+
     } catch (error) {
       cblcarsLog.error(`[StatusGridRenderer] Error updating grid data for ${overlay.id}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Update cell button style (for rules engine style patches)
+   * @private
+   * @param {SVGElement} cellElement - Cell button DOM element
+   * @param {Object} cell - Cell configuration
+   * @param {Object} overlay - Full overlay configuration (may contain rules patches)
+   * @returns {boolean} True if style was updated
+   */
+  _updateCellStyle(cellElement, cell, overlay) {
+    try {
+      // Find cell config from overlay (may have rules patches applied)
+      const cellConfig = overlay.cells?.find(c => c.id === cell.id);
+      if (!cellConfig) {
+        return false;
+      }
+
+      // Resolve grid and cell styles (includes rules patches)
+      const gridStyle = this._resolveStatusGridStyles(overlay.style, overlay.id, overlay);
+
+      // Get cell size from element or defaults
+      const bbox = cellElement.getBBox?.() || { width: gridStyle.cell_width || 100, height: gridStyle.cell_height || 100 };
+      const cellWidth = bbox.width;
+      const cellHeight = bbox.height;
+
+      // Use the unified style resolution system (same as render)
+      const cellStyle = this._resolveCellStyle(cellConfig, gridStyle, cellWidth, cellHeight);
+
+      // Update via ButtonRenderer
+      const updated = ButtonRenderer.updateButtonStyle(cellElement, cellStyle, {
+        width: cellWidth,
+        height: cellHeight
+      });
+
+      return updated;
+    } catch (error) {
+      cblcarsLog.error(`[StatusGridRenderer] Error updating cell style for ${cell.id}:`, error);
       return false;
     }
   }

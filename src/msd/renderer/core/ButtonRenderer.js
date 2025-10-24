@@ -1153,6 +1153,122 @@ export class ButtonRenderer extends BaseRenderer {
   }
 
   /**
+   * Update button style dynamically (for rules engine patches)
+   * @param {Element} buttonElement - DOM element for the button
+   * @param {Object} newStyle - New resolved button style
+   * @param {Object} size - Button dimensions {width, height}
+   * @returns {boolean} True if style was updated
+   * @static
+   */
+  static updateButtonStyle(buttonElement, newStyle, size = null) {
+    const instance = new ButtonRenderer();
+    return instance._updateButtonStyle(buttonElement, newStyle, size);
+  }
+
+  /**
+   * Internal method to update button style
+   * Updates visual styling without full re-render
+   * @private
+   */
+  _updateButtonStyle(buttonElement, newStyle, size = null) {
+    try {
+      const buttonId = buttonElement.getAttribute('data-button-id');
+      cblcarsLog.debug(`[ButtonRenderer] Updating style for button ${buttonId}`);
+
+      let styleUpdated = false;
+
+      // Find the background element (rect or path)
+      const rectElement = buttonElement.querySelector('rect');
+      const pathElement = buttonElement.querySelector('path');
+      const backgroundElement = rectElement || pathElement;
+
+      if (backgroundElement) {
+        // Update fill color
+        if (newStyle.color !== undefined) {
+          let fill = newStyle.color;
+
+          // Handle gradient/pattern (would need re-render for these, so just use solid color)
+          if (newStyle.gradient) {
+            cblcarsLog.debug(`[ButtonRenderer] Gradient change detected, using solid color fallback`);
+            fill = newStyle.color || 'var(--lcars-blue)';
+          }
+          if (newStyle.pattern) {
+            cblcarsLog.debug(`[ButtonRenderer] Pattern change detected, using solid color fallback`);
+            fill = newStyle.color || 'var(--lcars-blue)';
+          }
+
+          backgroundElement.setAttribute('fill', fill);
+          styleUpdated = true;
+        }
+
+        // Update opacity
+        if (newStyle.opacity !== undefined) {
+          backgroundElement.setAttribute('opacity', newStyle.opacity);
+          styleUpdated = true;
+        }
+
+        // Update border/stroke color
+        if (newStyle.border?.color !== undefined) {
+          backgroundElement.setAttribute('stroke', newStyle.border.color);
+          styleUpdated = true;
+        }
+
+        // Update border width
+        if (newStyle.border?.width !== undefined) {
+          backgroundElement.setAttribute('stroke-width', newStyle.border.width);
+          styleUpdated = true;
+        }
+
+        // Update border radius (rect only)
+        if (rectElement && newStyle.border?.radius !== undefined) {
+          rectElement.setAttribute('rx', newStyle.border.radius);
+          rectElement.setAttribute('ry', newStyle.border.radius);
+          styleUpdated = true;
+        }
+      }
+
+      // Update bracket colors if present
+      if (newStyle.bracket_color !== undefined) {
+        const bracketPaths = buttonElement.querySelectorAll('[data-bracket]');
+        bracketPaths.forEach(path => {
+          path.setAttribute('stroke', newStyle.bracket_color);
+          styleUpdated = true;
+        });
+      }
+
+      // Update text colors if present
+      if (newStyle.label_color !== undefined || newStyle.value_color !== undefined) {
+        const textElements = buttonElement.querySelectorAll('text');
+        textElements.forEach((textEl, index) => {
+          const textGroup = textEl.closest('[data-button-text-index]');
+          if (textGroup) {
+            const textIndex = parseInt(textGroup.getAttribute('data-button-text-index'));
+
+            // First text is usually label, second is value (legacy format)
+            if (textIndex === 0 && newStyle.label_color !== undefined) {
+              textEl.setAttribute('fill', newStyle.label_color);
+              styleUpdated = true;
+            } else if (textIndex === 1 && newStyle.value_color !== undefined) {
+              textEl.setAttribute('fill', newStyle.value_color);
+              styleUpdated = true;
+            }
+          }
+        });
+      }
+
+      if (styleUpdated) {
+        cblcarsLog.debug(`[ButtonRenderer] ✅ Style updated for button ${buttonId}`);
+      }
+
+      return styleUpdated;
+
+    } catch (error) {
+      cblcarsLog.error(`[ButtonRenderer] Error updating button style:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Update button texts array (new approach using core/TextRenderer)
    * @private
    */

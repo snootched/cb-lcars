@@ -80,8 +80,14 @@ export class DataSourceManager {
     if (config.entity) {
       this.entityIndex.set(config.entity, source);
 
-      // Forward entity changes to global listeners
+      // Forward entity changes to global listeners AND update hass object
       source.subscribe((data) => {
+        // CRITICAL: Update our hass object with the new state from the DataSource
+        if (this.hass && this.hass.states && source._lastOriginalState) {
+          this.hass.states[config.entity] = source._lastOriginalState;
+          cblcarsLog.debug(`[DataSourceManager] 🔄 Updated hass.states['${config.entity}'] to: ${source._lastOriginalState.state}`);
+        }
+
         this._notifyGlobalEntityChangeListeners([config.entity]);
       });
     }
