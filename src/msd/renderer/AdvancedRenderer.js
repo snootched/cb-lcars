@@ -962,6 +962,100 @@ export class AdvancedRenderer {
     return null;
   }
 
+  /**
+   * Selectively re-render specific overlays (incremental update fallback)
+   * This method re-renders only the specified overlays without touching others
+   *
+   * @param {Array} overlaysToReRender - Array of overlay configs to re-render
+   * @param {Object} resolvedModel - Complete model with all overlays, anchors, and viewBox
+   * @returns {boolean} True if all overlays were successfully re-rendered
+   */
+  reRenderOverlays(overlaysToReRender, resolvedModel) {
+    cblcarsLog.info(`[AdvancedRenderer] 🔄 Selectively re-rendering ${overlaysToReRender.length} overlay(s)`);
+
+    if (!resolvedModel || !overlaysToReRender || overlaysToReRender.length === 0) {
+      cblcarsLog.warn('[AdvancedRenderer] ⚠️ Invalid parameters for selective re-render');
+      return false;
+    }
+
+    const { anchors = {}, viewBox } = resolvedModel;
+    const svg = this.mountEl?.querySelector('svg');
+
+    if (!svg) {
+      cblcarsLog.error('[AdvancedRenderer] ❌ SVG element not found - cannot selective re-render');
+      return false;
+    }
+
+    const overlayGroup = svg.querySelector('#msd-overlay-container');
+    if (!overlayGroup) {
+      cblcarsLog.error('[AdvancedRenderer] ❌ Overlay container not found - cannot selective re-render');
+      return false;
+    }
+
+    let allSucceeded = true;
+
+    overlaysToReRender.forEach(overlay => {
+      try {
+        cblcarsLog.debug(`[AdvancedRenderer] 🎨 Re-rendering overlay: ${overlay.id}`);
+
+        // Find and remove existing overlay element
+        const existingElement = overlayGroup.querySelector(`[data-overlay-id="${overlay.id}"]`);
+        if (existingElement) {
+          existingElement.remove();
+          cblcarsLog.debug(`[AdvancedRenderer] 🗑️ Removed existing overlay element: ${overlay.id}`);
+        }
+
+        // Re-render the overlay
+        const result = this.renderOverlay(overlay, anchors, viewBox, svg);
+
+        if (result && result.markup) {
+          // Create temporary container to parse the markup
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = result.markup;
+
+          // Move the rendered element to the overlay group
+          const newElement = tempDiv.firstElementChild;
+          if (newElement) {
+            overlayGroup.appendChild(newElement);
+            cblcarsLog.debug(`[AdvancedRenderer] ✅ Re-rendered overlay: ${overlay.id}`);
+
+            // Re-attach actions if present
+            if (result.actionInfo && !newElement.hasAttribute('data-actions-attached')) {
+              try {
+                if (result.actionInfo.config.simple) {
+                  ActionHelpers.attachSimpleAction(newElement, result.actionInfo.config, this.routerCore);
+                } else if (result.actionInfo.config.enhanced) {
+                  ActionHelpers.attachEnhancedAction(newElement, result.actionInfo.config, this.routerCore);
+                }
+                newElement.setAttribute('data-actions-attached', 'true');
+                cblcarsLog.debug(`[AdvancedRenderer] 🎯 Re-attached actions for: ${overlay.id}`);
+              } catch (actionError) {
+                cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Failed to re-attach actions for ${overlay.id}:`, actionError);
+              }
+            }
+          } else {
+            cblcarsLog.warn(`[AdvancedRenderer] ⚠️ No element created for overlay: ${overlay.id}`);
+            allSucceeded = false;
+          }
+        } else {
+          cblcarsLog.warn(`[AdvancedRenderer] ⚠️ No markup returned for overlay: ${overlay.id}`);
+          allSucceeded = false;
+        }
+      } catch (error) {
+        cblcarsLog.error(`[AdvancedRenderer] ❌ Failed to re-render overlay ${overlay.id}:`, error);
+        allSucceeded = false;
+      }
+    });
+
+    if (allSucceeded) {
+      cblcarsLog.info(`[AdvancedRenderer] ✅ Successfully re-rendered all ${overlaysToReRender.length} overlay(s)`);
+    } else {
+      cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Some overlays failed to re-render`);
+    }
+
+    return allSucceeded;
+  }
+
 
   /**
    * Render individual overlay using appropriate renderer

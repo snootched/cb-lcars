@@ -382,7 +382,7 @@ export class StatusGridRenderer extends BaseRenderer {
           // Only apply non-cell-specific properties at overlay level
           const cellSpecificProps = ['cell_color', 'cell_radius', 'cell_opacity', 'bracket_color', 'lcars_button_preset', 'text_layout'];
           if (cellSpecificProps.includes(property)) {
-            cblcarsLog.debug(`[StatusGridRenderer] ⏭️ Skipping overlay-level ${property} (cell-specific patches present)`);
+            // Removed excessive per-property debug logging
             return;
           }
         }
@@ -394,11 +394,7 @@ export class StatusGridRenderer extends BaseRenderer {
         mergedStyle[property] = resolvedValue;
         priorityTracker.explicit.set(property, 'overlay_style');
 
-        cblcarsLog.debug(`[StatusGridRenderer] ✓ Overlay style ${property}:`, {
-          raw: value,
-          resolved: resolvedValue,
-          wasToken: value !== resolvedValue
-        });
+        // Removed excessive per-property debug logging (was logging 675 CSS properties!)
       }
     });
 
@@ -476,11 +472,7 @@ export class StatusGridRenderer extends BaseRenderer {
         mergedStyle[property] = resolvedValue;
         priorityTracker.computed.set(property, 'cell_preset');
 
-        cblcarsLog.debug(`[StatusGridRenderer] ✓ Cell preset set ${property}:`, {
-          raw: value,
-          resolved: resolvedValue,
-          wasToken: value !== resolvedValue
-        });
+        // Removed excessive per-property debug logging
       }
     });
 
@@ -659,6 +651,55 @@ export class StatusGridRenderer extends BaseRenderer {
     return resolved;
   }
 
+  // ============================================================================
+  // INCREMENTAL UPDATE CAPABILITY (Phase 1)
+  // ============================================================================
+
+  /**
+   * Check if this renderer supports incremental updates
+   * @static
+   * @returns {boolean} True - StatusGrid supports incremental updates
+   */
+  static supportsIncrementalUpdate() {
+    return true;
+  }
+
+  /**
+   * Perform incremental update on existing status grid
+   * Updates cell styles and content without rebuilding entire grid DOM
+   * @static
+   * @param {Object} overlay - Overlay configuration with rule patches applied
+   * @param {SVGElement} gridElement - Existing grid DOM element
+   * @param {Object} context - Update context {dataSourceManager, systemsManager, hass}
+   * @returns {boolean} True if update succeeded
+   */
+  static updateIncremental(overlay, gridElement, context) {
+    cblcarsLog.info(`[StatusGridRenderer] 🎨 INCREMENTAL UPDATE: ${overlay.id}`);
+
+    try {
+      // Use existing updateGridData method (already handles rule patches!)
+      const updated = StatusGridRenderer.updateGridData(
+        overlay,
+        gridElement,
+        context.dataSourceManager
+      );
+
+      if (updated) {
+        cblcarsLog.info(`[StatusGridRenderer] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.id} (smooth transitions preserved)`);
+      } else {
+        cblcarsLog.debug(`[StatusGridRenderer] ℹ️ INCREMENTAL UPDATE NO-OP: ${overlay.id} (no changes detected)`);
+      }
+
+      return updated;
+    } catch (error) {
+      cblcarsLog.error(`[StatusGridRenderer] ❌ INCREMENTAL UPDATE FAILED: ${overlay.id}`, error);
+      return false; // Trigger fallback to full re-render
+    }
+  }
+
+  // ============================================================================
+  // RENDER METHODS
+  // ============================================================================
 
   /**
    * Render a status grid overlay with comprehensive styling support
@@ -3023,21 +3064,71 @@ export class StatusGridRenderer extends BaseRenderer {
    */
   static updateGridData(gridElement, overlay, sourceData) {
     try {
-      cblcarsLog.debug(`[StatusGridRenderer] Updating status grid ${overlay.id} with DataSource data`);
+      // Log the actual sourceData structure to understand what we're getting
+      const sourceDataKeys = sourceData ? Object.keys(sourceData) : [];
+      cblcarsLog.info(`[StatusGridRenderer] 📦 PATCH STRUCTURE ANALYSIS:`, {
+        hasSourceData: !!sourceData,
+        allKeys: sourceDataKeys,
+        // Try all possible key names
+        id: sourceData?.id,
+        type: sourceData?.type,
+        overlayId: sourceData?.overlayId,
+        cellTarget: sourceData?.cellTarget,
+        cell_target: sourceData?.cell_target,
+        cell: sourceData?.cell,
+        patch: sourceData?.patch,
+        // Show full object (for expanded view in console)
+        fullPatch: sourceData
+      });
+
+      // Check if sourceData is a rule patch (has cellTarget property)
+      // Try both camelCase and snake_case variants
+      const isRulePatch = sourceData && typeof sourceData === 'object' &&
+                         ('cellTarget' in sourceData || 'cell_target' in sourceData || 'cell' in sourceData);
+
+      // If it's a rule patch, temporarily store it on the overlay for style resolution
+      let patchedOverlay = overlay;
+      if (isRulePatch && sourceData.cellTarget) {
+        // Apply patch to the overlay by modifying the cell config
+        patchedOverlay = {
+          ...overlay,
+          cells: overlay.cells?.map(cell => {
+            if (cell.id === sourceData.cellTarget.cellId) {
+              return {
+                ...cell,
+                _rulePatch: sourceData.patch, // Store patch for style resolution
+                style: {
+                  ...cell.style,
+                  ...sourceData.patch // Merge patch into cell style
+                }
+              };
+            }
+            return cell;
+          })
+        };
+      }
+
+      cblcarsLog.debug(`[StatusGridRenderer] 📥 updateGridData() called for ${overlay.id}`, {
+        hasRulePatches: isRulePatch,
+        cellsWithPatches: isRulePatch && sourceData.cellTarget ? 1 : 0,
+        patchedCellId: isRulePatch && sourceData.cellTarget ? sourceData.cellTarget.cellId : undefined
+      });
 
       // Create instance for non-static methods
       const instance = new StatusGridRenderer();
 
       // Get updated cells with new data (for content changes)
-      const style = overlay.finalStyle || overlay.style || {};
-      const cellsWithContentChanges = instance.updateCellsWithData(overlay, style, sourceData);
+      const style = patchedOverlay.finalStyle || patchedOverlay.style || {};
+      const cellsWithContentChanges = instance.updateCellsWithData(patchedOverlay, style, sourceData);
 
       // CRITICAL FIX: Need to check ALL cells for style changes, not just cells with content changes!
       // Get all cells from overlay for style checking
-      const gridStyle = instance._resolveStatusGridStyles(style, overlay.id, overlay);
-      const allCells = instance._resolveCellConfigurations(overlay, gridStyle);
+      const gridStyle = instance._resolveStatusGridStyles(style, patchedOverlay.id, patchedOverlay);
+      const allCells = instance._resolveCellConfigurations(patchedOverlay, gridStyle);
 
       let hasUpdates = false;
+      let contentUpdates = 0;
+      let styleUpdates = 0;
 
       // Update all cells (check both content AND style)
       allCells.forEach(cell => {
@@ -3057,13 +3148,15 @@ export class StatusGridRenderer extends BaseRenderer {
             const updated = ButtonRenderer.updateButtonData(cellElement, buttonConfig, sourceData);
             if (updated) {
               hasUpdates = true;
+              contentUpdates++;
             }
           }
 
           // 2. ALWAYS check for style changes (not just content-changed cells!)
-          const styleUpdated = instance._updateCellStyle(cellElement, cell, overlay);
+          const styleUpdated = instance._updateCellStyle(cellElement, cell, patchedOverlay);
           if (styleUpdated) {
             hasUpdates = true;
+            styleUpdates++;
           }
         }
       });
@@ -3072,7 +3165,18 @@ export class StatusGridRenderer extends BaseRenderer {
         // Update grid timestamp
         const timestamp = new Date().toISOString();
         gridElement.setAttribute('data-last-update', timestamp);
-        cblcarsLog.debug(`[StatusGridRenderer] ✅ Updated ${allCells.length} cells in grid ${overlay.id}`);
+        cblcarsLog.debug(`[StatusGridRenderer] ✅ Updated ${allCells.length} cells in grid ${overlay.id}:`, {
+          contentUpdates,
+          styleUpdates,
+          totalCells: allCells.length
+        });
+      } else {
+        cblcarsLog.debug(`[StatusGridRenderer] ℹ️ No updates needed for ${overlay.id}:`, {
+          totalCells: allCells.length,
+          cellsChecked: allCells.length,
+          hasRulePatches: isRulePatch,
+          cellsWithPatches: isRulePatch && sourceData.cellTarget ? 1 : 0
+        });
       }
 
       return hasUpdates;
@@ -3324,6 +3428,50 @@ export class StatusGridRenderer extends BaseRenderer {
     };
 
     return BracketRenderer.render(width, height, bracketConfig, overlayId);
+  }
+
+  // ============================================================================
+  // 🔄 INCREMENTAL UPDATE SUPPORT
+  // ============================================================================
+
+  /**
+   * Check if this renderer supports incremental updates
+   * @static
+   * @returns {boolean} True if incremental updates are supported
+   */
+  static supportsIncrementalUpdate() {
+    return true;
+  }
+
+  /**
+   * Perform incremental update on an existing rendered overlay
+   * Called by SystemsManager when rules produce patches
+   *
+   * @static
+   * @param {Object} overlay - Updated overlay config (with patches already applied)
+   * @param {HTMLElement} overlayElement - Existing DOM element to update
+   * @param {Object} context - Update context with dataSourceManager, systemsManager, hass, patch
+   * @returns {boolean} True if update succeeded, false to trigger full re-render
+   */
+  static updateIncremental(overlay, overlayElement, context) {
+    cblcarsLog.info(`[StatusGridRenderer] 🎨 INCREMENTAL UPDATE: ${overlay.id}`);
+
+    try {
+      // Call static updateGridData method which handles DOM updates
+      // Parameter order: gridElement, overlay, sourceData (patch)
+      const success = StatusGridRenderer.updateGridData(overlayElement, overlay, context.patch);
+
+      if (success) {
+        cblcarsLog.info(`[StatusGridRenderer] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.id}`);
+      } else {
+        cblcarsLog.debug(`[StatusGridRenderer] ℹ️ INCREMENTAL UPDATE NO-OP: ${overlay.id} (no changes detected)`);
+      }
+
+      return success;
+    } catch (error) {
+      cblcarsLog.error(`[StatusGridRenderer] ❌ INCREMENTAL UPDATE ERROR: ${overlay.id}`, error);
+      return false;
+    }
   }
 
 }

@@ -1173,7 +1173,7 @@ export class ButtonRenderer extends BaseRenderer {
   _updateButtonStyle(buttonElement, newStyle, size = null) {
     try {
       const buttonId = buttonElement.getAttribute('data-button-id');
-      cblcarsLog.debug(`[ButtonRenderer] Updating style for button ${buttonId}`);
+      // Removed excessive per-button debug logging (was logging 670+ times for large grids)
 
       let styleUpdated = false;
 
@@ -1257,7 +1257,18 @@ export class ButtonRenderer extends BaseRenderer {
       }
 
       if (styleUpdated) {
-        cblcarsLog.debug(`[ButtonRenderer] ✅ Style updated for button ${buttonId}`);
+        cblcarsLog.debug(`[ButtonRenderer] ✅ Style updated for button ${buttonId} (${Object.keys(newStyle).length} properties checked)`);
+      } else {
+        // Debug why no update happened
+        cblcarsLog.debug(`[ButtonRenderer] ℹ️ No style changes for button ${buttonId}`, {
+          hasColor: newStyle.color !== undefined,
+          hasOpacity: newStyle.opacity !== undefined,
+          hasBorder: newStyle.border !== undefined,
+          hasBracketColor: newStyle.bracket_color !== undefined,
+          hasLabelColor: newStyle.label_color !== undefined,
+          hasValueColor: newStyle.value_color !== undefined,
+          styleKeys: Object.keys(newStyle)
+        });
       }
 
       return styleUpdated;

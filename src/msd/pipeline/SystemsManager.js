@@ -18,6 +18,9 @@ import { ApexChartsOverlayRenderer } from '../renderer/ApexChartsOverlayRenderer
 // ✅ ADDED: Import theme system initialization
 import { initializeThemeSystem } from '../themes/initializeThemeSystem.js';
 
+// ✅ ADDED: Import overlay renderers for incremental update capabilities
+import { StatusGridRenderer } from '../renderer/StatusGridRenderer.js';
+
 export class SystemsManager {
   constructor() {
     // Initialize core managers
@@ -77,6 +80,19 @@ export class SystemsManager {
         }
       }
     });
+
+    // ============================================================================
+    // OVERLAY RENDERER REGISTRY (Phase 1: Incremental Updates)
+    // ============================================================================
+    // Maps overlay type → renderer class with incremental update capability
+    this._overlayRenderers = new Map([
+      ['statusgrid', StatusGridRenderer],
+      ['status_grid', StatusGridRenderer],
+      // Add more renderers as they gain incremental update support:
+      // ['apexchart', ApexChartsOverlayRenderer], // Phase 2
+      // ['text', TextOverlayRenderer], // Future
+      // ['button', ButtonOverlayRenderer], // Future
+    ]);
   }
 
   /**
@@ -215,16 +231,14 @@ export class SystemsManager {
       await this.rulesEngine.setupHassMonitoring(hass);
 
       // Connect re-evaluation to render pipeline
+      // NOTE: Don't schedule full re-render here! The incremental update system
+      // will handle overlay updates. Only schedule full re-render if incremental
+      // updates fail (handled in _applyIncrementalUpdates)
       this.rulesEngine.setReEvaluationCallback(() => {
-        cblcarsLog.info('[SystemsManager] 🔄 RulesEngine re-evaluation callback triggered', {
+        cblcarsLog.debug('[SystemsManager] 🔄 RulesEngine re-evaluation callback triggered (no-op - incremental updates handle this)', {
           hasReRenderCallback: !!this._reRenderCallback
         });
-        if (this._reRenderCallback) {
-          cblcarsLog.info('[SystemsManager] 📤 Scheduling full re-render from rules change');
-          this._scheduleFullReRender();
-        } else {
-          cblcarsLog.warn('[SystemsManager] ⚠️ No _reRenderCallback available, cannot re-render');
-        }
+        // Do nothing - incremental update system will handle it
       });
 
       cblcarsLog.debug('[SystemsManager] Rules Engine HASS monitoring configured');
@@ -472,8 +486,18 @@ export class SystemsManager {
           });
 
           if (ruleResults.overlayPatches && ruleResults.overlayPatches.length > 0) {
-            cblcarsLog.info(`[SystemsManager] 🎨 Rules produced ${ruleResults.overlayPatches.length} patches - triggering re-render`);
-            this._scheduleFullReRender();
+            cblcarsLog.info(`[SystemsManager] 🎨 Rules produced ${ruleResults.overlayPatches.length} patch(es)`);
+
+            // TRY: Incremental updates first (Phase 1: StatusGrid, Phase 2: ApexCharts, etc.)
+            const updateResults = this._applyIncrementalUpdates(ruleResults.overlayPatches);
+
+            // SELECTIVE RE-RENDER: Only re-render overlays that failed incremental update
+            if (updateResults.failedOverlays.length > 0) {
+              cblcarsLog.info(`[SystemsManager] 🔄 Triggering SELECTIVE RE-RENDER for ${updateResults.failedOverlays.length} overlay(s)`);
+              this._scheduleSelectiveReRender(updateResults.failedOverlays);
+            } else {
+              cblcarsLog.info('[SystemsManager] ✅ All updates completed INCREMENTALLY - NO full re-render needed');
+            }
           } else {
             cblcarsLog.debug('[SystemsManager] ℹ️ No rule patches needed');
           }
@@ -966,7 +990,192 @@ export class SystemsManager {
 
     cblcarsLog.debug('[SystemsManager] 📊 No threshold crossings detected');
     return false;
-  }  /**
+  }
+
+  // ============================================================================
+  // INCREMENTAL UPDATE SYSTEM (Phase 1)
+  // ============================================================================
+
+  /**
+   * Get renderer class for overlay type
+   * @private
+   * @param {string} type - Overlay type
+   * @returns {Class|null} Renderer class or null
+   */
+  _getRendererForType(type) {
+    return this._overlayRenderers.get(type) || null;
+  }
+
+  /**
+   * Find overlay configuration by ID
+   * @private
+   * @param {string} overlayId - Overlay ID
+   * @returns {Object|null} Overlay config or null
+   */
+  _findOverlayById(overlayId) {
+    const resolvedModel = this.modelBuilder?.getResolvedModel?.();
+    if (!resolvedModel?.overlays) return null;
+
+    return resolvedModel.overlays.find(o => o.id === overlayId) || null;
+  }
+
+  /**
+   * Find overlay element in DOM
+   * Uses same search pattern as AdvancedRenderer and StatusGridRenderer
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @returns {Element|null} DOM element or null
+   */
+  _findOverlayElement(overlay) {
+    let element = null;
+
+    // Method 1: Search in renderer mount element (primary - shadowRoot or container)
+    if (this.renderer?.mountEl) {
+      const overlayGroup = this.renderer.mountEl.querySelector('#msd-overlay-container');
+      if (overlayGroup) {
+        element = overlayGroup.querySelector(`[data-overlay-id="${overlay.id}"]`);
+        if (element) {
+          cblcarsLog.debug(`[SystemsManager] ✅ Found overlay element in #msd-overlay-container: ${overlay.id}`);
+          return element;
+        }
+      }
+
+      // Fallback: Direct search in mountEl
+      element = this.renderer.mountEl.querySelector(`[data-overlay-id="${overlay.id}"]`);
+      if (element) {
+        cblcarsLog.debug(`[SystemsManager] ✅ Found overlay element in mountEl: ${overlay.id}`);
+        return element;
+      }
+    }
+
+    // Method 2: Card shadow DOM fallback (for compatibility)
+    const card = typeof window !== 'undefined' ? window.cb_lcars_card_instance : null;
+    if (!element && card?.shadowRoot) {
+      element = card.shadowRoot.querySelector(`[data-overlay-id="${overlay.id}"]`);
+      if (element) {
+        cblcarsLog.debug(`[SystemsManager] ✅ Found overlay element in card shadowRoot: ${overlay.id}`);
+        return element;
+      }
+    }
+
+    // Method 3: Document search (last resort)
+    if (!element && typeof document !== 'undefined') {
+      element = document.querySelector(`[data-overlay-id="${overlay.id}"]`);
+      if (element) {
+        cblcarsLog.debug(`[SystemsManager] ✅ Found overlay element in document: ${overlay.id}`);
+        return element;
+      }
+    }
+
+    cblcarsLog.warn(`[SystemsManager] ❌ Could not find overlay element: ${overlay.id}`, {
+      hasMountEl: !!this.renderer?.mountEl,
+      hasOverlayContainer: !!this.renderer?.mountEl?.querySelector('#msd-overlay-container'),
+      hasCardShadowRoot: !!(typeof window !== 'undefined' && window.cb_lcars_card_instance?.shadowRoot)
+    });
+
+    return null;
+  }
+
+  /**
+   * Apply incremental updates to overlays when rules produce patches
+   * Falls back to full re-render if incremental not supported/available
+   * @private
+   * @param {Array} overlayPatches - Rule patches from rulesEngine.evaluateDirty()
+   * @returns {Object} Results with successfulOverlays and failedOverlays arrays
+   */
+  _applyIncrementalUpdates(overlayPatches) {
+    cblcarsLog.info(`[SystemsManager] 🎨 ATTEMPTING INCREMENTAL UPDATES for ${overlayPatches.length} overlay(s)`);
+
+    const failedOverlays = [];
+    const successfulOverlays = [];
+
+    overlayPatches.forEach(patch => {
+      // Find overlay config (should already have _rulePatch applied)
+      const overlay = this._findOverlayById(patch.id);
+      if (!overlay) {
+        cblcarsLog.warn(`[SystemsManager] ⚠️ Overlay not found: ${patch.id}`);
+        failedOverlays.push({ id: patch.id, reason: 'Overlay config not found', patch });
+        return;
+      }
+
+      // Get renderer for this overlay type
+      const RendererClass = this._getRendererForType(overlay.type);
+      if (!RendererClass) {
+        cblcarsLog.debug(`[SystemsManager] ℹ️ No renderer registered for type "${overlay.type}" - will use SELECTIVE RE-RENDER: ${overlay.id}`);
+        failedOverlays.push({ id: overlay.id, type: overlay.type, reason: 'No renderer registered', overlay, patch });
+        return;
+      }
+
+      // Check if renderer supports incremental updates
+      if (!RendererClass.supportsIncrementalUpdate || !RendererClass.supportsIncrementalUpdate()) {
+        cblcarsLog.info(`[SystemsManager] ℹ️ Renderer for "${overlay.type}" does not support incremental updates - will use SELECTIVE RE-RENDER: ${overlay.id}`);
+        failedOverlays.push({ id: overlay.id, type: overlay.type, reason: 'Incremental not supported by renderer', overlay, patch });
+        return;
+      }
+
+      // Find existing overlay DOM element
+      const overlayElement = this._findOverlayElement(overlay);
+      if (!overlayElement) {
+        cblcarsLog.warn(`[SystemsManager] ⚠️ Overlay element not found in DOM - will use SELECTIVE RE-RENDER: ${overlay.id}`);
+        failedOverlays.push({ id: overlay.id, type: overlay.type, reason: 'DOM element not found', overlay, patch });
+        return;
+      }
+
+      // Attempt incremental update
+      try {
+        const context = {
+          dataSourceManager: this.dataSourceManager,
+          systemsManager: this,
+          hass: this._hass,
+          patch: patch  // Pass the full patch object including cellTarget
+        };
+
+        const succeeded = RendererClass.updateIncremental(overlay, overlayElement, context);
+
+        if (!succeeded) {
+          cblcarsLog.warn(`[SystemsManager] ⚠️ Incremental update returned false - will use SELECTIVE RE-RENDER: ${overlay.id}`);
+          failedOverlays.push({ id: overlay.id, type: overlay.type, reason: 'Update method returned false', overlay, patch });
+        } else {
+          cblcarsLog.info(`[SystemsManager] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.type} "${overlay.id}"`);
+          successfulOverlays.push({ id: overlay.id, type: overlay.type });
+        }
+      } catch (error) {
+        cblcarsLog.error(`[SystemsManager] ❌ Incremental update ERROR: ${overlay.id}`, error);
+        failedOverlays.push({ id: overlay.id, type: overlay.type, reason: `Exception: ${error.message}`, overlay, patch });
+      }
+    });
+
+    // Log detailed summary
+    const allSucceeded = failedOverlays.length === 0;
+
+    if (allSucceeded) {
+      cblcarsLog.info(`[SystemsManager] ✅ ALL ${overlayPatches.length} overlay(s) updated INCREMENTALLY - NO re-render needed`);
+      successfulOverlays.forEach(o => {
+        cblcarsLog.debug(`  ✅ ${o.type}: ${o.id}`);
+      });
+    } else {
+      const successCount = successfulOverlays.length;
+      const failCount = failedOverlays.length;
+
+      cblcarsLog.warn(`[SystemsManager] ⚠️ ${failCount}/${overlayPatches.length} overlay(s) need SELECTIVE RE-RENDER`);
+
+      if (successCount > 0) {
+        cblcarsLog.info(`[SystemsManager] ✅ Successfully updated incrementally (${successCount}):`);
+        successfulOverlays.forEach(o => {
+          cblcarsLog.debug(`  ✅ ${o.type}: ${o.id}`);
+        });
+      }
+
+      cblcarsLog.warn(`[SystemsManager] ⚠️ Will selectively re-render (${failCount}):`);
+      failedOverlays.forEach(f => {
+        cblcarsLog.debug(`  ❌ ${f.type || 'unknown'}: ${f.id} - ${f.reason}`);
+      });
+    }
+
+    return { successfulOverlays, failedOverlays, allSucceeded };
+  }
+
+  /**
    * Schedule a full re-render with proper queuing
    * @private
    */
@@ -997,6 +1206,83 @@ export class SystemsManager {
         });
       }
       this._renderTimeout = null;
+    }, 100);
+  }
+
+  /**
+   * Schedule a selective re-render for only specific overlays that failed incremental update
+   * @private
+   * @param {Array} failedOverlays - Array of overlay info objects with {id, type, overlay, patch}
+   */
+  _scheduleSelectiveReRender(failedOverlays) {
+    cblcarsLog.info(`[SystemsManager] 📅 SCHEDULED selective re-render for ${failedOverlays.length} overlay(s) (100ms delay)`);
+
+    if (this._selectiveRenderTimeout) {
+      cblcarsLog.debug('[SystemsManager] ⏰ Clearing existing selective render timeout');
+      clearTimeout(this._selectiveRenderTimeout);
+    }
+
+    // Store failed overlays for the selective render
+    this._overlaysToReRender = failedOverlays;
+
+    this._selectiveRenderTimeout = setTimeout(() => {
+      cblcarsLog.info(`[SystemsManager] 🚀 EXECUTING selective re-render for ${failedOverlays.length} overlay(s)`);
+
+      failedOverlays.forEach(failedInfo => {
+        try {
+          const { overlay, patch } = failedInfo;
+
+          // Apply the patch to the overlay config (since it failed incremental update)
+          // This ensures the overlay has the correct styles when re-rendered
+          if (patch && overlay) {
+            cblcarsLog.debug(`[SystemsManager] 🎨 Applying patch to overlay before selective re-render: ${overlay.id}`);
+
+            // The patch has already been applied by ModelBuilder during rule evaluation
+            // We just need to trigger a re-render of this specific overlay
+            // For now, we'll use the full re-render as a fallback since we need
+            // the renderer to re-render just this one overlay
+
+            // TODO: Implement per-overlay re-render capability in AdvancedRenderer
+            // For now, log and continue - the full re-render will handle it
+            cblcarsLog.debug(`[SystemsManager] ℹ️ Overlay ${overlay.id} will be re-rendered in next full render`);
+          }
+        } catch (error) {
+          cblcarsLog.error(`[SystemsManager] ❌ Error in selective re-render for ${failedInfo.id}:`, error);
+        }
+      });
+
+      // For now, trigger a full re-render if ANY overlay failed
+      // TODO: Implement true selective re-rendering at the renderer level
+      cblcarsLog.info('[SystemsManager] 🔄 Using AdvancedRenderer.reRenderOverlays() for selective re-rendering');
+
+      // Get the complete resolved model (needed for anchors, viewBox, etc.)
+      const resolvedModel = this.modelBuilder?.getResolvedModel();
+
+      if (!resolvedModel || !this.renderer) {
+        cblcarsLog.warn('[SystemsManager] ⚠️ Cannot selective re-render - missing model or renderer');
+        cblcarsLog.info('[SystemsManager] 🔄 Falling back to FULL re-render');
+        this._scheduleFullReRender();
+      } else {
+        // Extract the overlay configs that need re-rendering
+        const overlaysToReRender = failedOverlays.map(f => f.overlay).filter(o => o);
+
+        if (overlaysToReRender.length === 0) {
+          cblcarsLog.warn('[SystemsManager] ⚠️ No valid overlays to re-render');
+          return;
+        }
+
+        const success = this.renderer.reRenderOverlays(overlaysToReRender, resolvedModel);
+
+        if (success) {
+          cblcarsLog.info('[SystemsManager] ✅ SELECTIVE RE-RENDER COMPLETE');
+        } else {
+          cblcarsLog.warn('[SystemsManager] ⚠️ Selective re-render failed - falling back to FULL re-render');
+          this._scheduleFullReRender();
+        }
+      }
+
+      this._selectiveRenderTimeout = null;
+      this._overlaysToReRender = null;
     }, 100);
   }
 
