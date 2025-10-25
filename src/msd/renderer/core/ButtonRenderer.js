@@ -543,19 +543,27 @@ export class ButtonRenderer extends BaseRenderer {
 
   /**
    * Resolve enhanced border styling with individual control
+   * ✅ UPDATED: Now handles nested border format from standardStyles
    * @private
    * @param {Object} style - Style configuration
    * @param {Object} standardStyles - Parsed standard styles
    * @returns {Object} Enhanced border configuration
    */
   _resolveBorderStyle(style, standardStyles) {
-    // Global defaults
-    const globalWidth = standardStyles.layout.borderWidth || style.border_width || this._getDefault('button.border_width', 1);
-    const globalColor = standardStyles.colors.borderColor || style.border_color || this._getDefault('button.border_color', 'var(--lcars-gray)');
-    const globalRadius = standardStyles.layout.borderRadius || style.border_radius || this._getDefault('button.border_radius', 8);
+    // ✅ NEW: Use standardStyles.border if available (normalized nested format)
+    const borderConfig = style.border || {};
 
-    // FIXED: Check for individual border properties properly - ensure we convert to numbers
+    // Global defaults - check both nested and flat formats for backward compatibility
+    const globalWidth = standardStyles.border?.width || borderConfig.width || standardStyles.layout?.borderWidth || style.border_width || this._getDefault('button.border_width', 1);
+    const globalColor = standardStyles.border?.color || borderConfig.color || standardStyles.colors?.borderColor || style.border_color || this._getDefault('button.border_color', 'var(--lcars-gray)');
+    const globalRadius = standardStyles.border?.radius || borderConfig.radius || standardStyles.layout?.borderRadius || style.border_radius || this._getDefault('button.border_radius', 8);
+
+    // ✅ UPDATED: Check for individual border properties in both nested and flat formats
     const hasIndividualSides = !!(
+      borderConfig.top !== undefined ||
+      borderConfig.right !== undefined ||
+      borderConfig.bottom !== undefined ||
+      borderConfig.left !== undefined ||
       style.border_top !== undefined ||
       style.border_right !== undefined ||
       style.border_bottom !== undefined ||
@@ -563,6 +571,14 @@ export class ButtonRenderer extends BaseRenderer {
     );
 
     const hasIndividualRadius = !!(
+      borderConfig.radiusTopLeft !== undefined ||
+      borderConfig.radiusTopRight !== undefined ||
+      borderConfig.radiusBottomRight !== undefined ||
+      borderConfig.radiusBottomLeft !== undefined ||
+      borderConfig.radius_top_left !== undefined ||
+      borderConfig.radius_top_right !== undefined ||
+      borderConfig.radius_bottom_right !== undefined ||
+      borderConfig.radius_bottom_left !== undefined ||
       style.border_radius_top_left !== undefined ||
       style.border_radius_top_right !== undefined ||
       style.border_radius_bottom_right !== undefined ||
@@ -613,17 +629,37 @@ export class ButtonRenderer extends BaseRenderer {
       color: globalColor || 'var(--lcars-gray)',
       radius: Number(globalRadius) || 0,
 
-      // Individual side control with safe resolution
-      top: resolveBorderSide(style.border_top),
-      right: resolveBorderSide(style.border_right),
-      bottom: resolveBorderSide(style.border_bottom),
-      left: resolveBorderSide(style.border_left),
+      // ✅ UPDATED: Individual side control - check nested format first, then flat format
+      top: resolveBorderSide(borderConfig.top || style.border_top),
+      right: resolveBorderSide(borderConfig.right || style.border_right),
+      bottom: resolveBorderSide(borderConfig.bottom || style.border_bottom),
+      left: resolveBorderSide(borderConfig.left || style.border_left),
 
-      // Individual corner radius with safe fallbacks - CRITICAL: ensure they're numbers
-      topLeft: Number(style.border_radius_top_left !== undefined ? style.border_radius_top_left : globalRadius) || 0,
-      topRight: Number(style.border_radius_top_right !== undefined ? style.border_radius_top_right : globalRadius) || 0,
-      bottomRight: Number(style.border_radius_bottom_right !== undefined ? style.border_radius_bottom_right : globalRadius) || 0,
-      bottomLeft: Number(style.border_radius_bottom_left !== undefined ? style.border_radius_bottom_left : globalRadius) || 0,
+      // ✅ UPDATED: Individual corner radius - check nested format first (camelCase and snake_case), then flat format
+      topLeft: Number(
+        borderConfig.radiusTopLeft !== undefined ? borderConfig.radiusTopLeft :
+        borderConfig.radius_top_left !== undefined ? borderConfig.radius_top_left :
+        style.border_radius_top_left !== undefined ? style.border_radius_top_left :
+        globalRadius
+      ) || 0,
+      topRight: Number(
+        borderConfig.radiusTopRight !== undefined ? borderConfig.radiusTopRight :
+        borderConfig.radius_top_right !== undefined ? borderConfig.radius_top_right :
+        style.border_radius_top_right !== undefined ? style.border_radius_top_right :
+        globalRadius
+      ) || 0,
+      bottomRight: Number(
+        borderConfig.radiusBottomRight !== undefined ? borderConfig.radiusBottomRight :
+        borderConfig.radius_bottom_right !== undefined ? borderConfig.radius_bottom_right :
+        style.border_radius_bottom_right !== undefined ? style.border_radius_bottom_right :
+        globalRadius
+      ) || 0,
+      bottomLeft: Number(
+        borderConfig.radiusBottomLeft !== undefined ? borderConfig.radiusBottomLeft :
+        borderConfig.radius_bottom_left !== undefined ? borderConfig.radius_bottom_left :
+        style.border_radius_bottom_left !== undefined ? style.border_radius_bottom_left :
+        globalRadius
+      ) || 0,
 
       // Convenience flags
       hasIndividualSides,
@@ -1237,6 +1273,38 @@ export class ButtonRenderer extends BaseRenderer {
       const pathElement = buttonElement.querySelector('path');
       const backgroundElement = rectElement || pathElement;
 
+      // ============================================================================
+      // GEOMETRY CHANGE DETECTION: Check if this update requires path regeneration
+      // ============================================================================
+      // For path-based buttons (individual borders/corners), we cannot incrementally
+      // update geometry. Detect these cases and return false to trigger fallback.
+      if (pathElement && newStyle.border) {
+        const hasIndividualCornerRadii =
+          newStyle.border.radius_top_left !== undefined ||
+          newStyle.border.radius_top_right !== undefined ||
+          newStyle.border.radius_bottom_left !== undefined ||
+          newStyle.border.radius_bottom_right !== undefined;
+
+        const hasIndividualBorderSides =
+          newStyle.border.top !== undefined ||
+          newStyle.border.right !== undefined ||
+          newStyle.border.bottom !== undefined ||
+          newStyle.border.left !== undefined;
+
+        const hasUniformRadius = newStyle.border.radius !== undefined;
+
+        // Path-based rendering means geometry changes need full re-render
+        if (hasIndividualCornerRadii || hasIndividualBorderSides || hasUniformRadius) {
+          cblcarsLog.info(`[ButtonRenderer] ⚠️ Button ${buttonId} has path-based geometry changes - triggering full re-render`, {
+            hasIndividualCornerRadii,
+            hasIndividualBorderSides,
+            hasUniformRadius,
+            borderKeys: Object.keys(newStyle.border)
+          });
+          return false;  // Trigger fallback to full re-render
+        }
+      }
+
       if (backgroundElement) {
         // Update fill color
         if (newStyle.color !== undefined) {
@@ -1268,13 +1336,13 @@ export class ButtonRenderer extends BaseRenderer {
           styleUpdated = true;
         }
 
-        // Update border width
+        // Update border width (only uniform width on path-based buttons)
         if (newStyle.border?.width !== undefined) {
           backgroundElement.setAttribute('stroke-width', newStyle.border.width);
           styleUpdated = true;
         }
 
-        // Update border radius (rect only)
+        // Update border radius (rect only - paths already handled above)
         if (rectElement && newStyle.border?.radius !== undefined) {
           rectElement.setAttribute('rx', newStyle.border.radius);
           rectElement.setAttribute('ry', newStyle.border.radius);

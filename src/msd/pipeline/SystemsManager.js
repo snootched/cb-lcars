@@ -20,6 +20,7 @@ import { initializeThemeSystem } from '../themes/initializeThemeSystem.js';
 
 // ✅ ADDED: Import overlay renderers for incremental update capabilities
 import { StatusGridRenderer } from '../renderer/StatusGridRenderer.js';
+import { ButtonOverlay } from '../overlays/ButtonOverlay.js';
 
 export class SystemsManager {
   constructor() {
@@ -89,9 +90,10 @@ export class SystemsManager {
       ['statusgrid', StatusGridRenderer],
       ['status_grid', StatusGridRenderer],
       ['apexchart', ApexChartsOverlayRenderer], // ✅ Phase 2: COMPLETE
+      ['button', ButtonOverlay], // ✅ Phase 3: COMPLETE
       // Add more renderers as they gain incremental update support:
-      // ['text', TextOverlayRenderer], // Future
-      // ['button', ButtonOverlayRenderer], // Future
+      // ['text', TextOverlayRenderer], // Phase 5: Future
+      // ['line', LineOverlayRenderer], // Phase 4: Future
     ]);
   }
 

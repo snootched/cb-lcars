@@ -1009,24 +1009,34 @@ export class AdvancedRenderer {
         const result = this.renderOverlay(overlay, anchors, viewBox, svg);
 
         if (result && result.markup) {
-          // Create temporary container to parse the markup
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = result.markup;
+          // Parse SVG markup correctly using DOMParser (not innerHTML which uses HTML parser)
+          // HTML parser doesn't handle self-closing SVG tags correctly
+          // Wrap in SVG element since DOMParser expects a complete document
+          const parser = new DOMParser();
+          const wrappedMarkup = `<svg xmlns="http://www.w3.org/2000/svg">${result.markup}</svg>`;
+          const svgDoc = parser.parseFromString(wrappedMarkup, 'image/svg+xml');
 
-          // Move the rendered element to the overlay group
-          const newElement = tempDiv.firstElementChild;
+          // Check for parsing errors
+          const parserError = svgDoc.querySelector('parsererror');
+          if (parserError) {
+            cblcarsLog.error(`[AdvancedRenderer] ❌ SVG parsing error for ${overlay.id}:`, parserError.textContent);
+            allSucceeded = false;
+            return;
+          }
+
+          // Get the rendered element (first child of the svg element)
+          const svgElement = svgDoc.documentElement;
+          const newElement = svgElement.firstElementChild;
           if (newElement) {
-            overlayGroup.appendChild(newElement);
+            // Import node into current document
+            const importedElement = document.importNode(newElement, true);
+            overlayGroup.appendChild(importedElement);
             cblcarsLog.debug(`[AdvancedRenderer] ✅ Re-rendered overlay: ${overlay.id}`);
 
             // Re-attach actions if present
             if (result.actionInfo && !newElement.hasAttribute('data-actions-attached')) {
               try {
-                if (result.actionInfo.config.simple) {
-                  ActionHelpers.attachSimpleAction(newElement, result.actionInfo.config, this.routerCore);
-                } else if (result.actionInfo.config.enhanced) {
-                  ActionHelpers.attachEnhancedAction(newElement, result.actionInfo.config, this.routerCore);
-                }
+                ActionHelpers.attachActions(newElement, overlay, result.actionInfo.config, this.routerCore);
                 newElement.setAttribute('data-actions-attached', 'true');
                 cblcarsLog.debug(`[AdvancedRenderer] 🎯 Re-attached actions for: ${overlay.id}`);
               } catch (actionError) {

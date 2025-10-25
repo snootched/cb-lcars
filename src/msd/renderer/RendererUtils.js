@@ -490,18 +490,65 @@ export class RendererUtils {
 
   /**
    * Parse standardized text styling properties
+   * Supports both flat properties and nested text object (cb-lcars legacy template format)
+   *
    * @param {Object} style - Style configuration object
    * @returns {Object} Normalized text style configuration
+   *
+   * @example
+   * // Flat format (legacy)
+   * parseStandardTextStyles({ font_size: 18, label_color: 'red' })
+   * // => { fontSize: 18, labelColor: 'red', ... }
+   *
+   * // Nested format (cb-lcars legacy templates)
+   * parseStandardTextStyles({
+   *   text: {
+   *     label: { font_size: 20, color: 'red' },
+   *     value: { font_size: 16, color: 'blue' }
+   *   }
+   * })
+   * // => { label: { fontSize: 20, color: 'red' }, value: { fontSize: 16, color: 'blue' }, ... }
    */
   static parseStandardTextStyles(style) {
-    return {
-      // Core text properties
+    // Helper to parse individual text element (label, value, name, state)
+    const parseTextElement = (textConfig) => {
+      if (!textConfig) return null;
+
+      // Handle color state objects
+      const getColorValue = (colorProp) => {
+        if (!colorProp) return null;
+        if (typeof colorProp === 'string') return colorProp;
+        if (typeof colorProp === 'object') return colorProp.default || null;
+        return null;
+      };
+
+      return {
+        fontSize: textConfig.font_size !== undefined ? Number(textConfig.font_size) : null,
+        fontFamily: textConfig.font_family || null,
+        fontWeight: textConfig.font_weight || null,
+        fontStyle: textConfig.font_style || null,
+        color: getColorValue(textConfig.color),
+        colorStates: typeof textConfig.color === 'object' ? textConfig.color : null,
+        textAlign: textConfig.text_align || textConfig.align || null,
+        textTransform: textConfig.text_transform || textConfig.transform || null,
+        lineHeight: textConfig.line_height !== undefined ? Number(textConfig.line_height) : null,
+        letterSpacing: textConfig.letter_spacing !== undefined ? Number(textConfig.letter_spacing) : null,
+        padding: textConfig.padding ? this.parsePaddingConfig(textConfig.padding) : null
+      };
+    };
+
+    // Check if using nested text structure
+    const nestedText = style.text || {};
+    const hasNestedText = nestedText.label || nestedText.value || nestedText.name || nestedText.state;
+
+    const result = {
+      // Core text properties (flat format - backward compatibility)
       fontSize: Number(style.font_size || style.fontSize || 12),
-      fontFamily: style.font_family || style.fontFamily || 'Antonio', // Changed from 'monospace' to 'Antonio' for LCARS
+      fontFamily: style.font_family || style.fontFamily || 'Antonio',
       fontWeight: style.font_weight || style.fontWeight || 'normal',
       fontStyle: style.font_style || style.fontStyle || 'normal',
 
-      // Text colors (with fallback chain)
+      // Text colors (flat format - backward compatibility)
       textColor: style.text_color || style.textColor || style.color || 'var(--lcars-white)',
       labelColor: style.label_color || style.labelColor || style.text_color || style.textColor || 'var(--lcars-white)',
       valueColor: style.value_color || style.valueColor || style.text_color || style.textColor || 'var(--lcars-white)',
@@ -509,6 +556,7 @@ export class RendererUtils {
       // Text alignment and positioning
       textAlign: style.text_align || style.textAlign || 'left',
       verticalAlign: style.vertical_align || style.verticalAlign || 'middle',
+      textTransform: style.text_transform || style.textTransform || 'none',
 
       // Text effects
       textShadow: this.parseTextShadowConfig(style.text_shadow || style.textShadow),
@@ -518,19 +566,87 @@ export class RendererUtils {
       lineHeight: Number(style.line_height || style.lineHeight || 1.2),
       letterSpacing: style.letter_spacing || style.letterSpacing || 'normal'
     };
+
+    // Add nested text elements if present (cb-lcars legacy template format)
+    if (hasNestedText) {
+      result.label = parseTextElement(nestedText.label);
+      result.value = parseTextElement(nestedText.value);
+      result.name = parseTextElement(nestedText.name);
+      result.state = parseTextElement(nestedText.state);
+
+      // Support text arrays (multiple text elements)
+      if (nestedText.texts && Array.isArray(nestedText.texts)) {
+        result.texts = nestedText.texts.map(textConfig => parseTextElement(textConfig));
+      }
+    }
+
+    return result;
   }
 
   /**
    * Parse standardized color properties
+   * Supports both simple string colors and color state objects
+   *
    * @param {Object} style - Style configuration object
    * @returns {Object} Normalized color configuration
+   *
+   * @example
+   * // Simple string color
+   * parseStandardColorStyles({ color: 'red' })
+   * // => { primaryColor: 'red', ... }
+   *
+   * // Color state object (cb-lcars legacy template format)
+   * parseStandardColorStyles({ color: { default: 'blue', active: 'yellow' } })
+   * // => { primaryColor: 'blue', primaryColorActive: 'yellow', ... }
    */
   static parseStandardColorStyles(style) {
+    // Helper to extract color value (string or object.default)
+    const getColorValue = (colorProp) => {
+      if (!colorProp) return null;
+      if (typeof colorProp === 'string') return colorProp;
+      if (typeof colorProp === 'object') return colorProp.default || null;
+      return null;
+    };
+
+    // Helper to extract color state object
+    const getColorStates = (colorProp) => {
+      if (typeof colorProp === 'object' && colorProp !== null) {
+        return {
+          default: colorProp.default || null,
+          active: colorProp.active || null,
+          inactive: colorProp.inactive || null,
+          unavailable: colorProp.unavailable || null,
+          zero: colorProp.zero || null,
+          non_zero: colorProp.non_zero || null,
+          hvac_heat: colorProp.hvac_heat || null,
+          hvac_cool: colorProp.hvac_cool || null
+        };
+      }
+      return null;
+    };
+
+    const primaryColorValue = getColorValue(style.color) ||
+                             getColorValue(style.primary_color) ||
+                             getColorValue(style.primaryColor) ||
+                             'var(--lcars-blue)';
+
+    const backgroundColorValue = getColorValue(style.background_color) ||
+                                 getColorValue(style.backgroundColor) ||
+                                 'transparent';
+
+    const borderColorValue = getColorValue(style.border_color) ||
+                            getColorValue(style.borderColor) ||
+                            'var(--lcars-gray)';
+
     return {
-      // Primary colors
-      primaryColor: style.color || style.primary_color || style.primaryColor || 'var(--lcars-blue)',
-      backgroundColor: style.background_color || style.backgroundColor || 'transparent',
-      borderColor: style.border_color || style.borderColor || 'var(--lcars-gray)',
+      // Primary colors (string values)
+      primaryColor: primaryColorValue,
+      backgroundColor: backgroundColorValue,
+      borderColor: borderColorValue,
+
+      // Color states (if color is an object with states)
+      primaryColorStates: getColorStates(style.color),
+      backgroundColorStates: getColorStates(style.background_color || style.backgroundColor),
 
       // Interactive states
       hoverColor: style.hover_color || style.hoverColor || 'var(--lcars-yellow)',
@@ -553,10 +669,7 @@ export class RendererUtils {
    */
   static parseStandardLayoutStyles(style) {
     return {
-      // Border properties
-      borderWidth: Number(style.border_width || style.borderWidth || 1),
-      borderRadius: Number(style.border_radius || style.borderRadius || 0),
-      borderStyle: style.border_style || style.borderStyle || 'solid',
+      // NOTE: Border properties now handled by parseStandardBorderStyles()
 
       // Spacing (supports both number and object formats)
       padding: this.parsePaddingConfig(style.padding),
@@ -633,6 +746,98 @@ export class RendererUtils {
   }
 
   /**
+   * Parse standardized border properties
+   * Accepts both legacy flat format and new nested format
+   * Always returns normalized nested structure with camelCase
+   *
+   * @param {Object} style - Style configuration object
+   * @returns {Object} Normalized border configuration with nested structure
+   *
+   * @example
+   * // Legacy flat format (still supported)
+   * parseStandardBorderStyles({ border_color: 'red', border_width: 2 })
+   * // => { color: 'red', width: 2, radius: 0, ... }
+   *
+   * // New nested format (preferred)
+   * parseStandardBorderStyles({ border: { color: 'red', width: 2 } })
+   * // => { color: 'red', width: 2, radius: 0, ... }
+   *
+   * // With individual sides
+   * parseStandardBorderStyles({ border: { width: 2, top: { width: 4 } } })
+   * // => { width: 2, top: { width: 4 }, ... }
+   */
+  static parseStandardBorderStyles(style) {
+    // Handle legacy flat format (border_color, border_width, etc.)
+    const legacyBorder = {
+      color: style.border_color || style.borderColor,
+      width: style.border_width || style.borderWidth,
+      radius: style.border_radius || style.borderRadius,
+      style: style.border_style || style.borderStyle
+    };
+
+    // Handle new nested format
+    const nestedBorder = style.border || {};
+
+    // Parse individual side (used for all sides: top, right, bottom, left)
+    const parseBorderSide = (nested, legacy) => {
+      if (!nested && !legacy) return null;
+
+      const side = nested || legacy || {};
+      return {
+        color: side.color || null,
+        width: side.width !== undefined ? Number(side.width) : null,
+        style: side.style || null
+      };
+    };
+
+    // Merge (nested takes precedence over legacy)
+    const border = {
+      // Default properties (apply to all sides unless overridden)
+      color: nestedBorder.color || legacyBorder.color || 'var(--lcars-gray)',
+      width: nestedBorder.width !== undefined ? Number(nestedBorder.width) :
+             legacyBorder.width !== undefined ? Number(legacyBorder.width) : 1,
+      radius: nestedBorder.radius !== undefined ? Number(nestedBorder.radius) :
+              legacyBorder.radius !== undefined ? Number(legacyBorder.radius) : 0,
+      style: nestedBorder.style || legacyBorder.style || 'solid',
+
+      // Individual sides (can override defaults)
+      // Support both nested format (border.top) and legacy format (border_top)
+      top: parseBorderSide(nestedBorder.top, style.border_top),
+      right: parseBorderSide(nestedBorder.right, style.border_right),
+      bottom: parseBorderSide(nestedBorder.bottom, style.border_bottom),
+      left: parseBorderSide(nestedBorder.left, style.border_left),
+
+      // Individual corners (convert snake_case to camelCase for internal use)
+      // Support both nested (border.radius_top_left) and legacy (border_radius_top_left)
+      radiusTopLeft: nestedBorder.radius_top_left !== undefined ? Number(nestedBorder.radius_top_left) :
+                     style.border_radius_top_left !== undefined ? Number(style.border_radius_top_left) :
+                     // Legacy cb-lcars template format: border.top.left_radius
+                     nestedBorder.top?.left_radius !== undefined ? Number(nestedBorder.top.left_radius) :
+                     style.border_top?.left_radius !== undefined ? Number(style.border_top.left_radius) : null,
+
+      radiusTopRight: nestedBorder.radius_top_right !== undefined ? Number(nestedBorder.radius_top_right) :
+                      style.border_radius_top_right !== undefined ? Number(style.border_radius_top_right) :
+                      // Legacy cb-lcars template format: border.top.right_radius
+                      nestedBorder.top?.right_radius !== undefined ? Number(nestedBorder.top.right_radius) :
+                      style.border_top?.right_radius !== undefined ? Number(style.border_top.right_radius) : null,
+
+      radiusBottomRight: nestedBorder.radius_bottom_right !== undefined ? Number(nestedBorder.radius_bottom_right) :
+                         style.border_radius_bottom_right !== undefined ? Number(style.border_radius_bottom_right) :
+                         // Legacy cb-lcars template format: border.bottom.right_radius
+                         nestedBorder.bottom?.right_radius !== undefined ? Number(nestedBorder.bottom.right_radius) :
+                         style.border_bottom?.right_radius !== undefined ? Number(style.border_bottom.right_radius) : null,
+
+      radiusBottomLeft: nestedBorder.radius_bottom_left !== undefined ? Number(nestedBorder.radius_bottom_left) :
+                        style.border_radius_bottom_left !== undefined ? Number(style.border_radius_bottom_left) :
+                        // Legacy cb-lcars template format: border.bottom.left_radius
+                        nestedBorder.bottom?.left_radius !== undefined ? Number(nestedBorder.bottom.left_radius) :
+                        style.border_bottom?.left_radius !== undefined ? Number(style.border_bottom.left_radius) : null
+    };
+
+    return border;
+  }
+
+  /**
    * Parse all standard styles in one call
    * @param {Object} style - Style configuration object
    * @returns {Object} Complete normalized style configuration
@@ -641,6 +846,7 @@ export class RendererUtils {
     return {
       text: this.parseStandardTextStyles(style),
       colors: this.parseStandardColorStyles(style),
+      border: this.parseStandardBorderStyles(style),
       layout: this.parseStandardLayoutStyles(style),
       interaction: this.parseStandardInteractionStyles(style),
       animation: this.parseStandardAnimationStyles(style),

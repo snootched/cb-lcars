@@ -4,6 +4,11 @@
  * Validation schema for text overlays.
  * Defines required fields and constraints specific to text rendering.
  *
+ * STANDARDIZATION: Text-specific properties only
+ * - Common style properties inherited from commonSchema
+ * - Text content and alignment
+ * - SVG text-specific features
+ *
  * @module msd/validation/schemas/textOverlay
  */
 

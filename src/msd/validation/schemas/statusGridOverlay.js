@@ -4,6 +4,11 @@
  * Validation schema for StatusGrid overlays.
  * Defines required fields and constraints specific to status grid rendering.
  *
+ * STANDARDIZATION: Grid-specific properties only
+ * - Common style properties inherited from commonSchema
+ * - Grid layout (rows, columns, cells)
+ * - Cell-specific styling
+ *
  * @module msd/validation/schemas/statusGridOverlay
  */
 
@@ -71,6 +76,13 @@ export const statusGridOverlaySchema = {
       type: 'object',
       optional: true,
       properties: {
+        // NOTE: Common style properties (color, border, text, padding) inherited from commonSchema
+
+        // ============================================================================
+        // GRID-SPECIFIC PROPERTIES
+        // ============================================================================
+
+        // Grid Layout
         cell_gap: {
           type: 'number',
           min: 0,
@@ -79,52 +91,74 @@ export const statusGridOverlaySchema = {
           errorMessage: 'Cell gap must be between 0 and 50'
         },
 
+        cell_spacing: {
+          type: 'number',
+          min: 0,
+          max: 50,
+          optional: true
+        },
+
         cell_radius: {
           type: 'number',
           min: 0,
           optional: true
         },
 
+        cell_padding: {
+          type: 'number',
+          min: 0,
+          optional: true
+        },
+
+        normalize_radius: {
+          type: 'boolean',
+          optional: true
+        },
+
+        // Cell Coloring
         cell_color: {
           type: 'string',
           format: 'color',
           optional: true
         },
 
-        border_width: {
-          type: 'number',
-          min: 0,
-          max: 10,
+        // Text Layout
+        text_layout: {
+          type: 'string',
+          enum: ['stacked', 'side-by-side', 'label-only', 'value-only'],
           optional: true,
-          errorMessage: 'Border width must be between 0 and 10'
+          errorMessage: 'Text layout must be "stacked", "side-by-side", "label-only", or "value-only"'
         },
 
-        border_color: {
+        text_alignment: {
           type: 'string',
-          format: 'color',
+          enum: ['left', 'center', 'right'],
           optional: true
         },
 
-        font_size: {
-          type: 'number',
-          min: 6,
-          max: 100,
-          optional: true,
-          errorMessage: 'Font size must be between 6 and 100'
-        },
-
-        label_color: {
+        label_position: {
           type: 'string',
-          format: 'color',
+          enum: ['top', 'bottom', 'left', 'right', 'center'],
           optional: true
         },
 
-        value_color: {
+        value_position: {
           type: 'string',
-          format: 'color',
+          enum: ['top', 'bottom', 'left', 'right', 'center'],
           optional: true
         },
 
+        show_labels: {
+          type: 'boolean',
+          optional: true
+        },
+
+        show_values: {
+          type: 'boolean',
+          optional: true
+        },
+
+        // Individual font sizes (can override text.label.font_size / text.value.font_size)
         label_font_size: {
           type: 'number',
           min: 6,
@@ -141,24 +175,7 @@ export const statusGridOverlaySchema = {
           errorMessage: 'Value font size must be between 6 and 100'
         },
 
-        font_family: {
-          type: 'string',
-          optional: true
-        },
-
-        text_layout: {
-          type: 'string',
-          enum: ['stacked', 'side-by-side', 'label-only', 'value-only'],
-          optional: true,
-          errorMessage: 'Text layout must be "stacked", "side-by-side", "label-only", or "value-only"'
-        },
-
-        text_alignment: {
-          type: 'string',
-          enum: ['left', 'center', 'right'],
-          optional: true
-        },
-
+        // Interaction
         hover_color: {
           type: 'string',
           format: 'color',
@@ -171,6 +188,17 @@ export const statusGridOverlaySchema = {
           max: 2,
           optional: true,
           errorMessage: 'Hover scale must be between 1 and 2'
+        },
+
+        // LCARS Presets
+        lcars_button_preset: {
+          type: 'string',
+          optional: true
+        },
+
+        lcars_text_preset: {
+          type: 'string',
+          optional: true
         }
       }
     }

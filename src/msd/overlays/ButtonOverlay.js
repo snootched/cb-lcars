@@ -118,9 +118,13 @@ export class ButtonOverlay extends OverlayBase {
     const [width, height] = size;
 
     try {
+      // Use finalStyle if available (from rules/patches), otherwise use style
+      // This ensures re-renders after selective re-render use the patched styles
+      const styleToUse = overlay.finalStyle || overlay.style || {};
+
       // Use cached styles or resolve fresh
       const buttonStyle = this._cachedButtonStyle || this._resolveButtonOverlayStyles(
-        overlay.style || {},
+        styleToUse,
         overlay.id,
         overlay
       );
@@ -401,40 +405,47 @@ export class ButtonOverlay extends OverlayBase {
         { viewBox }
       ),
 
-      // Border styling via tokens
-      border_width: this._resolveStyleProperty(
-        style.border_width || standardStyles.layout.borderWidth,
-        'borders.width.base',
-        resolveToken,
-        this._getDefault('button.border_width', 1),
-        { viewBox }
-      ),
+      // Border styling - use normalized border object from standardStyles
+      // RendererUtils.parseStandardBorderStyles() already normalized both old and new formats
+      border: {
+        color: this._resolveStyleProperty(
+          standardStyles.border.color,
+          'colors.ui.border',
+          resolveToken,
+          this._getDefault('button.border_color', 'var(--lcars-gray)'),
+          { viewBox }
+        ),
 
-      border_color: this._resolveStyleProperty(
-        style.border_color || standardStyles.colors.borderColor,
-        'colors.ui.border',
-        resolveToken,
-        this._getDefault('button.border_color', 'var(--lcars-gray)'),
-        { viewBox }
-      ),
+        width: this._resolveStyleProperty(
+          standardStyles.border.width,
+          'borders.width.base',
+          resolveToken,
+          this._getDefault('button.border_width', 1),
+          { viewBox }
+        ),
 
-      border_radius: this._resolveStyleProperty(
-        style.border_radius || standardStyles.layout.borderRadius,
-        'borders.radius.lg',
-        resolveToken,
-        this._getDefault('button.border_radius', 8),
-        { viewBox }
-      ),
+        radius: this._resolveStyleProperty(
+          standardStyles.border.radius,
+          'borders.radius.lg',
+          resolveToken,
+          this._getDefault('button.border_radius', 8),
+          { viewBox }
+        ),
 
-      // Individual border control (direct values)
-      border_top: style.border_top || null,
-      border_right: style.border_right || null,
-      border_bottom: style.border_bottom || null,
-      border_left: style.border_left || null,
-      border_radius_top_left: style.border_radius_top_left || null,
-      border_radius_top_right: style.border_radius_top_right || null,
-      border_radius_bottom_right: style.border_radius_bottom_right || null,
-      border_radius_bottom_left: style.border_radius_bottom_left || null,
+        style: standardStyles.border.style,
+
+        // Individual sides (if specified)
+        top: standardStyles.border.top,
+        right: standardStyles.border.right,
+        bottom: standardStyles.border.bottom,
+        left: standardStyles.border.left,
+
+        // Individual corners (if specified)
+        radiusTopLeft: standardStyles.border.radiusTopLeft,
+        radiusTopRight: standardStyles.border.radiusTopRight,
+        radiusBottomRight: standardStyles.border.radiusBottomRight,
+        radiusBottomLeft: standardStyles.border.radiusBottomLeft
+      },
 
       // Text styling via tokens
       label_color: this._resolveStyleProperty(
@@ -517,6 +528,12 @@ export class ButtonOverlay extends OverlayBase {
     cblcarsLog.debug(`[ButtonOverlay] 🔲 Resolved button style for ${overlayId}:`, {
       color: buttonStyle.color,
       preset: buttonStyle.lcars_button_preset,
+      border_width: buttonStyle.border_width,
+      border_color: buttonStyle.border_color,
+      border_radius: buttonStyle.border_radius,
+      border_bottom: buttonStyle.border_bottom,
+      label_color: buttonStyle.label_color,
+      value_color: buttonStyle.value_color,
       hasIndividualBorders: !!(style.border_top || style.border_right || style.border_bottom || style.border_left),
       hasIndividualRadius: !!(style.border_radius_top_left || style.border_radius_top_right ||
                              style.border_radius_bottom_right || style.border_radius_bottom_left)
@@ -692,6 +709,96 @@ export class ButtonOverlay extends OverlayBase {
       overlayId,
       metadata
     };
+  }
+
+  // ============================================================================
+  // STATIC METHODS FOR INCREMENTAL UPDATE SYSTEM (Phase 3)
+  // ============================================================================
+
+  /**
+   * Declare support for incremental updates
+   * @static
+   * @returns {boolean} True if this renderer supports incremental updates
+   */
+  static supportsIncrementalUpdate() {
+    return true;
+  }
+
+  /**
+   * Perform incremental update on existing button overlay
+   * Updates button styles without full rebuild
+   *
+   * @static
+   * @param {Object} overlay - Overlay configuration with updated finalStyle
+   * @param {Element} overlayElement - Existing DOM element (the <g> wrapper)
+   * @param {Object} context - Update context { dataSourceManager, systemsManager, hass }
+   * @returns {boolean} True if update succeeded
+   */
+  static updateIncremental(overlay, overlayElement, context) {
+    cblcarsLog.info(`[ButtonOverlay] 🎨 INCREMENTAL UPDATE: ${overlay.id}`);
+
+    try {
+      // Get updated style (already patched by SystemsManager)
+      const style = overlay.finalStyle || overlay.style || {};
+
+      // DEBUG: Log what we received
+      cblcarsLog.debug(`[ButtonOverlay] 📥 Input style for ${overlay.id}:`, {
+        hasFinalStyle: !!overlay.finalStyle,
+        hasBorder: !!style.border,
+        borderColor: style.border?.color,
+        borderWidth: style.border?.width,
+        borderRadius: style.border?.radius,
+        label_color: style.label_color,
+        value_color: style.value_color
+      });
+
+      // Get button size
+      const size = overlay.size || [100, 40];
+      const [width, height] = size;
+
+      // Find the button element within the overlay group
+      // The button markup is nested inside the <g data-overlay-id> wrapper
+      const buttonElement = overlayElement.querySelector('[data-button-id]');
+      if (!buttonElement) {
+        cblcarsLog.warn(`[ButtonOverlay] ⚠️ Button element not found for ${overlay.id}`);
+        return false;
+      }
+
+      // Create temporary instance to resolve styles
+      const tempInstance = new ButtonOverlay(overlay, context.systemsManager);
+      const resolvedStyle = tempInstance._resolveButtonOverlayStyles(style, overlay.id, overlay);
+
+      // resolvedStyle now has correct nested border format from _resolveButtonOverlayStyles()
+      // No transformation needed - RendererUtils.parseStandardBorderStyles() already normalized it
+
+      // Update button style using ButtonRenderer
+      const styleUpdated = ButtonRenderer.updateButtonStyle(
+        buttonElement,
+        resolvedStyle,
+        { width, height }
+      );
+
+      // ButtonRenderer returns:
+      // - true: Successfully updated attributes incrementally
+      // - false: Geometry changes detected, needs full re-render (will trigger fallback)
+      if (styleUpdated === false) {
+        cblcarsLog.warn(`[ButtonOverlay] ⚠️ Geometry changes detected - returning false to trigger selective re-render: ${overlay.id}`);
+        return false;  // Trigger fallback to selective re-render
+      }
+
+      if (styleUpdated) {
+        cblcarsLog.info(`[ButtonOverlay] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.id}`);
+        return true;
+      } else {
+        // This shouldn't happen anymore, but keep for safety
+        cblcarsLog.debug(`[ButtonOverlay] ℹ️ No style changes for ${overlay.id}`);
+        return true;
+      }
+
+    } catch (error) {
+      cblcarsLog.error(`[ButtonOverlay] ❌ INCREMENTAL UPDATE ERROR for ${overlay.id}:`, error);
+      return false;
+    }
   }
 }
 

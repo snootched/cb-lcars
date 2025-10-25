@@ -4,6 +4,11 @@
  * Validation schema for button overlays.
  * Defines required fields and constraints specific to interactive buttons.
  *
+ * STANDARDIZATION: Button-specific properties only
+ * - Common style properties inherited from commonSchema
+ * - Action validation (tap, hold, double_tap)
+ * - Button-specific features (presets, brackets, labels, values)
+ *
  * @module msd/validation/schemas/buttonOverlay
  */
 
@@ -21,6 +26,12 @@ export const buttonOverlaySchema = {
       type: 'string',
       optional: true,
       errorMessage: 'Label must be a string'
+    },
+
+    value: {
+      type: 'string',
+      optional: true,
+      errorMessage: 'Value must be a string'
     },
 
     tap_action: {
@@ -87,61 +98,82 @@ export const buttonOverlaySchema = {
       type: 'object',
       optional: true,
       properties: {
-        color: {
-          type: 'string',
-          format: 'color',
-          optional: true
-        },
+        // NOTE: Common style properties (color, border, text, padding) inherited from commonSchema
 
-        background_color: {
-          type: 'string',
-          format: 'color',
-          optional: true
-        },
+        // ============================================================================
+        // BUTTON-SPECIFIC PROPERTIES
+        // ============================================================================
 
-        border_width: {
-          type: 'number',
-          min: 0,
-          max: 20,
-          optional: true,
-          errorMessage: 'Border width must be between 0 and 20'
-        },
-
-        border_color: {
-          type: 'string',
-          format: 'color',
-          optional: true
-        },
-
-        border_radius: {
-          type: 'number',
-          min: 0,
-          optional: true
-        },
-
+        // LCARS Presets
         lcars_button_preset: {
           type: 'string',
           optional: true,
           errorMessage: 'LCARS button preset must be a valid preset name'
         },
 
-        font_size: {
-          type: 'number',
-          min: 6,
-          max: 100,
-          optional: true,
-          errorMessage: 'Font size must be between 6 and 100'
-        },
-
-        font_weight: {
+        lcars_text_preset: {
           type: 'string',
-          enum: ['normal', 'bold'],
           optional: true
         },
 
-        text_transform: {
+        // Button Content Control
+        show_labels: {
+          type: 'boolean',
+          optional: true
+        },
+
+        show_values: {
+          type: 'boolean',
+          optional: true
+        },
+
+        label_position: {
           type: 'string',
-          enum: ['none', 'uppercase', 'lowercase', 'capitalize'],
+          enum: ['center-top', 'center-bottom', 'left', 'right', 'center'],
+          optional: true
+        },
+
+        value_position: {
+          type: 'string',
+          enum: ['center-top', 'center-bottom', 'left', 'right', 'center'],
+          optional: true
+        },
+
+        // LCARS Bracket Styling
+        bracket_style: {
+          type: 'boolean',
+          optional: true
+        },
+
+        bracket_color: {
+          type: 'string',
+          format: 'color',
+          optional: true
+        },
+
+        bracket_width: {
+          type: 'number',
+          min: 0,
+          max: 10,
+          optional: true
+        },
+
+        bracket_gap: {
+          type: 'number',
+          min: 0,
+          optional: true
+        },
+
+        bracket_extension: {
+          type: 'number',
+          min: 0,
+          optional: true
+        },
+
+        bracket_opacity: {
+          type: 'number',
+          min: 0,
+          max: 1,
           optional: true
         }
       }
