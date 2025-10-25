@@ -88,8 +88,8 @@ export class SystemsManager {
     this._overlayRenderers = new Map([
       ['statusgrid', StatusGridRenderer],
       ['status_grid', StatusGridRenderer],
+      ['apexchart', ApexChartsOverlayRenderer], // ✅ Phase 2: COMPLETE
       // Add more renderers as they gain incremental update support:
-      // ['apexchart', ApexChartsOverlayRenderer], // Phase 2
       // ['text', TextOverlayRenderer], // Future
       // ['button', ButtonOverlayRenderer], // Future
     ]);
@@ -1090,12 +1090,34 @@ export class SystemsManager {
     const successfulOverlays = [];
 
     overlayPatches.forEach(patch => {
-      // Find overlay config (should already have _rulePatch applied)
+      // Find overlay config
       const overlay = this._findOverlayById(patch.id);
       if (!overlay) {
         cblcarsLog.warn(`[SystemsManager] ⚠️ Overlay not found: ${patch.id}`);
         failedOverlays.push({ id: patch.id, reason: 'Overlay config not found', patch });
         return;
+      }
+
+      // CRITICAL FIX: Merge patch style into finalStyle for incremental updates
+      // The overlay from resolvedModel has the OLD finalStyle from initial page load
+      // We need to apply the NEW patch to get the current style
+      if (patch.style && Object.keys(patch.style).length > 0) {
+        cblcarsLog.debug(`[SystemsManager] 🎨 Merging patch style into finalStyle for ${patch.id}:`, {
+          oldColor: overlay.finalStyle?.color,
+          patchColor: patch.style.color,
+          patchKeys: Object.keys(patch.style)
+        });
+
+        // Merge patch style into finalStyle
+        overlay.finalStyle = {
+          ...(overlay.finalStyle || overlay.style || {}),
+          ...patch.style
+        };
+
+        cblcarsLog.debug(`[SystemsManager] ✅ Merged finalStyle for ${patch.id}:`, {
+          newColor: overlay.finalStyle.color,
+          finalStyleKeys: Object.keys(overlay.finalStyle)
+        });
       }
 
       // Get renderer for this overlay type

@@ -192,12 +192,23 @@ export class ApexChartsAdapter {
 
   /**
    * Generate ApexCharts options from MSD style config
+   *
+   * ✅ COMPLETE REWRITE (2025-10-24): Full ApexCharts color API support
+   * - Supports ALL ApexCharts color properties (series, stroke, fill, markers, etc.)
+   * - Resolves CSS variables to actual colors (ApexCharts is canvas-based)
+   * - Uses theme tokens for defaults
+   * - Maintains backward compatibility with existing configs
+   *
    * @param {Object} style - MSD overlay style configuration
    * @param {Array} size - Chart size [width, height]
    * @param {Object} context - Additional context
    * @returns {Object} ApexCharts options
    */
   static generateOptions(style, size, context = {}) {
+    // ============================================================================
+    // SETUP
+    // ============================================================================
+
     let chartType = style.chart_type || style.type || 'line';
 
     // Validate chart type
@@ -206,33 +217,41 @@ export class ApexChartsAdapter {
       chartType = 'line';
     }
 
-    // ✅ ADDED: Create component-scoped token resolver
+    // Create component-scoped token resolver
     const resolveToken = themeTokenResolver ? themeTokenResolver.forComponent('chart') : null;
 
-    // ✅ ENHANCED: Resolve chart colors (can be array or single color)
-    let colors = style.colors || style.color;
+    // Helper: resolve token + CSS variable in one step
+    const resolveColor = (styleValue, tokenPath, fallback) => {
+      const tokenResolved = this._resolveTokenValue(styleValue, tokenPath, resolveToken, fallback, context);
+      return this._resolveCssVariable(tokenResolved);
+    };
 
-    // If no colors specified, get from tokens
-    if (!colors && resolveToken) {
-      colors = resolveToken('defaultColors', null, context);
+    // Helper: resolve array of colors
+    const resolveColorArray = (styleValue, tokenPath, fallback) => {
+      let value = this._resolveTokenValue(styleValue, tokenPath, resolveToken, fallback, context);
+      if (typeof value === 'string') {
+        value = [value];  // Convert single color to array
+      }
+      return this._resolveCssVariable(value);
+    };
+
+    // ============================================================================
+    // SERIES COLORS (Primary data visualization)
+    // ============================================================================
+
+    let colors = style.colors || (style.color ? [style.color] : null);
+    colors = resolveColorArray(colors, 'defaultColors', null);
+
+    // ============================================================================
+    // STROKE/OUTLINE COLORS
+    // ============================================================================
+
+    let strokeColors = style.stroke_colors;
+    if (!strokeColors && style.stroke_color) {
+      strokeColors = [style.stroke_color];
     }
+    strokeColors = resolveColorArray(strokeColors, 'defaultStrokeColors', null);
 
-    // If single color, convert to array
-    if (typeof colors === 'string') {
-      colors = [colors];
-    }
-
-    // Resolve each color in array via token system
-    if (Array.isArray(colors)) {
-      colors = colors.map(color => {
-        if (typeof color === 'string' && this._isTokenReference(color)) {
-          return resolveToken ? resolveToken(color, color, context) : color;
-        }
-        return color;
-      });
-    }
-
-    // ✅ ENHANCED: Resolve stroke width via tokens
     const strokeWidth = this._resolveTokenValue(
       style.stroke_width,
       'defaultStrokeWidth',
@@ -241,48 +260,215 @@ export class ApexChartsAdapter {
       context
     );
 
-    // ✅ ENHANCED: Resolve grid color via tokens
-    const gridColor = this._resolveTokenValue(
-      style.grid_color,
-      'gridColor',
-      resolveToken,
-      'var(--lcars-gray, #999999)',
-      context
-    );
+    const curve = style.curve ||
+      (resolveToken ? resolveToken('curve', 'smooth', context) : 'smooth');
 
-    // ✅ NEW: Resolve background color via tokens
-    const backgroundColor = this._resolveTokenValue(
+    // ============================================================================
+    // FILL COLORS (for area/bar charts)
+    // ============================================================================
+
+    const fillColors = resolveColorArray(style.fill_colors, 'defaultFillColors', null);
+    const fillType = style.fill_type ||
+      (resolveToken ? resolveToken('defaultFillType', 'solid', context) : 'solid');
+    const fillOpacity = style.fill_opacity !== undefined ?
+      style.fill_opacity :
+      (resolveToken ? resolveToken('defaultFillOpacity', 0.7, context) : 0.7);
+
+    // ============================================================================
+    // BACKGROUND & FOREGROUND
+    // ============================================================================
+
+    const backgroundColor = resolveColor(
       style.background_color,
       'backgroundColor',
-      resolveToken,
-      'transparent',
-      context
+      'transparent'
     );
 
-    // ✅ NEW: Resolve stroke/axis color via tokens
-    const strokeColor = this._resolveTokenValue(
-      style.stroke_color,
-      'strokeColor',
-      resolveToken,
-      'var(--lcars-white, #FFFFFF)',
-      context
+    const foregroundColor = resolveColor(
+      style.foreground_color,
+      'foregroundColor',
+      'var(--lcars-white, #FFFFFF)'
     );
 
-    // ✅ ENHANCED: Resolve axis colors via tokens
-    const axisColor = strokeColor;
+    // ============================================================================
+    // GRID COLORS
+    // ============================================================================
 
-    // ✅ ENHANCED: Resolve legend colors via tokens
-    const legendColor = resolveToken ?
-      resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)', context) :
-      'var(--lcars-white, #FFFFFF)';
+    const gridColor = resolveColor(
+      style.grid_color,
+      'gridColor',
+      'var(--lcars-gray, #999999)'
+    );
 
-    // ✅ ENHANCED: Get font family from typography tokens
+    const gridRowColors = resolveColorArray(
+      style.grid_row_colors,
+      'gridRowColors',
+      null
+    );
+
+    const gridColumnColors = resolveColorArray(
+      style.grid_column_colors,
+      'gridColumnColors',
+      null
+    );
+
+    const showGrid = style.show_grid !== undefined ?
+      style.show_grid :
+      (resolveToken ? resolveToken('showGrid', true, context) : true);
+
+    // ============================================================================
+    // AXIS COLORS
+    // ============================================================================
+
+    // Unified axis color (fallback for both axes)
+    const unifiedAxisColor = resolveColor(
+      style.axis_color,
+      'axisColor',
+      foregroundColor
+    );
+
+    // X-axis specific
+    const xaxisColor = style.xaxis_color ?
+      resolveColor(style.xaxis_color, 'xaxisColor', unifiedAxisColor) :
+      unifiedAxisColor;
+
+    const xaxisColors = resolveColorArray(
+      style.xaxis_colors,
+      'xaxisColors',
+      null
+    );
+
+    // Y-axis specific
+    const yaxisColor = style.yaxis_color ?
+      resolveColor(style.yaxis_color, 'yaxisColor', unifiedAxisColor) :
+      unifiedAxisColor;
+
+    const yaxisColors = resolveColorArray(
+      style.yaxis_colors,
+      'yaxisColors',
+      null
+    );
+
+    // Axis border and ticks
+    const axisBorderColor = resolveColor(
+      style.axis_border_color,
+      'axisBorderColor',
+      gridColor
+    );
+
+    const axisTicksColor = resolveColor(
+      style.axis_ticks_color,
+      'axisTicksColor',
+      gridColor
+    );
+
+    // ============================================================================
+    // LEGEND COLORS
+    // ============================================================================
+
+    const legendColor = resolveColor(
+      style.legend_color,
+      'legendColor',
+      foregroundColor
+    );
+
+    const legendColors = resolveColorArray(
+      style.legend_colors,
+      'legendColors',
+      null
+    );
+
+    const showLegend = style.show_legend !== undefined ?
+      style.show_legend :
+      (resolveToken ? resolveToken('showLegend', false, context) : false);
+
+    // ============================================================================
+    // MARKER COLORS (data points)
+    // ============================================================================
+
+    const markerColors = resolveColorArray(
+      style.marker_colors,
+      'markerColors',
+      colors  // Default to series colors
+    );
+
+    const markerStrokeColors = resolveColorArray(
+      style.marker_stroke_colors,
+      'markerStrokeColors',
+      foregroundColor
+    );
+
+    const markerStrokeWidth = style.marker_stroke_width !== undefined ?
+      style.marker_stroke_width :
+      (resolveToken ? resolveToken('markerStrokeWidth', 2, context) : 2);
+
+    // ============================================================================
+    // DATA LABEL COLORS
+    // ============================================================================
+
+    const dataLabelColors = resolveColorArray(
+      style.data_label_colors,
+      'dataLabelColors',
+      foregroundColor
+    );
+
+    const showDataLabels = style.show_data_labels !== undefined ?
+      style.show_data_labels :
+      (resolveToken ? resolveToken('showDataLabels', false, context) : false);
+
+    // ============================================================================
+    // THEME SETTINGS
+    // ============================================================================
+
+    const themeMode = style.theme_mode ||
+      (resolveToken ? resolveToken('themeMode', 'dark', context) : 'dark');
+
+    const themePalette = style.theme_palette ||
+      (resolveToken ? resolveToken('themePalette', null, context) : null);
+
+    // Monochrome settings
+    const monochrome = style.monochrome || {};
+    const monochromeEnabled = monochrome.enabled !== undefined ? monochrome.enabled :
+      (resolveToken ? resolveToken('monochromeEnabled', false, context) : false);
+    const monochromeColor = monochrome.color ?
+      resolveColor(monochrome.color, 'monochromeColor', colors?.[0]) :
+      (resolveToken ? resolveColor(null, 'monochromeColor', colors?.[0]) : colors?.[0]);
+    const monochromeShadeTo = monochrome.shade_to ||
+      (resolveToken ? resolveToken('monochromeShadeTo', 'dark', context) : 'dark');
+    const monochromeIntensity = monochrome.shade_intensity !== undefined ? monochrome.shade_intensity :
+      (resolveToken ? resolveToken('monochromeIntensity', 0.65, context) : 0.65);
+
+    // ============================================================================
+    // TYPOGRAPHY
+    // ============================================================================
+
     const fontFamily = resolveToken ?
-      resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif', context) :
+      resolveToken('fontFamily', 'Antonio, Helvetica Neue, sans-serif', context) :
       'Antonio, Helvetica Neue, sans-serif';
 
+    const fontSize = resolveToken ?
+      resolveToken('fontSize', 12, context) :
+      12;
 
-    // Build base ApexCharts options
+    // ============================================================================
+    // DISPLAY OPTIONS
+    // ============================================================================
+
+    const showToolbar = style.show_toolbar !== undefined ?
+      style.show_toolbar :
+      (resolveToken ? resolveToken('showToolbar', false, context) : false);
+
+    const showTooltip = style.show_tooltip !== undefined ?
+      style.show_tooltip :
+      (resolveToken ? resolveToken('showTooltip', true, context) : true);
+
+    const tooltipTheme = style.tooltip_theme ||
+      (resolveToken ? resolveToken('tooltipTheme', 'dark', context) : 'dark');
+
+    // ============================================================================
+    // BUILD APEXCHARTS OPTIONS
+    // ============================================================================
+
     const baseOptions = {
       chart: {
         type: chartType,
@@ -301,71 +487,137 @@ export class ApexChartsAdapter {
           }
         },
         toolbar: {
-          show: style.show_toolbar || false
+          show: showToolbar
         },
         background: backgroundColor,
-        foreColor: strokeColor,
+        foreColor: foregroundColor,
         fontFamily: fontFamily
       },
 
+      // Series colors
       colors: colors,
 
+      // Stroke (lines/borders)
       stroke: {
         width: strokeWidth,
-        curve: style.curve || 'smooth',
-        colors: style.stroke_colors || [strokeColor]  // ✅ NEW: Support stroke colors
+        curve: curve,
+        colors: strokeColors
       },
 
+      // Fill (area/bar charts)
+      fill: {
+        colors: fillColors,
+        type: fillType,
+        opacity: fillOpacity
+      },
+
+      // Grid
       grid: {
-        show: style.show_grid !== false,  // ✅ NEW: Support disabling grid
+        show: showGrid,
         borderColor: gridColor,
         strokeDashArray: 4,
-        opacity: 0.3
+        opacity: 0.3,
+        ...(gridRowColors && { row: { colors: gridRowColors } }),
+        ...(gridColumnColors && { column: { colors: gridColumnColors } })
       },
 
+      // X-axis
       xaxis: {
         labels: {
           style: {
-            colors: axisColor,
-            fontSize: '10px',
+            colors: xaxisColors || xaxisColor,
+            fontSize: `${fontSize}px`,
             fontFamily: fontFamily
           }
+        },
+        axisBorder: {
+          color: axisBorderColor
+        },
+        axisTicks: {
+          color: axisTicksColor
         }
       },
 
+      // Y-axis
       yaxis: {
         labels: {
           style: {
-            colors: axisColor,
-            fontSize: '10px',
+            colors: yaxisColors || yaxisColor,
+            fontSize: `${fontSize}px`,
             fontFamily: fontFamily
           }
+        },
+        axisBorder: {
+          color: axisBorderColor
+        },
+        axisTicks: {
+          color: axisTicksColor
         }
       },
 
+      // Legend
       legend: {
-        fontSize: '12px',
+        show: showLegend,
+        fontSize: `${fontSize + 2}px`,
         fontFamily: fontFamily,
         labels: {
-          colors: legendColor
+          colors: legendColors || legendColor
         }
       },
 
-      tooltip: {
-        enabled: style.show_tooltip !== false,  // ✅ NEW: Support disabling tooltip
-        theme: style.tooltip_theme || 'dark',
+      // Markers (data points)
+      markers: {
+        colors: markerColors,
+        strokeColors: markerStrokeColors,
+        strokeWidth: markerStrokeWidth
+      },
+
+      // Data labels
+      dataLabels: {
+        enabled: showDataLabels,
         style: {
-          fontSize: '12px',
+          colors: dataLabelColors,
+          fontSize: `${fontSize}px`,
           fontFamily: fontFamily
         }
+      },
+
+      // Tooltip
+      tooltip: {
+        enabled: showTooltip,
+        theme: tooltipTheme,
+        style: {
+          fontSize: `${fontSize}px`,
+          fontFamily: fontFamily
+        }
+      },
+
+      // Theme
+      theme: {
+        mode: themeMode,
+        palette: themePalette,
+        ...(monochromeEnabled && {
+          monochrome: {
+            enabled: true,
+            color: monochromeColor,
+            shadeTo: monochromeShadeTo,
+            shadeIntensity: monochromeIntensity
+          }
+        })
       }
     };
 
-    // NEW: Apply type-specific LCARS defaults
+    // ============================================================================
+    // APPLY TYPE-SPECIFIC DEFAULTS
+    // ============================================================================
+
     const typeDefaults = this._getChartTypeDefaults(chartType, style);
     const optionsWithTypeDefaults = this._deepMerge(baseOptions, typeDefaults);
 
-    // NEW: Apply animation preset if specified (after type defaults, before chart_options)
+    // ============================================================================
+    // APPLY ANIMATION PRESET
+    // ============================================================================
+
     if (style.animation_preset) {
       const animationPreset = this._getAnimationPreset(style.animation_preset);
       if (animationPreset) {
@@ -377,26 +629,51 @@ export class ApexChartsAdapter {
       }
     }
 
-    // ✅ ENHANCED: Log what's being generated
+    // ============================================================================
+    // LOG WHAT WE GENERATED
+    // ============================================================================
+
     cblcarsLog.debug('[ApexChartsAdapter] Generated ApexCharts options:', {
       chartType,
+      seriesColors: colors?.length || 0,
+      strokeColors: strokeColors?.length || 0,
+      fillColors: fillColors?.length || 0,
+      markerColors: markerColors?.length || 0,
       backgroundColor,
-      strokeColor,
+      foregroundColor,
       gridColor,
-      colors: colors?.length || 0,
-      strokeWidth,
-      hasTypeDefaults: Object.keys(typeDefaults).length > 0,
-      hasAnimationPreset: !!style.animation_preset
+      themeMode,
+      themePalette,
+      monochromeEnabled,
+      cssVariablesResolved: true
     });
 
-    // Apply chart_options overrides (highest precedence)
+    // ============================================================================
+    // APPLY CHART_OPTIONS OVERRIDES (Highest precedence)
+    // ============================================================================
+
+    let finalOptions = optionsWithTypeDefaults;
+
     if (style.chart_options) {
-      const finalOptions = this._deepMerge(optionsWithTypeDefaults, style.chart_options);
+      finalOptions = this._deepMerge(optionsWithTypeDefaults, style.chart_options);
       cblcarsLog.debug('[ApexChartsAdapter] Applied chart_options overrides');
-      return finalOptions;
     }
 
-    return optionsWithTypeDefaults;
+    // ============================================================================
+    // FINAL CSS VARIABLE RESOLUTION PASS
+    // ============================================================================
+    // Recursively resolve ANY remaining CSS variables in the entire options tree
+    // This catches:
+    // - Variables from theme defaults
+    // - Variables from style.chart_options overrides
+    // - Variables that slipped through earlier resolution
+    //
+    // CRITICAL: ApexCharts is canvas-based and doesn't understand CSS variables
+    cblcarsLog.debug('[ApexChartsAdapter] 🔍 Starting final CSS variable resolution pass');
+    finalOptions = this._resolveAllCssVariables(finalOptions);
+    cblcarsLog.debug('[ApexChartsAdapter] ✅ Final CSS variable resolution complete');
+
+    return finalOptions;
   }
 
   /**
@@ -789,6 +1066,111 @@ export class ApexChartsAdapter {
     if (typeof value !== 'string') return false;
     const tokenCategories = ['colors', 'typography', 'spacing', 'borders', 'effects', 'animations', 'components'];
     return tokenCategories.some(category => value.startsWith(`${category}.`));
+  }
+
+  /**
+   * Resolve CSS variable to computed value
+   *
+   * ApexCharts is a CANVAS library and doesn't understand CSS variables.
+   * We must resolve them to actual hex/rgb values before passing to ApexCharts.
+   *
+   * @private
+   * @param {string|Array} colorValue - Color value or array of color values
+   * @returns {string|Array} Resolved color value(s)
+   */
+  static _resolveCssVariable(colorValue) {
+    // Handle arrays recursively
+    if (Array.isArray(colorValue)) {
+      return colorValue.map(c => this._resolveCssVariable(c));
+    }
+
+    // Non-string or falsy values pass through
+    if (!colorValue || typeof colorValue !== 'string') {
+      return colorValue;
+    }
+
+    // Check if it's a CSS variable
+    if (colorValue.startsWith('var(')) {
+      try {
+        // Extract variable name from var(--variable-name, fallback)
+        const match = colorValue.match(/var\((--[^,)]+)(?:,\s*([^)]+))?\)/);
+        if (!match) return colorValue;
+
+        const varName = match[1];
+        const fallback = match[2] ? match[2].trim() : null;
+
+        // Get computed style from document root
+        const root = document.documentElement;
+        const computed = getComputedStyle(root).getPropertyValue(varName).trim();
+
+        if (computed) {
+          cblcarsLog.debug(`[ApexChartsAdapter] ✅ Resolved CSS variable: ${colorValue} → ${computed}`);
+          return computed;
+        }
+
+        // No computed value, try fallback
+        if (fallback) {
+          // Fallback might also be a CSS variable, recurse
+          if (fallback.startsWith('var(')) {
+            return this._resolveCssVariable(fallback);
+          }
+          cblcarsLog.debug(`[ApexChartsAdapter] ⚠️ Using fallback: ${colorValue} → ${fallback}`);
+          return fallback;
+        }
+
+        cblcarsLog.warn(`[ApexChartsAdapter] ❌ Failed to resolve CSS variable: ${colorValue} (no computed value or fallback)`);
+        return colorValue;  // Return original if can't resolve
+
+      } catch (error) {
+        cblcarsLog.error(`[ApexChartsAdapter] ❌ Error resolving CSS variable: ${colorValue}`, error);
+        return colorValue;
+      }
+    }
+
+    // Not a CSS variable, return as-is
+    return colorValue;
+  }
+
+  /**
+   * Recursively resolve ALL CSS variables in an object tree
+   * This is the FINAL pass that ensures ApexCharts never receives CSS variables
+   *
+   * @private
+   * @param {any} obj - Object to process (can be object, array, string, etc.)
+   * @returns {any} Object with all CSS variables resolved
+   */
+  static _resolveAllCssVariables(obj) {
+    // Handle null/undefined
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+
+    // Handle arrays - recursively process each element
+    if (Array.isArray(obj)) {
+      return obj.map(item => this._resolveAllCssVariables(item));
+    }
+
+    // Handle objects - recursively process each property
+    if (typeof obj === 'object') {
+      const resolved = {};
+      for (const [key, value] of Object.entries(obj)) {
+        resolved[key] = this._resolveAllCssVariables(value);
+      }
+      return resolved;
+    }
+
+    // Handle strings - resolve if CSS variable
+    if (typeof obj === 'string') {
+      const original = obj;
+      const resolved = this._resolveCssVariable(obj);
+      if (original !== resolved) {
+        cblcarsLog.debug(`[ApexChartsAdapter] 🎨 Resolved CSS variable: ${original} → ${resolved}`);
+      }
+      return resolved;
+    }
+
+    // All other types pass through unchanged
+    return obj;
   }
 
   /**

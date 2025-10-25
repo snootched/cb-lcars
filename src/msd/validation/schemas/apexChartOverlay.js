@@ -50,13 +50,6 @@ export const apexChartOverlaySchema = {
       errorMessage: 'Sources must be an array or string of data source references'
     },
 
-    chart_type: {
-      type: 'string',
-      enum: ApexChartsAdapter.VALID_CHART_TYPES,
-      optional: true,
-      errorMessage: `Chart type must be one of: ${ApexChartsAdapter.VALID_CHART_TYPES.join(', ')}`
-    },
-
     template: {
       type: 'string',
       optional: true,
@@ -67,50 +60,33 @@ export const apexChartOverlaySchema = {
       type: 'object',
       optional: true,
       properties: {
-        background_color: {
-          type: 'string',
-          format: 'color',
-          optional: true
-        },
+        // ============================================================================
+        // CHART TYPE & DISPLAY
+        // ============================================================================
 
-        stroke_color: {
+        chart_type: {
           type: 'string',
-          format: 'color',
-          optional: true
-        },
-
-        stroke_width: {
-          type: 'number',
-          min: 0,
-          max: 20,
+          enum: ApexChartsAdapter.VALID_CHART_TYPES,
           optional: true,
-          errorMessage: 'Stroke width must be between 0 and 20'
+          errorMessage: `Chart type must be one of: ${ApexChartsAdapter.VALID_CHART_TYPES.join(', ')}`
         },
 
-        grid_color: {
+        curve: {
+          type: 'string',
+          enum: ['smooth', 'straight', 'stepline', 'monotoneCubic'],
+          optional: true,
+          errorMessage: 'Curve must be one of: smooth, straight, stepline, monotoneCubic'
+        },
+
+        // ============================================================================
+        // SERIES COLORS (Primary color control for data)
+        // ============================================================================
+
+        color: {
           type: 'string',
           format: 'color',
-          optional: true
-        },
-
-        show_grid: {
-          type: 'boolean',
-          optional: true
-        },
-
-        show_legend: {
-          type: 'boolean',
-          optional: true
-        },
-
-        show_toolbar: {
-          type: 'boolean',
-          optional: true
-        },
-
-        show_tooltip: {
-          type: 'boolean',
-          optional: true
+          optional: true,
+          errorMessage: 'Color must be a valid color value (applies to all series)'
         },
 
         colors: {
@@ -122,6 +98,324 @@ export const apexChartOverlaySchema = {
           },
           errorMessage: 'Colors must be an array of valid color values'
         },
+
+        // ============================================================================
+        // STROKE/OUTLINE COLORS
+        // ============================================================================
+
+        stroke_color: {
+          type: 'string',
+          format: 'color',
+          optional: true,
+          errorMessage: 'Stroke color for lines/borders'
+        },
+
+        stroke_colors: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'string',
+            format: 'color'
+          },
+          errorMessage: 'Stroke colors must be an array of valid color values'
+        },
+
+        stroke_width: {
+          type: 'number',
+          min: 0,
+          max: 20,
+          optional: true,
+          errorMessage: 'Stroke width must be between 0 and 20'
+        },
+
+        // ============================================================================
+        // FILL COLORS (for area/bar charts)
+        // ============================================================================
+
+        fill_colors: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'string',
+            format: 'color'
+          },
+          errorMessage: 'Fill colors must be an array of valid color values'
+        },
+
+        fill_type: {
+          type: 'string',
+          enum: ['solid', 'gradient', 'pattern', 'image'],
+          optional: true,
+          errorMessage: 'Fill type must be one of: solid, gradient, pattern, image'
+        },
+
+        fill_opacity: {
+          type: 'number',
+          min: 0,
+          max: 1,
+          optional: true,
+          errorMessage: 'Fill opacity must be between 0 and 1'
+        },
+
+        // ============================================================================
+        // BACKGROUND & FOREGROUND
+        // ============================================================================
+
+        background_color: {
+          type: 'string',
+          format: 'color',
+          optional: true,
+          errorMessage: 'Background color for chart area'
+        },
+
+        foreground_color: {
+          type: 'string',
+          format: 'color',
+          optional: true,
+          errorMessage: 'Foreground/text color for chart'
+        },
+
+        // ============================================================================
+        // GRID COLORS
+        // ============================================================================
+
+        grid_color: {
+          type: 'string',
+          format: 'color',
+          optional: true,
+          errorMessage: 'Grid line color'
+        },
+
+        grid_row_colors: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'string',
+            format: 'color'
+          },
+          errorMessage: 'Grid row colors for alternating rows'
+        },
+
+        grid_column_colors: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'string',
+            format: 'color'
+          },
+          errorMessage: 'Grid column colors for alternating columns'
+        },
+
+        show_grid: {
+          type: 'boolean',
+          optional: true
+        },
+
+        // ============================================================================
+        // AXIS COLORS
+        // ============================================================================
+
+        axis_color: {
+          type: 'string',
+          format: 'color',
+          optional: true,
+          errorMessage: 'Unified color for all axis elements'
+        },
+
+        xaxis_color: {
+          type: 'string',
+          format: 'color',
+          optional: true,
+          errorMessage: 'X-axis label color'
+        },
+
+        xaxis_colors: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'string',
+            format: 'color'
+          },
+          errorMessage: 'X-axis label colors (one per label)'
+        },
+
+        yaxis_color: {
+          type: 'string',
+          format: 'color',
+          optional: true,
+          errorMessage: 'Y-axis label color'
+        },
+
+        yaxis_colors: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'string',
+            format: 'color'
+          },
+          errorMessage: 'Y-axis label colors (one per label)'
+        },
+
+        axis_border_color: {
+          type: 'string',
+          format: 'color',
+          optional: true,
+          errorMessage: 'Axis border line color'
+        },
+
+        axis_ticks_color: {
+          type: 'string',
+          format: 'color',
+          optional: true,
+          errorMessage: 'Axis tick mark color'
+        },
+
+        // ============================================================================
+        // LEGEND COLORS
+        // ============================================================================
+
+        legend_color: {
+          type: 'string',
+          format: 'color',
+          optional: true,
+          errorMessage: 'Legend text color'
+        },
+
+        legend_colors: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'string',
+            format: 'color'
+          },
+          errorMessage: 'Legend text colors (one per series)'
+        },
+
+        show_legend: {
+          type: 'boolean',
+          optional: true
+        },
+
+        // ============================================================================
+        // MARKER COLORS (data points)
+        // ============================================================================
+
+        marker_colors: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'string',
+            format: 'color'
+          },
+          errorMessage: 'Marker fill colors for data points'
+        },
+
+        marker_stroke_colors: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'string',
+            format: 'color'
+          },
+          errorMessage: 'Marker border/stroke colors for data points'
+        },
+
+        marker_stroke_width: {
+          type: 'number',
+          min: 0,
+          max: 10,
+          optional: true,
+          errorMessage: 'Marker stroke width must be between 0 and 10'
+        },
+
+        // ============================================================================
+        // DATA LABEL COLORS (value labels on chart)
+        // ============================================================================
+
+        data_label_colors: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'string',
+            format: 'color'
+          },
+          errorMessage: 'Data label colors for value text'
+        },
+
+        show_data_labels: {
+          type: 'boolean',
+          optional: true
+        },
+
+        // ============================================================================
+        // THEME SETTINGS
+        // ============================================================================
+
+        theme_mode: {
+          type: 'string',
+          enum: ['dark', 'light'],
+          optional: true,
+          errorMessage: 'Theme mode must be "dark" or "light"'
+        },
+
+        theme_palette: {
+          type: 'string',
+          enum: ['palette1', 'palette2', 'palette3', 'palette4', 'palette5',
+                 'palette6', 'palette7', 'palette8', 'palette9', 'palette10'],
+          optional: true,
+          errorMessage: 'Theme palette must be palette1-palette10'
+        },
+
+        monochrome: {
+          type: 'object',
+          optional: true,
+          properties: {
+            enabled: {
+              type: 'boolean',
+              optional: true
+            },
+            color: {
+              type: 'string',
+              format: 'color',
+              optional: true
+            },
+            shade_to: {
+              type: 'string',
+              enum: ['light', 'dark'],
+              optional: true
+            },
+            shade_intensity: {
+              type: 'number',
+              min: 0,
+              max: 1,
+              optional: true
+            }
+          }
+        },
+
+        // ============================================================================
+        // DISPLAY OPTIONS
+        // ============================================================================
+
+        show_toolbar: {
+          type: 'boolean',
+          optional: true
+        },
+
+        show_tooltip: {
+          type: 'boolean',
+          optional: true
+        },
+
+        tooltip_theme: {
+          type: 'string',
+          enum: ['dark', 'light'],
+          optional: true
+        },
+
+        // ============================================================================
+        // DATA OPTIONS
+        // ============================================================================
 
         time_window: {
           type: 'string',
@@ -138,15 +432,24 @@ export const apexChartOverlaySchema = {
           errorMessage: 'Max points must be between 10 and 10000'
         },
 
+        // ============================================================================
+        // ANIMATION
+        // ============================================================================
+
         animation_preset: {
           type: 'string',
-          optional: true
+          optional: true,
+          errorMessage: 'Animation preset name from pack registry'
         },
+
+        // ============================================================================
+        // ADVANCED: Raw ApexCharts options (escape hatch)
+        // ============================================================================
 
         chart_options: {
           type: 'object',
           optional: true,
-          errorMessage: 'Chart options must be a valid ApexCharts configuration object'
+          errorMessage: 'Chart options must be a valid ApexCharts configuration object (overrides all other settings)'
         }
       }
     }

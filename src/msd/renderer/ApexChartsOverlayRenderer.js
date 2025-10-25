@@ -1653,8 +1653,29 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
     }
 
     try {
+        // DEBUG: Log the entire overlay object to see what we're receiving
+        cblcarsLog.info(`[ApexChartsOverlayRenderer] 📦 Full overlay object for ${overlayId}:`, {
+          hasFinalStyle: !!overlay.finalStyle,
+          hasStyle: !!overlay.style,
+          finalStyleKeys: overlay.finalStyle ? Object.keys(overlay.finalStyle) : [],
+          styleKeys: overlay.style ? Object.keys(overlay.style) : [],
+          overlayKeys: Object.keys(overlay)
+        });
+
         const style = overlay.finalStyle || overlay.style || {};
         const sourceRef = overlay.source || overlay.data_source || overlay.sources;
+
+        // DEBUG: Log the incoming style patch to see what colors are being applied
+        cblcarsLog.info(`[ApexChartsOverlayRenderer] 🎨 Style being used for ${overlayId}:`, {
+          color: style.color,
+          stroke_colors: style.stroke_colors,
+          fill_colors: style.fill_colors,
+          grid_color: style.grid_color,
+          axis_color: style.axis_color,
+          legend_color: style.legend_color,
+          fill_opacity: style.fill_opacity,
+          styleSource: overlay.finalStyle ? 'finalStyle' : (overlay.style ? 'style' : 'empty')
+        });
 
         // FIXED: Get original size from stored overlayInfo, don't recalculate from DOM
         // This prevents cumulative rounding errors that cause chart growth
@@ -1701,10 +1722,35 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
           delete optionsOnly.chart.height;
         }
 
-        chart.updateOptions(optionsOnly, false, false); // Don't redraw yet
+        // Update chart options with redraw enabled
+        // ApexCharts updateOptions() parameters:
+        // 1. options - The options to update (will be deep-merged with existing)
+        // 2. redrawPaths - true to redraw, false to skip
+        // 3. animate - true to animate the update
+        // 4. updateSyncedCharts - true to update synced charts (we don't use this)
+        //
+        // KEY: ApexCharts internally merges the options, so we only pass what changed
+        cblcarsLog.debug(`[ApexChartsOverlayRenderer] 📤 Calling updateOptions with:`, {
+          optionKeys: Object.keys(optionsOnly),
+          hasColors: !!optionsOnly.colors,
+          hasStroke: !!optionsOnly.stroke,
+          hasFill: !!optionsOnly.fill,
+          hasMarkers: !!optionsOnly.markers,
+          actualColors: optionsOnly.colors,
+          actualStrokeColors: optionsOnly.stroke?.colors,
+          actualFillColors: optionsOnly.fill?.colors,
+          actualMarkerColors: optionsOnly.markers?.colors
+        });
 
-        // Step 2: Update the series separately with animation
-        chart.updateSeries(series, true); // Animate the series update
+        // Call updateOptions with redraw=true to force visual update
+        // animate=false to make the change instant (no animation delay)
+        chart.updateOptions(optionsOnly, true, false);
+
+        cblcarsLog.debug(`[ApexChartsOverlayRenderer] ✅ updateOptions completed`);
+
+        // Step 2: Update the series separately (only if series data changed)
+        // For style-only updates, we can skip this step
+        // chart.updateSeries(series, true); // Animate the series update
 
         cblcarsLog.debug(`[ApexChartsOverlayRenderer] ✅ Chart style updated: ${overlayId}`, {
           optionsUpdated: Object.keys(optionsOnly).length,
@@ -1750,6 +1796,57 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
     }
 
     return errors;
+  }
+
+  /**
+   * ✅ INCREMENTAL UPDATE SUPPORT
+   * Indicates that this renderer supports incremental updates
+   * @static
+   * @returns {boolean} True if incremental updates are supported
+   */
+  static supportsIncrementalUpdate() {
+    return true;
+  }
+
+  /**
+   * ✅ INCREMENTAL UPDATE SUPPORT
+   * Update an ApexChart overlay without full re-render
+   *
+   * This method updates only the visual styling (colors, stroke, grid, etc.)
+   * without recreating the chart instance or resetting its state.
+   *
+   * @static
+   * @param {Object} overlay - Updated overlay configuration with finalStyle/style changes
+   * @param {HTMLElement} overlayElement - The HTML div containing the ApexChart
+   * @param {Object} context - Update context with dataSourceManager, hass, patch
+   * @returns {boolean} True if update succeeded, false if fallback needed
+   */
+  static updateIncremental(overlay, overlayElement, context) {
+    const { dataSourceManager, patch } = context;
+
+    cblcarsLog.info('[ApexChartsOverlayRenderer] 🔄 Incremental update requested:', {
+      overlayId: overlay.id,
+      hasPatch: !!patch,
+      patchStyleKeys: patch?.style ? Object.keys(patch.style) : [],
+      overlayType: overlay.type
+    });
+
+    if (!dataSourceManager) {
+      cblcarsLog.warn('[ApexChartsOverlayRenderer] ⚠️ No dataSourceManager in context - cannot update');
+      return false;
+    }
+
+    try {
+      // Use the existing updateChartStyle method
+      ApexChartsOverlayRenderer.updateChartStyle(overlay.id, overlay, dataSourceManager);
+
+      cblcarsLog.info('[ApexChartsOverlayRenderer] ✅ Incremental update succeeded:', overlay.id);
+      return true;
+
+    } catch (error) {
+      cblcarsLog.error('[ApexChartsOverlayRenderer] ❌ Incremental update failed:', overlay.id, error);
+      return false;
+    }
   }
 
   // Singleton pattern

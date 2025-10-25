@@ -50,6 +50,7 @@ export const lcarsClassicTokens = {
     },
 
     chart: {
+      // Series colors (primary data visualization colors)
       series: [
         'var(--lcars-orange, #FF9900)',
         'var(--lcars-blue, #9999FF)',
@@ -58,9 +59,56 @@ export const lcarsClassicTokens = {
         'var(--lcars-green, #99CC99)',
         'var(--lcars-red, #CC6666)'
       ],
+
+      // Grid styling
       grid: 'var(--lcars-gray, #999999)',
+      gridMuted: 'alpha(colors.chart.grid, 0.3)',
+      gridRow: ['alpha(colors.chart.grid, 0.05)', 'transparent'],
+      gridColumn: ['alpha(colors.chart.grid, 0.05)', 'transparent'],
+
+      // Axis styling
       axis: 'var(--lcars-white, #FFFFFF)',
-      gridMuted: 'alpha(colors.chart.grid, 0.3)'
+      axisBorder: 'var(--lcars-gray, #999999)',
+      axisTicks: 'alpha(var(--lcars-gray, #999999), 0.6)',
+
+      // Stroke (line/border colors)
+      stroke: 'var(--lcars-white, #FFFFFF)',
+      strokeMuted: 'alpha(colors.chart.stroke, 0.8)',
+
+      // Fill colors (for area/bar charts)
+      fillColors: 'colors.chart.series',  // Defaults to series colors
+      fillOpacity: 0.7,
+
+      // Background and foreground
+      background: 'transparent',
+      foreground: 'var(--lcars-white, #FFFFFF)',
+
+      // Legend styling
+      legend: 'var(--lcars-white, #FFFFFF)',
+      legendMuted: 'alpha(colors.chart.legend, 0.8)',
+
+      // Marker (data point) colors
+      marker: 'colors.chart.series',  // Defaults to series colors
+      markerStroke: 'var(--lcars-white, #FFFFFF)',
+      markerStrokeWidth: 2,
+
+      // Data label colors
+      dataLabel: 'var(--lcars-white, #FFFFFF)',
+      dataLabelBackground: 'alpha(var(--lcars-black, #000000), 0.8)',
+
+      // Tooltip styling
+      tooltipTheme: 'dark',
+      tooltipBackground: 'var(--lcars-black, #000000)',
+      tooltipForeground: 'var(--lcars-white, #FFFFFF)',
+
+      // Theme settings
+      themeMode: 'dark',
+      themePalette: null,  // null = use custom colors above
+
+      // Monochrome settings (when enabled)
+      monochromeColor: 'var(--lcars-orange, #FF9900)',
+      monochromeShadeTo: 'dark',
+      monochromeIntensity: 0.65
     },
 
     alert: {
@@ -360,11 +408,95 @@ export const lcarsClassicTokens = {
     },
 
     chart: {
+      // ============================================================================
+      // SERIES COLORS (Primary data visualization)
+      // ============================================================================
       defaultColors: 'colors.chart.series',
+      defaultColor: 'colors.accent.primary',  // Single-series fallback
+
+      // ============================================================================
+      // STROKE/OUTLINE
+      // ============================================================================
+      defaultStrokeColor: 'colors.chart.stroke',
+      defaultStrokeColors: null,  // null = use defaultStrokeColor
       defaultStrokeWidth: 'borders.width.thick',
+      curve: 'smooth',
+
+      // ============================================================================
+      // FILL (for area/bar charts)
+      // ============================================================================
+      defaultFillColors: 'colors.chart.fillColors',
+      defaultFillType: 'solid',
+      defaultFillOpacity: 'colors.chart.fillOpacity',
+
+      // ============================================================================
+      // BACKGROUND & FOREGROUND
+      // ============================================================================
+      backgroundColor: 'colors.chart.background',
+      foregroundColor: 'colors.chart.foreground',
+
+      // ============================================================================
+      // GRID
+      // ============================================================================
       gridColor: 'colors.chart.gridMuted',
-      strokeColor: 'colors.chart.axis',
-      backgroundColor: 'colors.ui.background'
+      gridRowColors: 'colors.chart.gridRow',
+      gridColumnColors: 'colors.chart.gridColumn',
+      showGrid: true,
+
+      // ============================================================================
+      // AXIS
+      // ============================================================================
+      axisColor: 'colors.chart.axis',
+      xaxisColor: null,  // null = use axisColor
+      yaxisColor: null,  // null = use axisColor
+      axisBorderColor: 'colors.chart.axisBorder',
+      axisTicksColor: 'colors.chart.axisTicks',
+
+      // ============================================================================
+      // LEGEND
+      // ============================================================================
+      legendColor: 'colors.chart.legend',
+      legendColors: null,  // null = use legendColor for all
+      showLegend: false,   // LCARS style: minimal legends
+
+      // ============================================================================
+      // MARKERS (data points)
+      // ============================================================================
+      markerColors: 'colors.chart.marker',
+      markerStrokeColors: 'colors.chart.markerStroke',
+      markerStrokeWidth: 'colors.chart.markerStrokeWidth',
+
+      // ============================================================================
+      // DATA LABELS (value text on chart)
+      // ============================================================================
+      dataLabelColors: 'colors.chart.dataLabel',
+      showDataLabels: false,  // LCARS style: show in tooltip instead
+
+      // ============================================================================
+      // THEME
+      // ============================================================================
+      themeMode: 'colors.chart.themeMode',
+      themePalette: 'colors.chart.themePalette',
+
+      // Monochrome settings
+      monochromeEnabled: false,
+      monochromeColor: 'colors.chart.monochromeColor',
+      monochromeShadeTo: 'colors.chart.monochromeShadeTo',
+      monochromeIntensity: 'colors.chart.monochromeIntensity',
+
+      // ============================================================================
+      // DISPLAY OPTIONS
+      // ============================================================================
+      showToolbar: false,  // LCARS style: minimal UI
+      showTooltip: true,
+      tooltipTheme: 'colors.chart.tooltipTheme',
+
+      // ============================================================================
+      // FONT/TYPOGRAPHY
+      // ============================================================================
+      fontFamily: 'typography.fontFamily.primary',
+      fontSize: 'typography.fontSize.sm',
+      fontWeight: 'typography.fontWeight.normal'
     }
   }
 };
