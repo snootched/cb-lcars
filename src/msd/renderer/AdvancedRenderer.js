@@ -6,6 +6,7 @@
 
 import { RendererUtils } from './RendererUtils.js';
 import { OverlayUtils } from './OverlayUtils.js';
+import { AttachmentPointManager } from './AttachmentPointManager.js';
 
 import { StatusGridRenderer } from './StatusGridRenderer.js';
 import { ApexChartsOverlayRenderer } from './ApexChartsOverlayRenderer.js';
@@ -30,10 +31,11 @@ export class AdvancedRenderer {
     this.overlayElements = new Map();
     this.lastRenderArgs = null;
 
+    // Centralized attachment point management
+    this.attachmentManager = new AttachmentPointManager();
+
     // Track overlay elements for efficient updates
     this.overlayElementCache = new Map(); // overlayId -> DOM element
-    this.overlayAttachmentPoints = new Map(); // UNIFIED: All overlay attachment points
-    this.textAttachmentPoints = new Map(); // DEPRECATED: Keep for backward compatibility
     this._lineDeps = new Map(); // targetOverlayId -> Set(lineOverlayId)
 
     // Phase 3: Cache for instance-based overlay renderers
@@ -77,6 +79,9 @@ export class AdvancedRenderer {
 
     const { overlays = [], anchors = {}, viewBox } = resolvedModel;
 
+    // Store static anchors for use throughout render
+    this._staticAnchors = anchors;
+
     cblcarsLog.debug(`[AdvancedRenderer] 🎨 Rendering ${overlays.length} overlays, ${Object.keys(anchors).length} anchors`);
 
     // ✅ NEW: Stage 1 - Preparation (Phase 5.3)
@@ -95,10 +100,6 @@ export class AdvancedRenderer {
     const overlayGroup = this._ensureOverlayGroup(svg);
     overlayGroup.innerHTML = '';
     this.overlayElementCache.clear();
-
-    // Clear attachment point maps - will be populated during rendering
-    this.overlayAttachmentPoints.clear();
-    this.textAttachmentPoints.clear(); // Keep for backward compatibility
 
     // Phase 3: Line overlay attachment points are set per-instance during render
     // (removed global lineRenderer.setOverlayAttachmentPoints call)
@@ -246,27 +247,107 @@ export class AdvancedRenderer {
 
     // CRITICAL: Populate attachment points from Phase 1 overlays BEFORE Phase 2
     // This ensures line overlays have correct attachment points on initial render
-    this._populateInitialAttachmentPoints(overlays);
+    this._populateInitialAttachmentPoints(overlays, anchors);
 
     // Build dynamic anchors (overlay destinations)
-    this._dynamicAnchors = { ...anchors };
-    this._buildDynamicOverlayAnchors(overlays, this._dynamicAnchors);
+    this.attachmentManager.setAnchorsFromObject(anchors);
+    this._buildDynamicOverlayAnchors(overlays);
 
-    // Build virtual anchors from ALL overlay attachment points for line anchoring
-    this._buildVirtualAnchorsFromAllOverlays(overlays, this._dynamicAnchors);
+    // Build virtual anchors from Phase 1 overlays (text) for line anchoring
+    this._buildVirtualAnchorsFromAllOverlays(overlays);
 
     // ADDED: Separate action queue for Phase 2
     const phase2ActionQueue = [];
 
-    // Phase 2: render line overlays (now DOM for targets exists)
-    overlays.filter(o => !earlyTypes.has(o.type)).forEach(ov => {
+    // Phase 2a: render non-line overlays (buttons, status_grids, etc.) that lines may attach to
+    overlays.filter(o => !earlyTypes.has(o.type) && o.type !== 'line').forEach(ov => {
       try {
         // ✅ NEW: Track per-overlay timing (Phase 5.3)
         const overlayStart = performance.now();
 
-        const result = this.renderOverlay(ov, this._dynamicAnchors, viewBox);
+        const result = this.renderOverlay(ov, this._staticAnchors, viewBox);
 
-        cblcarsLog.debug(`[AdvancedRenderer] 📊 Phase 2 overlay ${ov.id} result:`, {
+        cblcarsLog.debug(`[AdvancedRenderer] 📊 Phase 2a overlay ${ov.id} result:`, {
+          resultType: typeof result,
+          isObject: result && typeof result === 'object',
+          hasMarkup: result?.markup,
+          hasActionInfo: result?.actionInfo,
+          overlayId: result?.overlayId
+        });
+
+        let markup = null;
+
+        if (typeof result === 'string') {
+          markup = result;
+        } else if (result && result.markup) {
+          markup = result.markup;
+
+          if (result.actionInfo) {
+            cblcarsLog.debug(`[AdvancedRenderer] 📝 Queuing Phase 2a action for ${result.overlayId}`);
+            phase2ActionQueue.push({
+              overlayId: result.overlayId,
+              actionInfo: result.actionInfo,
+              overlay: ov,
+              cardInstance: this.systemsManager ? this._resolveCardInstance() : null
+            });
+          }
+
+          // NEW: Store renderer provenance
+          if (result.provenance) {
+            this._storeRendererProvenance(ov.id, result.provenance);
+            const renderer = result.provenance.renderer;
+            if (!provenance.render_summary.by_renderer[renderer]) {
+              provenance.render_summary.by_renderer[renderer] = {
+                count: 0,
+                total_time_ms: 0
+              };
+            }
+            provenance.render_summary.by_renderer[renderer].count++;
+            provenance.render_summary.by_renderer[renderer].total_time_ms +=
+              result.provenance.rendering_time_ms || 0;
+          }
+        }
+
+        if (markup) {
+          overlayGroup.insertAdjacentHTML('beforeend', markup);
+          svgMarkupAccum += markup;
+          const el = overlayGroup.querySelector(`[data-overlay-id="${ov.id}"]`);
+          if (el) this.overlayElementCache.set(ov.id, el);
+        }
+
+        // ✅ NEW: Record overlay timing (Phase 5.3)
+        const overlayDuration = performance.now() - overlayStart;
+        this._performance.overlayTimings.set(ov.id, {
+          type: ov.type,
+          duration: overlayDuration
+        });
+        this._performance.overlayCount++;
+
+        processedCount++;
+      } catch (e) {
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Phase2a render failed for overlay ${ov.id}:`, e);
+      }
+    });
+
+    // Cache Phase 2a elements and populate attachment points for buttons/etc
+    this._cacheElementsFrom(overlayGroup);
+    this._populateInitialAttachmentPoints(overlays, anchors);
+
+    // Rebuild virtual anchors now that we have Phase 2a overlays (buttons, status_grids, etc.)
+    this._buildVirtualAnchorsFromAllOverlays(overlays);
+
+    // CRITICAL: Rebuild dynamic overlay anchors now that Phase 2a overlays have attachment points
+    this._buildDynamicOverlayAnchors(overlays);
+
+    // Phase 2b: render line overlays (now ALL targets exist with attachment points)
+    overlays.filter(o => o.type === 'line').forEach(ov => {
+      try {
+        // ✅ NEW: Track per-overlay timing (Phase 5.3)
+        const overlayStart = performance.now();
+
+        const result = this.renderOverlay(ov, this._staticAnchors, viewBox);
+
+        cblcarsLog.debug(`[AdvancedRenderer] 📊 Phase 2b overlay ${ov.id} result:`, {
           resultType: typeof result,
           isObject: result && typeof result === 'object',
           hasMarkup: result?.markup,
@@ -282,10 +363,12 @@ export class AdvancedRenderer {
 
           // CHANGED: Collect Phase 2 actions in separate queue
           if (result.actionInfo) {
-            cblcarsLog.debug(`[AdvancedRenderer] 📝 Queuing Phase 2 action for ${result.overlayId}`);
+            cblcarsLog.debug(`[AdvancedRenderer] 📝 Queuing Phase 2b action for ${result.overlayId}`);
             phase2ActionQueue.push({
               overlayId: result.overlayId,
-              actionInfo: result.actionInfo
+              actionInfo: result.actionInfo,
+              overlay: ov,
+              cardInstance: this.systemsManager ? this._resolveCardInstance() : null
             });
           }
 
@@ -326,16 +409,21 @@ export class AdvancedRenderer {
             this._lineDeps.get(targetId).add(ov.id);
 
             // NEW: ensure RouterCore sees a route for overlay-destination line (HUD listing)
-            if (this.routerCore && raw.anchor && this._dynamicAnchors[raw.anchor] && this._dynamicAnchors[targetId]) {
-              try {
-                const req = this.routerCore.buildRouteRequest(
-                  ov,
-                  this._dynamicAnchors[raw.anchor],
-                  this._dynamicAnchors[targetId]
-                );
-                this.routerCore.computePath(req);
-              } catch (e) {
-                cblcarsLog.debug('[AdvancedRenderer] 🔗 Route registration failed for overlay', ov.id, e);
+            if (this.routerCore && raw.anchor) {
+              const anchorPt = this.attachmentManager.getAnchor(raw.anchor);
+
+              // Build virtual anchor ID for destination overlay
+              const attachSide = raw.attach_side || raw.attachSide || 'center';
+              const virtualAnchorId = attachSide === 'center' ? targetId : `${targetId}.${attachSide}`;
+              const targetPt = this.attachmentManager.getAnchor(virtualAnchorId);
+
+              if (anchorPt && targetPt) {
+                try {
+                  const req = this.routerCore.buildRouteRequest(ov, anchorPt, targetPt);
+                  this.routerCore.computePath(req);
+                } catch (e) {
+                  cblcarsLog.debug('[AdvancedRenderer] 🔗 Route registration failed for overlay', ov.id, e);
+                }
               }
             }
           }
@@ -351,7 +439,7 @@ export class AdvancedRenderer {
 
         processedCount++;
       } catch (e) {
-        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Phase2 render failed for overlay ${ov.id}:`, e);
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Phase2b render failed for overlay ${ov.id}:`, e);
 
         // ✅ NEW: Track failed overlay (Phase 5.3)
         provenance.overlays[ov.id] = {
@@ -371,7 +459,7 @@ export class AdvancedRenderer {
     // ADDED: Attach Phase 2 actions (buttons, status grids, etc.) AFTER Phase 2 DOM injection
     cblcarsLog.debug(`[AdvancedRenderer] 🎯 Attaching ${phase2ActionQueue.length} Phase 2 actions`);
 
-    phase2ActionQueue.forEach(({ overlayId, actionInfo }) => {
+    phase2ActionQueue.forEach(({ overlayId, actionInfo, overlay, cardInstance }) => {
       const element = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"]`);
 
       cblcarsLog.debug(`[AdvancedRenderer] 🔍 Looking for Phase 2 element ${overlayId}:`, {
@@ -388,9 +476,9 @@ export class AdvancedRenderer {
             // Simple overlay-level actions (text, buttons)
             ActionHelpers.attachActions(
               element,
-              actionInfo.overlay,
+              overlay,
               actionInfo.config,
-              actionInfo.cardInstance
+              cardInstance
             );
           } else if (actionInfo.config.enhanced) {
             // Enhanced cell-level actions (status grids)
@@ -401,7 +489,7 @@ export class AdvancedRenderer {
               ActionHelpers.attachCellActionsFromConfigs(
                 element,
                 actionInfo.cells,
-                actionInfo.cardInstance
+                cardInstance
               );
             }
 
@@ -420,9 +508,9 @@ export class AdvancedRenderer {
 
               ActionHelpers.attachActions(
                 element,
-                actionInfo.overlay,
+                overlay,
                 fallbackConfig,
-                actionInfo.cardInstance
+                cardInstance
               );
             }
           }
@@ -452,10 +540,10 @@ export class AdvancedRenderer {
     // Action attachment time is tracked inline above during Phase 1 and Phase 2
 
     // NEW: schedule deferred line refresh to fix first-load orientation/position
-    this._scheduleDeferredLineRefresh(overlays, this._dynamicAnchors, viewBox);
+    this._scheduleDeferredLineRefresh(overlays, this._staticAnchors, viewBox);
 
     // NEW: schedule font stabilization pass (re-measure after real fonts load)
-    this._scheduleFontStabilization(overlays, this._dynamicAnchors, viewBox);
+    this._scheduleFontStabilization(overlays, this._staticAnchors, viewBox);
 
     this.lastRenderArgs = { resolvedModel, overlays, svg };
 
@@ -601,26 +689,126 @@ export class AdvancedRenderer {
     });
   }
 
-  // NEW: build virtual anchors for lines that attach to overlays
-  _buildDynamicOverlayAnchors(overlays, anchorMap) {
+  // Build virtual anchors for lines that attach to overlays
+  _buildDynamicOverlayAnchors(overlays) {
     overlays.filter(o => o.type === 'line').forEach(line => {
       const raw = line._raw || line.raw || {};
       const dest = raw.attach_to || raw.attachTo;
       if (!dest) return;
-      // Use unified attachment points (includes all overlay types)
-      const attachmentPointData = this.overlayAttachmentPoints.get(dest);
-      if (!attachmentPointData || !attachmentPointData.points) return;
-      const side = (raw.attach_side || raw.attachSide || '').toLowerCase();
-      const basePt = this._resolveOverlayAttachmentPoint(attachmentPointData.points, side);
-      if (!basePt) return;
-      const gapPt = this._applyAttachGap(basePt, side, raw, attachmentPointData.bbox);
-      anchorMap[dest] = gapPt;
+
+      // Read from attachment manager
+      const attachmentPointData = this.attachmentManager.getAttachmentPoints(dest);
+      if (!attachmentPointData || !attachmentPointData.points) {
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ No attachment points found for ${dest}`);
+        return;
+      }
+
+      // Get line anchor for auto-side determination
+      // Check if anchor refers to an overlay (has attachment points)
+      let lineAnchor = null;
+      const sourceAttachmentPoints = this.attachmentManager.getAttachmentPoints(raw.anchor);
+
+      cblcarsLog.debug(`[AdvancedRenderer] 🔍 Source anchor resolution for ${line.id}:`);
+      cblcarsLog.debug(`  raw.anchor: "${raw.anchor}"`);
+      cblcarsLog.debug(`  hasSourceAttachmentPoints: ${!!sourceAttachmentPoints}`);
+
+      if (sourceAttachmentPoints?.points) {
+        // Anchor is an overlay - resolve the appropriate side
+        const anchorSide = (raw.anchor_side || raw.anchorSide || '').toLowerCase();
+
+        cblcarsLog.debug(`  anchorSide config: "${anchorSide}"`);
+        cblcarsLog.debug(`  destination center: [${attachmentPointData.points.center.join(', ')}]`);
+
+        const { point: sourcePt, side: sourceEffectiveSide } = this._resolveOverlayAttachmentPoint(
+          sourceAttachmentPoints.points,
+          anchorSide,
+          attachmentPointData.points.center  // Use destination center to auto-determine source side
+        );
+
+        cblcarsLog.debug(`  resolved sourcePt: [${sourcePt ? sourcePt.join(', ') : 'null'}]`);
+        cblcarsLog.debug(`  resolved sourceEffectiveSide: "${sourceEffectiveSide}"`);
+
+        lineAnchor = sourcePt;
+
+        // Store the source virtual anchor if it's not center
+        if (sourcePt && sourceEffectiveSide && sourceEffectiveSide !== 'center') {
+          const sourceVirtualAnchorId = `${raw.anchor}.${sourceEffectiveSide}`;
+          const sourceGapPt = this._applyAttachGap(sourcePt, sourceEffectiveSide,
+            { anchor_gap: raw.anchor_gap || raw.anchorGap }, sourceAttachmentPoints.bbox);
+          this.attachmentManager.setAnchor(sourceVirtualAnchorId, sourceGapPt);
+          if (this.routerCore?.anchors) {
+            this.routerCore.anchors[sourceVirtualAnchorId] = sourceGapPt;
+          }
+          lineAnchor = sourceGapPt;  // Use the gap-adjusted point
+
+          // CRITICAL: Write back auto-determined side to overlay config so LineOverlay can use it
+          raw.anchor_side = sourceEffectiveSide;
+          line.anchor_side = sourceEffectiveSide;  // Also write to top-level object
+          cblcarsLog.debug(`[AdvancedRenderer] 💾 Wrote back anchor_side to overlay config:`, {
+            overlayId: line.id,
+            anchor_side: sourceEffectiveSide
+          });
+        }
+      } else {
+        // Standard anchor lookup
+        lineAnchor = this.attachmentManager.getAnchor(raw.anchor) ||
+                    this._staticAnchors[raw.anchor] ||
+                    null;
+      }
+
+      const configSide = (raw.attach_side || raw.attachSide || '').toLowerCase();
+
+      cblcarsLog.debug(`[AdvancedRenderer] 🔗 Building anchor for line ${line.id}:`);
+      cblcarsLog.debug(`  dest: ${dest}`);
+      cblcarsLog.debug(`  configSide: "${configSide}" (empty=${!configSide})`);
+      cblcarsLog.debug(`  lineAnchor: [${lineAnchor ? lineAnchor.join(', ') : 'null'}]`);
+      cblcarsLog.debug(`  availablePoints: ${Object.keys(attachmentPointData.points).join(', ')}`);
+      cblcarsLog.debug(`  center: [${attachmentPointData.points.center.join(', ')}]`);
+      cblcarsLog.debug(`  right: [${attachmentPointData.points.right.join(', ')}]`);
+      cblcarsLog.debug(`  left: [${attachmentPointData.points.left.join(', ')}]`);
+
+      const { point: basePt, side: effectiveSide } = this._resolveOverlayAttachmentPoint(
+        attachmentPointData.points,
+        configSide,
+        lineAnchor
+      );
+
+      cblcarsLog.debug(`[AdvancedRenderer] 🎯 Resolved attachment point:`);
+      cblcarsLog.debug(`  effectiveSide: "${effectiveSide}"`);
+      cblcarsLog.debug(`  basePt: [${basePt ? basePt.join(', ') : 'null'}]`);
+      cblcarsLog.debug(`  configSide was: "${configSide}"`);      if (!basePt) {
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ No base point resolved for ${line.id}`);
+        return;
+      }
+      const gapPt = this._applyAttachGap(basePt, effectiveSide, raw, attachmentPointData.bbox);
+
+      // Construct the proper virtual anchor ID based on effective side (which may be auto-determined)
+      const virtualAnchorId = effectiveSide && effectiveSide !== 'center' ? `${dest}.${effectiveSide}` : dest;
+
+      cblcarsLog.debug(`[AdvancedRenderer] 💾 Storing virtual anchor:`);
+      cblcarsLog.debug(`  virtualAnchorId: "${virtualAnchorId}"`);
+      cblcarsLog.debug(`  gapPt: [${gapPt.join(', ')}]`);
+      cblcarsLog.debug(`  effectiveSide: "${effectiveSide}"`);
+
+      // Store in attachment manager
+      this.attachmentManager.setAnchor(virtualAnchorId, gapPt);
+
+      // CRITICAL: Write back auto-determined side to overlay config so LineOverlay can use it
+      if (effectiveSide && effectiveSide !== 'center' && !configSide) {
+        raw.attach_side = effectiveSide;
+        line.attach_side = effectiveSide;  // Also write to top-level object
+        cblcarsLog.debug(`[AdvancedRenderer] 💾 Wrote back attach_side to overlay config:`, {
+          overlayId: line.id,
+          attach_side: effectiveSide
+        });
+      }
+
       // Register in routerCore so HUD sees it as an anchor
       if (this.routerCore && this.routerCore.anchors) {
-        this.routerCore.anchors[dest] = gapPt;
+        this.routerCore.anchors[virtualAnchorId] = gapPt;
         try {
           this.routerCore.invalidate(line.id);
-          const srcAnchor = anchorMap[raw.anchor] || this.routerCore.anchors[raw.anchor];
+          const srcAnchor = this.attachmentManager.getAnchor(raw.anchor) || this.routerCore.anchors[raw.anchor];
           if (srcAnchor) {
             const req = this.routerCore.buildRouteRequest(line, srcAnchor, gapPt);
             this.routerCore.computePath(req);
@@ -639,7 +827,7 @@ export class AdvancedRenderer {
   _updateDynamicAnchorsForOverlays(changedIds, overlays, anchorMap) {
     if (!changedIds.size) return;
     changedIds.forEach(id => {
-      const tap = this.textAttachmentPoints.get(id);
+      const tap = this.attachmentManager.getAttachmentPoints(id);
       if (!tap || !tap.points) return;
       const dep = this._lineDeps.get(id);
       if (!dep) return;
@@ -647,13 +835,31 @@ export class AdvancedRenderer {
         const line = overlays.find(o => o.id === lineId);
         if (!line) return;
         const raw = line._raw || line.raw || {};
-        const side = (raw.attach_side || raw.attachSide || '').toLowerCase();
-        const basePt = this._resolveOverlayAttachmentPoint(tap.points, side);
+
+        // Get line anchor for auto-side determination
+        const lineAnchor = anchorMap[raw.anchor] ||
+                          this.attachmentManager.getAnchor(raw.anchor) ||
+                          this.routerCore?.anchors[raw.anchor] ||
+                          null;
+
+        const configSide = (raw.attach_side || raw.attachSide || '').toLowerCase();
+        const { point: basePt, side: effectiveSide } = this._resolveOverlayAttachmentPoint(
+          tap.points,
+          configSide,
+          lineAnchor
+        );
         if (!basePt) return;
-        const gapPt = this._applyAttachGap(basePt, side, raw, tap.bbox);
-        anchorMap[id] = gapPt;
+        const gapPt = this._applyAttachGap(basePt, effectiveSide, raw, tap.bbox);
+
+        // Construct the proper virtual anchor ID based on effective side (which may be auto-determined)
+        const virtualAnchorId = effectiveSide && effectiveSide !== 'center' ? `${id}.${effectiveSide}` : id;
+
+        // Update in attachment manager
+        this.attachmentManager.setAnchor(virtualAnchorId, gapPt);
+
+        anchorMap[virtualAnchorId] = gapPt;
         if (this.routerCore && this.routerCore.anchors) {
-          this.routerCore.anchors[id] = gapPt;
+          this.routerCore.anchors[virtualAnchorId] = gapPt;
           try {
             this.routerCore.invalidate(line.id);
             const srcAnchor = anchorMap[raw.anchor] || this.routerCore.anchors[raw.anchor];
@@ -699,21 +905,70 @@ export class AdvancedRenderer {
   }
 
   // NEW: resolve which attachment point to use based on side keyword
-  _resolveOverlayAttachmentPoint(points, side) {
-    if (!points) return null;
-    switch (side) {
-      case 'left': return points.left || points.leftPadded || points.center;
-      case 'right': return points.right || points.rightPadded || points.center;
-      case 'top': return points.top || points.topPadded || points.center;
-      case 'bottom': return points.bottom || points.bottomPadded || points.center;
-      case 'top-left': return points.topLeft || points.left || points.top || points.center;
-      case 'top-right': return points.topRight || points.right || points.top || points.center;
-      case 'bottom-left': return points.bottomLeft || points.left || points.bottom || points.center;
-      case 'bottom-right': return points.bottomRight || points.right || points.bottom || points.center;
+  // If side is not specified (empty), auto-determine best side based on line anchor position
+  // Returns: { point: [x, y], side: 'left'|'right'|'top'|'bottom'|etc }
+  _resolveOverlayAttachmentPoint(points, side, lineAnchor = null) {
+    if (!points) return { point: null, side: null };
+
+    let effectiveSide = side;
+
+    // Auto-determine side if not specified
+    if (!side || side === '') {
+      cblcarsLog.debug('[AdvancedRenderer] 🔍 Auto-determination check:', {
+        hasLineAnchor: !!lineAnchor,
+        lineAnchor,
+        hasCenter: !!points?.center,
+        center: points?.center
+      });
+
+      if (lineAnchor && points.center) {
+        // Calculate which side of the overlay is closest to the line anchor
+        const [lineX, lineY] = lineAnchor;
+        const [centerX, centerY] = points.center;
+
+        const dx = lineX - centerX;
+        const dy = lineY - centerY;
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+
+        // Determine primary direction (horizontal or vertical)
+        if (absDx > absDy) {
+          // Horizontal: left or right
+          effectiveSide = dx < 0 ? 'left' : 'right';
+        } else {
+          // Vertical: top or bottom
+          effectiveSide = dy < 0 ? 'top' : 'bottom';
+        }
+
+        cblcarsLog.debug('[AdvancedRenderer] ✅ Auto-determined attach_side:', effectiveSide, {
+          lineAnchor,
+          center: points.center,
+          dx,
+          dy
+        });
+      } else {
+        // Fallback to center if no line anchor provided
+        effectiveSide = 'center';
+      }
+    }
+
+    let point;
+    switch (effectiveSide) {
+      case 'left': point = points.left || points.leftPadded || points.center; break;
+      case 'right': point = points.right || points.rightPadded || points.center; break;
+      case 'top': point = points.top || points.topPadded || points.center; break;
+      case 'bottom': point = points.bottom || points.bottomPadded || points.center; break;
+      case 'top-left': point = points.topLeft || points.left || points.top || points.center; break;
+      case 'top-right': point = points.topRight || points.right || points.top || points.center; break;
+      case 'bottom-left': point = points.bottomLeft || points.left || points.bottom || points.center; break;
+      case 'bottom-right': point = points.bottomRight || points.right || points.bottom || points.center; break;
       case 'center':
       default:
-        return points.center;
+        point = points.center;
+        effectiveSide = 'center';
     }
+
+    return { point, side: effectiveSide };
   }
 
   // UPDATED: font stabilization pass using actual DOM glyph metrics (multi-pass) with better async handling
@@ -792,13 +1047,13 @@ export class AdvancedRenderer {
       // ENHANCED: Force comprehensive update after font stabilization
       if (anyFontChanges || changedTargets.size) {
         // Update dynamic anchors for changed text overlays
-        this._updateDynamicAnchorsForOverlays(changedTargets, overlays, this._dynamicAnchors);
+        this._updateDynamicAnchorsForOverlays(changedTargets, overlays, this._staticAnchors);
 
         // Re-render ALL dependent lines, not just immediate dependencies
         this._rerenderAllDependentOverlays(overlays, changedTargets, viewBox);
 
         // CRITICAL: Also update virtual anchors since attachment points changed
-        this._rebuildVirtualAnchorsFromChangedOverlays(changedTargets, overlays, this._dynamicAnchors);
+        this._rebuildVirtualAnchorsFromChangedOverlays(changedTargets, overlays, this._staticAnchors);
       }
 
       pass++;
@@ -809,7 +1064,7 @@ export class AdvancedRenderer {
         // FINAL COMPREHENSIVE UPDATE: Force one last update to catch any remaining issues
         if (globalStabilizationNeeded) {
           globalStabilizationNeeded = false;
-          this._performFinalStabilizationUpdate(overlays, this._dynamicAnchors, viewBox);
+          this._performFinalStabilizationUpdate(overlays, this._staticAnchors, viewBox);
         }
 
         // NOTE: Line overlays are already updated during font stabilization via _rerenderAllDependentOverlays()
@@ -1039,11 +1294,11 @@ export class AdvancedRenderer {
     });
 
     // ✅ NEW: Update dynamic anchors and re-render dependent lines
-    if (reRenderedIds.size > 0 && allOverlays && this._dynamicAnchors) {
+    if (reRenderedIds.size > 0 && allOverlays && this._staticAnchors) {
       cblcarsLog.debug(`[AdvancedRenderer] 🔗 Updating dynamic anchors for ${reRenderedIds.size} re-rendered overlay(s)`);
 
       // Update dynamic anchors for re-rendered overlays
-      this._updateDynamicAnchorsForOverlays(reRenderedIds, allOverlays, this._dynamicAnchors);
+      this._updateDynamicAnchorsForOverlays(reRenderedIds, allOverlays, this._staticAnchors);
 
       // Re-render dependent line overlays
       cblcarsLog.debug(`[AdvancedRenderer] 📍 Re-rendering dependent line overlays`);
@@ -1097,18 +1352,12 @@ export class AdvancedRenderer {
               center: result.metadata.attachmentPoints.center
             };
 
-            // Cache in BOTH maps for backward compatibility
-            this.textAttachmentPoints.set(overlay.id, formattedAttachmentPoints);
-            this.overlayAttachmentPoints.set(overlay.id, formattedAttachmentPoints);
+            // Cache in attachment manager
+            this.attachmentManager.setAttachmentPoints(overlay.id, formattedAttachmentPoints);
           }
         } else if (overlay.type === 'line') {
           // Lines need complete anchor set (static + virtual) for overlay-to-overlay connections
           const completeAnchors = this._getCompleteAnchors(anchors, overlay.type);
-
-          // Set overlay attachment points on LineOverlay instance before rendering
-          if (renderer.setOverlayAttachmentPoints) {
-            renderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
-          }
 
           result = renderer.render(overlay, completeAnchors, viewBox, svgContainer);
         } else if (overlay.type === 'apexchart') {
@@ -1574,13 +1823,12 @@ export class AdvancedRenderer {
         // ✅ CRITICAL: For line overlays, update overlayAttachmentPoints map on instance first
         if (overlay.type === 'line') {
           const renderer = this._getRendererForOverlay(overlay);
-          if (renderer && renderer.setOverlayAttachmentPoints) {
-            renderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
-            cblcarsLog.debug(`[AdvancedRenderer] 🔗 Updated attachment points map on LineOverlay instance: ${overlayId}`);
+          if (renderer) {
+            cblcarsLog.debug(`[AdvancedRenderer] 🔗 Re-rendering line overlay with updated attachment points: ${overlayId}`);
           }
         }
 
-        const result = this.renderOverlay(overlay, this._dynamicAnchors, viewBox, svg);
+        const result = this.renderOverlay(overlay, this._staticAnchors, viewBox, svg);
 
         if (result && result.markup) {
           // Remove old element
@@ -1639,7 +1887,7 @@ export class AdvancedRenderer {
       if (!dest) return;
 
       // Use unified attachment points (includes all overlay types)
-      const attachmentPointData = this.overlayAttachmentPoints.get(dest);
+      const attachmentPointData = this.attachmentManager.getAttachmentPoints(dest);
       if (!attachmentPointData || !attachmentPointData.points) return;
       const side = (raw.attach_side || raw.attachSide || '').toLowerCase();
       const basePt = this._resolveOverlayAttachmentPoint(attachmentPointData.points, side);
@@ -1687,23 +1935,27 @@ export class AdvancedRenderer {
    * This allows lines to use ANY overlay as an anchor point
    * @private
    */
-  _buildVirtualAnchorsFromAllOverlays(overlays, anchorMap) {
+  _buildVirtualAnchorsFromAllOverlays(overlays) {
     overlays.forEach(overlay => {
       if (overlay.type === 'line') return; // Lines don't create virtual anchors
 
-      const attachmentPoints = this.overlayAttachmentPoints.get(overlay.id);
+      // Read from attachment manager
+      const attachmentPoints = this.attachmentManager.getAttachmentPoints(overlay.id);
       if (!attachmentPoints || !attachmentPoints.points) return;
 
       // Create virtual anchors for each attachment point of this overlay
+      const createdAnchors = [];
       Object.entries(attachmentPoints.points).forEach(([side, point]) => {
         const virtualAnchorId = `${overlay.id}.${side}`;
-        anchorMap[virtualAnchorId] = point;
+        this.attachmentManager.setAnchor(virtualAnchorId, point);
+        createdAnchors.push({ id: virtualAnchorId, point });
       });
 
       // Also create a default virtual anchor using the center point
-      anchorMap[overlay.id] = attachmentPoints.center;
+      this.attachmentManager.setAnchor(overlay.id, attachmentPoints.center);
+      createdAnchors.push({ id: overlay.id, point: attachmentPoints.center });
 
-      cblcarsLog.debug(`[AdvancedRenderer] 🔗 Created virtual anchors for overlay ${overlay.id}`);
+      cblcarsLog.debug(`[AdvancedRenderer] 🔗 Created ${createdAnchors.length} virtual anchors for overlay ${overlay.id}:`, createdAnchors);
     });
   }
 
@@ -1717,7 +1969,7 @@ export class AdvancedRenderer {
   _getCompleteAnchors(staticAnchors, overlayType) {
     // Line overlays need access to virtual anchors for overlay-to-overlay connections
     if (overlayType === 'line') {
-      return { ...staticAnchors, ...this._dynamicAnchors };
+      return { ...staticAnchors, ...this.attachmentManager.getAllAnchorsAsObject() };
     }
     return staticAnchors;
   }
@@ -1743,7 +1995,7 @@ export class AdvancedRenderer {
         bottomRight: [bb.right, bb.bottom]
       }
     };
-    this.textAttachmentPoints.set(overlay.id, ap);
+    this.attachmentManager.setAttachmentPoints(overlay.id, ap);
   }
 
   /**
@@ -1752,8 +2004,14 @@ export class AdvancedRenderer {
    * BEFORE Phase 2 renders, ensuring lines have correct attachment points on initial render
    * @private
    */
-  _populateInitialAttachmentPoints(overlays) {
-    overlays.filter(o => o.type === 'text').forEach(overlay => {
+  /**
+   * Populate attachment points for Phase 1 overlays before Phase 2 rendering
+   * This ensures line overlays have correct attachment points on initial render
+   * @private
+   */
+  _populateInitialAttachmentPoints(overlays, anchors) {
+    // Process all overlays that can be attachment targets (everything except lines)
+    overlays.filter(o => o.type !== 'line').forEach(overlay => {
       const groupEl = this.overlayElementCache.get(overlay.id);
       if (!groupEl) return;
 
@@ -1772,7 +2030,29 @@ export class AdvancedRenderer {
 
       // Fallback to measuring from DOM if no expanded bbox
       if (!bbox) {
-        bbox = RendererUtils.getDomTextBBox(groupEl);
+        // For text overlays, use specialized text bbox function
+        if (overlay.type === 'text') {
+          bbox = RendererUtils.getDomTextBBox(groupEl);
+        } else {
+          // For all other overlays, use generic SVG getBBox()
+          try {
+            const bb = groupEl.getBBox();
+            bbox = {
+              width: bb.width,
+              height: bb.height,
+              left: bb.x,
+              top: bb.y,
+              right: bb.x + bb.width,
+              bottom: bb.y + bb.height,
+              centerX: bb.x + bb.width / 2,
+              centerY: bb.y + bb.height / 2
+            };
+            cblcarsLog.debug(`[AdvancedRenderer] 📍 Measured bbox from DOM for ${overlay.id}:`, bbox);
+          } catch (e) {
+            cblcarsLog.warn(`[AdvancedRenderer] Failed to measure bbox for ${overlay.id}`, e);
+            return;
+          }
+        }
       }
 
       if (!bbox) return;
@@ -1802,14 +2082,71 @@ export class AdvancedRenderer {
         }
       };
 
-      // Store in both maps for consistency
-      this.overlayAttachmentPoints.set(overlay.id, attachmentPoints);
-      this.textAttachmentPoints.set(overlay.id, attachmentPoints);
+      // Store in attachment manager (single source of truth)
+      this.attachmentManager.setAttachmentPoints(overlay.id, attachmentPoints);
 
       cblcarsLog.debug(`[AdvancedRenderer] ✅ Populated initial attachment points for ${overlay.id}`, {
         right: bbox.right,
         expandedRight: bbox.right,
         hasExpandedBbox: !!expandedBboxAttr
+      });
+    });
+
+    // Process other Phase 1 overlay types (buttons, status_grids, etc.)
+    overlays.filter(o => o.type !== 'text' && o.type !== 'line').forEach(overlay => {
+      const groupEl = this.overlayElementCache.get(overlay.id);
+      if (!groupEl) return;
+
+      // Use overlay configuration for accurate positioning
+      // Resolve position using anchors if necessary
+      const position = OverlayUtils.resolvePosition(overlay.position, anchors);
+      if (!position || !overlay.size) return;
+
+      const [x, y] = position;
+      const [width, height] = overlay.size;
+
+      const bbox = {
+        left: x,
+        right: x + width,
+        top: y,
+        bottom: y + height,
+        width: width,
+        height: height,
+        centerX: x + width / 2,
+        centerY: y + height / 2
+      };
+
+      // Create attachment point data
+      const attachmentPoints = {
+        id: overlay.id,
+        center: [bbox.centerX, bbox.centerY],
+        bbox: {
+          left: bbox.left,
+          right: bbox.right,
+          top: bbox.top,
+          bottom: bbox.bottom,
+          width: bbox.width,
+          height: bbox.height
+        },
+        points: {
+          center: [bbox.centerX, bbox.centerY],
+          top: [bbox.centerX, bbox.top],
+          bottom: [bbox.centerX, bbox.bottom],
+          left: [bbox.left, bbox.centerY],
+          right: [bbox.right, bbox.centerY],
+          topLeft: [bbox.left, bbox.top],
+          topRight: [bbox.right, bbox.top],
+          bottomLeft: [bbox.left, bbox.bottom],
+          bottomRight: [bbox.right, bbox.bottom]
+        }
+      };
+
+      // Store in attachment manager (single source of truth)
+      this.attachmentManager.setAttachmentPoints(overlay.id, attachmentPoints);
+
+      cblcarsLog.debug(`[AdvancedRenderer] ✅ Populated initial attachment points for ${overlay.id} (${overlay.type})`, {
+        bbox: bbox,
+        center: [bbox.centerX, bbox.centerY]
       });
     });
   }
@@ -2064,8 +2401,8 @@ export class AdvancedRenderer {
             }
           };
 
-          this.overlayAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
-          this.textAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
+          // Store in attachment manager (single source of truth)
+          this.attachmentManager.setAttachmentPoints(overlay.id, updatedAttachmentPoints);
 
           // Update stored expanded bbox on the DOM element for future reads
           groupEl.setAttribute('data-expanded-bbox', JSON.stringify(expandedBbox));
@@ -2222,9 +2559,8 @@ export class AdvancedRenderer {
         }
       };
 
-      // Update both attachment point maps
-      this.overlayAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
-      this.textAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
+      // Store in attachment manager (single source of truth)
+      this.attachmentManager.setAttachmentPoints(overlay.id, updatedAttachmentPoints);
 
       // Phase 3: Line overlay attachment points are set per-instance during render
       // (line overlays call setOverlayAttachmentPoints on their own instances)

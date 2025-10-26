@@ -414,6 +414,12 @@ export class LineOverlay extends OverlayBase {
    * @private
    */
   _resolveAnchor(overlay, anchors) {
+    cblcarsLog.debug(`[LineOverlay] 🎯 _resolveAnchor for ${overlay.id}:`, {
+      anchor: overlay.anchor,
+      anchor_side: overlay.anchor_side,
+      hasOverlayAttachmentPoints: this.overlayAttachmentPoints?.has(overlay.anchor)
+    });
+
     // Check if anchor refers to an overlay
     if (typeof overlay.anchor === 'string' && this.overlayAttachmentPoints?.has(overlay.anchor)) {
       const sourceAttachmentPoints = this.overlayAttachmentPoints.get(overlay.anchor);
@@ -423,13 +429,40 @@ export class LineOverlay extends OverlayBase {
 
         if (sourcePoint) {
           const anchorGap = overlay.anchor_gap || 0;
-          return this._applyGapToAttachmentPoint(sourcePoint, anchorSide, anchorGap, sourceAttachmentPoints.bbox);
+          const result = this._applyGapToAttachmentPoint(sourcePoint, anchorSide, anchorGap, sourceAttachmentPoints.bbox);
+          cblcarsLog.debug(`[LineOverlay] ✅ Resolved from overlayAttachmentPoints:`, result);
+          return result;
         }
       }
     }
 
-    // Standard anchor resolution
-    return OverlayUtils.resolvePosition(overlay.anchor, anchors);
+    // Check if we have a virtual anchor (overlay.side format) for source
+    if (typeof overlay.anchor === 'string') {
+      const anchorSide = (overlay.anchor_side || '').toLowerCase();
+
+      // Construct virtual anchor ID the same way AdvancedRenderer does
+      const virtualAnchorId = anchorSide && anchorSide !== 'center'
+        ? `${overlay.anchor}.${anchorSide}`
+        : overlay.anchor;
+
+      cblcarsLog.debug(`[LineOverlay] 🔍 Trying virtual anchor:`, {
+        anchorSide,
+        virtualAnchorId,
+        hasInAnchors: !!anchors[virtualAnchorId]
+      });
+
+      // Try to resolve the virtual anchor first
+      const virtualAnchor = OverlayUtils.resolvePosition(virtualAnchorId, anchors);
+      if (virtualAnchor) {
+        cblcarsLog.debug(`[LineOverlay] ✅ Resolved virtual anchor:`, virtualAnchor);
+        return virtualAnchor;
+      }
+    }
+
+    // Standard anchor resolution (fallback)
+    const fallback = OverlayUtils.resolvePosition(overlay.anchor, anchors);
+    cblcarsLog.debug(`[LineOverlay] 🔄 Using fallback resolution:`, fallback);
+    return fallback;
   }
 
   /**
@@ -438,6 +471,12 @@ export class LineOverlay extends OverlayBase {
    * @private
    */
   _resolveAttachTo(overlay, anchors) {
+    cblcarsLog.debug(`[LineOverlay] 🎯 _resolveAttachTo for ${overlay.id}:`, {
+      attach_to: overlay.attach_to,
+      attach_side: overlay.attach_side,
+      hasOverlayAttachmentPoints: this.overlayAttachmentPoints?.has(overlay.attach_to)
+    });
+
     // Check if attach_to refers to an overlay
     if (typeof overlay.attach_to === 'string' && this.overlayAttachmentPoints?.has(overlay.attach_to)) {
       const targetAttachmentPoints = this.overlayAttachmentPoints.get(overlay.attach_to);
@@ -447,13 +486,40 @@ export class LineOverlay extends OverlayBase {
 
         if (targetPoint) {
           const attachGap = overlay.attach_gap || 0;
-          return this._applyGapToAttachmentPoint(targetPoint, attachSide, attachGap, targetAttachmentPoints.bbox);
+          const result = this._applyGapToAttachmentPoint(targetPoint, attachSide, attachGap, targetAttachmentPoints.bbox);
+          cblcarsLog.debug(`[LineOverlay] ✅ Resolved from overlayAttachmentPoints:`, result);
+          return result;
         }
       }
     }
 
-    // Standard attach_to resolution
-    return OverlayUtils.resolvePosition(overlay.attach_to, anchors);
+    // Check if we have a virtual anchor (overlay.side format)
+    if (typeof overlay.attach_to === 'string') {
+      const attachSide = (overlay.attach_side || '').toLowerCase();
+
+      // Construct virtual anchor ID the same way AdvancedRenderer does
+      const virtualAnchorId = attachSide && attachSide !== 'center'
+        ? `${overlay.attach_to}.${attachSide}`
+        : overlay.attach_to;
+
+      cblcarsLog.debug(`[LineOverlay] 🔍 Trying virtual anchor:`, {
+        attachSide,
+        virtualAnchorId,
+        hasInAnchors: !!anchors[virtualAnchorId]
+      });
+
+      // Try to resolve the virtual anchor first
+      const virtualAnchor = OverlayUtils.resolvePosition(virtualAnchorId, anchors);
+      if (virtualAnchor) {
+        cblcarsLog.debug(`[LineOverlay] ✅ Resolved virtual anchor:`, virtualAnchor);
+        return virtualAnchor;
+      }
+    }
+
+    // Standard attach_to resolution (fallback)
+    const fallback = OverlayUtils.resolvePosition(overlay.attach_to, anchors);
+    cblcarsLog.debug(`[LineOverlay] 🔄 Using fallback resolution:`, fallback);
+    return fallback;
   }
 
   /**
