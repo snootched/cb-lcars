@@ -1,0 +1,797 @@
+# MSD System Flow & Pipeline Architecture
+
+> **Complete data flow from configuration to rendering**
+> A detailed guide to how CB-LCARS initializes, processes configuration, and renders overlays.
+
+---
+
+## 📋 Table of Contents
+
+1. [Overview](#overview)
+2. [Complete Pipeline Flow](#complete-pipeline-flow)
+3. [Initialization Sequence](#initialization-sequence)
+4. [Configuration Processing](#configuration-processing)
+5. [Pack System](#pack-system)
+6. [Model Building](#model-building)
+7. [Systems Initialization](#systems-initialization)
+8. [Rendering Pipeline](#rendering-pipeline)
+9. [Runtime Updates](#runtime-updates)
+10. [Debug & Introspection](#debug--introspection)
+
+---
+
+## Overview
+
+The MSD (Master Systems Display) system follows a **pipeline architecture** with clear stages:
+
+```mermaid
+graph LR
+    Config[User Config] --> Process[Process & Validate]
+    Process --> Model[Build Model]
+    Model --> Init[Initialize Systems]
+    Init --> Render[Render Overlays]
+    Render --> Updates[Runtime Updates]
+    
+    style Config fill:#f0f0f0,stroke:#666
+    style Process fill:#4d94ff,stroke:#0066cc
+    style Model fill:#ff9900,stroke:#cc7700
+    style Init fill:#4d94ff,stroke:#0066cc
+    style Render fill:#ff9900,stroke:#cc7700
+    style Updates fill:#00cc66,stroke:#009944
+```
+
+**Key Principles:**
+- ✅ **Unidirectional data flow** - Config → Model → Render
+- ✅ **Immutable models** - Models are rebuilt, not mutated
+- ✅ **Reactive updates** - DataSource changes trigger re-renders
+- ✅ **Separation of concerns** - Each stage has a single responsibility
+
+
+---
+
+## Complete Pipeline Flow
+
+### High-Level System Architecture
+
+```mermaid
+graph TB
+    subgraph "Entry Point"
+        Entry[index.js<br/>initMsdPipeline]
+    end
+    
+    subgraph "Configuration Stage"
+        CP[ConfigProcessor<br/>processAndValidateConfig]
+        PM[Pack Merger<br/>mergePacks]
+        Val[Validation Service<br/>validateMerged]
+    end
+    
+    subgraph "Model Building"
+        MB[Model Builder<br/>buildCardModel]
+        Anchors[Anchor Resolution]
+        Computed[Computed Model]
+    end
+    
+    subgraph "Systems Initialization"
+        SM[Systems Manager]
+        
+        subgraph "Core Systems"
+            TM[Theme Manager]
+            DSM[DataSource Manager]
+            RE[Rules Engine]
+            AR[Advanced Renderer]
+            RC[Router Core]
+            APM[Attachment Point Manager]
+            AnimReg[Animation Registry]
+        end
+    end
+    
+    subgraph "Rendering"
+        Resolve[Resolve Model<br/>Apply themes, rules, data]
+        RenderLoop[Render Loop<br/>Update SVG/DOM]
+    end
+    
+    subgraph "Output"
+        SVG[SVG Container]
+        DOM[HTML Elements]
+        Debug[Debug Overlays]
+    end
+    
+    Entry --> CP
+    CP --> PM
+    PM --> Val
+    Val --> MB
+    MB --> Anchors
+    Anchors --> Computed
+    Computed --> SM
+    
+    SM --> TM
+    SM --> DSM
+    SM --> RE
+    SM --> AR
+    SM --> RC
+    SM --> APM
+    SM --> AnimReg
+    
+    TM --> Resolve
+    DSM --> Resolve
+    RE --> Resolve
+    Resolve --> RenderLoop
+    RenderLoop --> AR
+    AR --> SVG
+    AR --> DOM
+    AR --> Debug
+    
+    DSM -.triggers.-> RenderLoop
+    RE -.triggers.-> RenderLoop
+    
+    style Entry fill:#f0f0f0,stroke:#666,stroke-width:2px
+    style SM fill:#ff9900,stroke:#cc7700,stroke-width:3px
+    style AR fill:#ff9900,stroke:#cc7700,stroke-width:2px
+    style DSM fill:#4d94ff,stroke:#0066cc,stroke-width:2px
+    style TM fill:#4d94ff,stroke:#0066cc,stroke-width:2px
+```
+
+
+---
+
+## Initialization Sequence
+
+### Complete Initialization Flow
+
+```mermaid
+sequenceDiagram
+    participant Card as CB-LCARS Card
+    participant Entry as index.js
+    participant CP as ConfigProcessor
+    participant PM as PackMerger
+    participant Val as ValidationService
+    participant MB as ModelBuilder
+    participant SM as SystemsManager
+    participant TM as ThemeManager
+    participant DSM as DataSourceManager
+    participant RE as RulesEngine
+    participant AR as AdvancedRenderer
+    
+    Card->>Entry: initMsdPipeline(userConfig, mountEl, hass)
+    
+    Entry->>CP: processAndValidateConfig(userConfig)
+    
+    CP->>PM: mergePacks(userConfig)
+    PM->>PM: Load builtin packs
+    PM->>PM: Load external packs (HTTP)
+    PM->>PM: Merge layers with priority
+    PM-->>CP: mergedConfig + provenance
+    
+    CP->>Val: validateMerged(mergedConfig)
+    Val->>Val: Schema validation
+    Val->>Val: Reference validation
+    Val->>Val: Duplicate ID detection
+    Val-->>CP: validation issues
+    
+    CP-->>Entry: { mergedConfig, issues, provenance }
+    
+    Entry->>MB: buildCardModel(mergedConfig)
+    MB->>MB: Resolve anchors
+    MB->>MB: Build base model
+    MB-->>Entry: cardModel
+    
+    Entry->>SM: new SystemsManager()
+    Entry->>SM: initializeSystems(config, model, mountEl, hass)
+    
+    SM->>TM: Initialize theme system
+    TM->>TM: Load theme tokens
+    TM->>TM: Resolve component defaults
+    TM-->>SM: Theme ready
+    
+    SM->>DSM: Initialize data sources
+    DSM->>DSM: Subscribe to HA entities
+    DSM->>DSM: Preload historical data
+    DSM-->>SM: DataSources ready
+    
+    SM->>RE: Initialize rules engine
+    RE->>RE: Parse rule conditions
+    RE->>RE: Track dependencies
+    RE-->>SM: Rules ready
+    
+    SM->>AR: Initialize renderer
+    AR->>AR: Create SVG container
+    AR->>AR: Initialize specialized renderers
+    AR-->>SM: Renderer ready
+    
+    SM-->>Entry: Systems initialized
+    
+    Entry->>Entry: Create reRender function
+    Entry->>Entry: computeResolvedModel()
+    Entry->>AR: render(resolvedModel)
+    AR-->>Card: Rendered output
+    
+    Entry->>Entry: Expose window.__msdDebug
+    Entry-->>Card: Pipeline ready
+```
+
+---
+
+## Configuration Processing
+
+### Pack Merging Flow
+
+```mermaid
+sequenceDiagram
+    participant User as User Config
+    participant PM as PackMerger
+    participant BuiltIn as Builtin Packs
+    participant External as External Packs
+    participant Merge as Merge Engine
+    participant Prov as Provenance Tracker
+    
+    User->>PM: mergePacks(userConfig)
+    
+    PM->>BuiltIn: Load builtin packs
+    BuiltIn-->>PM: builtin_themes, builtin_gallery
+    
+    PM->>PM: Check for external_packs in config
+    
+    alt Has external packs
+        PM->>External: Fetch HTTP/HTTPS URLs
+        External->>External: Validate pack structure
+        External->>External: Check version compatibility
+        External-->>PM: External pack data
+    end
+    
+    PM->>Merge: processSinglePass(layers)
+    
+    loop For each pack layer
+        Merge->>Prov: Track source & priority
+        Merge->>Merge: Deep merge with overrides
+        Merge->>Merge: Concatenate arrays (overlays, rules, etc.)
+        Merge->>Merge: Merge objects (themes, style_presets, etc.)
+    end
+    
+    Merge-->>PM: Merged configuration
+    
+    PM->>PM: Validate merged structure
+    PM-->>User: { merged, provenance, timing }
+```
+
+### Configuration Layers
+
+Packs are merged in priority order (highest priority last):
+
+```mermaid
+graph LR
+    subgraph "Layer 1: Builtin"
+        BT[builtin_themes<br/>Themes, presets, templates]
+        BG[builtin_gallery<br/>Sample overlays]
+    end
+    
+    subgraph "Layer 2: External"
+        EP1[External Pack 1<br/>Community pack]
+        EP2[External Pack 2<br/>Custom pack]
+    end
+    
+    subgraph "Layer 3: User"
+        UC[User Config<br/>Final overrides]
+    end
+    
+    BT --> Merge[Merge Engine]
+    BG --> Merge
+    EP1 --> Merge
+    EP2 --> Merge
+    UC --> Merge
+    
+    Merge --> Final[Final Config]
+    
+    style BT fill:#4d94ff,stroke:#0066cc
+    style BG fill:#4d94ff,stroke:#0066cc
+    style EP1 fill:#00cc66,stroke:#009944
+    style EP2 fill:#00cc66,stroke:#009944
+    style UC fill:#ff9900,stroke:#cc7700
+    style Final fill:#f0f0f0,stroke:#666,stroke-width:3px
+```
+
+---
+
+## Pack System
+
+### Pack Structure & Components
+
+```mermaid
+graph TB
+    subgraph "MSD Pack"
+        Meta[Metadata<br/>id, version, description]
+        
+        subgraph "Content"
+            Themes[themes<br/>Token-based themes]
+            Presets[style_presets<br/>Named style bundles]
+            Overlays[overlays<br/>Complete overlay definitions]
+            Rules[rules<br/>Conditional logic]
+            Anims[animations<br/>Animation definitions]
+            Anchors[anchors<br/>Anchor points]
+            Routing[routing<br/>Routing config]
+            Charts[chartTemplates<br/>Chart configurations]
+        end
+    end
+    
+    subgraph "Systems"
+        TM[ThemeManager]
+        SPM[StylePresetManager]
+        DSM[DataSourceManager]
+        RE[RulesEngine]
+        AnimReg[AnimationRegistry]
+    end
+    
+    Themes --> TM
+    Presets --> SPM
+    Rules --> RE
+    Anims --> AnimReg
+    Overlays --> DSM
+    
+    style Meta fill:#f0f0f0,stroke:#666
+    style Themes fill:#ff9900,stroke:#cc7700
+    style Presets fill:#4d94ff,stroke:#0066cc
+    style TM fill:#ff9900,stroke:#cc7700
+    style SPM fill:#4d94ff,stroke:#0066cc
+```
+
+---
+
+## Model Building
+
+### Model Resolution Flow
+
+```mermaid
+graph TB
+    Base[Base Card Model<br/>From merged config]
+    
+    subgraph "Resolution Stages"
+        Stage1[1. Anchor Resolution<br/>Compute all anchor positions]
+        Stage2[2. Theme Application<br/>Apply component defaults]
+        Stage3[3. Template Processing<br/>Resolve {datasource} refs]
+        Stage4[4. Rules Evaluation<br/>Apply conditional styles]
+        Stage5[5. Style Resolution<br/>Merge all style layers]
+    end
+    
+    Final[Resolved Model<br/>Ready for rendering]
+    
+    Base --> Stage1
+    Stage1 --> Stage2
+    Stage2 --> Stage3
+    Stage3 --> Stage4
+    Stage4 --> Stage5
+    Stage5 --> Final
+    
+    TM[ThemeManager] -.provides defaults.-> Stage2
+    TP[TemplateProcessor] -.processes templates.-> Stage3
+    RE[RulesEngine] -.evaluates rules.-> Stage4
+    SRS[StyleResolverService] -.resolves styles.-> Stage5
+    
+    style Base fill:#f0f0f0,stroke:#666
+    style Stage3 fill:#4d94ff,stroke:#0066cc
+    style Stage4 fill:#4d94ff,stroke:#0066cc
+    style Final fill:#ff9900,stroke:#cc7700,stroke-width:3px
+```
+
+### Model Structure
+
+```javascript
+// Base Card Model (from config)
+{
+  id: 'my_msd',
+  size: [800, 600],
+  theme: 'lcars-classic',
+  anchors: { /* anchor definitions */ },
+  overlays: [ /* overlay configs */ ],
+  rules: [ /* rule definitions */ ],
+  routing: { /* routing config */ }
+}
+
+// Resolved Model (after all resolution stages)
+{
+  ...baseModel,
+  _resolved: {
+    anchors: { /* computed positions */ },
+    overlays: [ /* fully resolved overlay configs */ ],
+    activeRules: [ /* matched rules */ ],
+    themes: { /* active theme tokens */ }
+  }
+}
+```
+
+---
+
+## Systems Initialization
+
+### Systems Manager Architecture
+
+```mermaid
+graph TB
+    SM[Systems Manager<br/>Central Orchestrator]
+    
+    subgraph "Data Layer"
+        DSM[DataSource Manager<br/>HA entity integration]
+        TP[Template Processor<br/>Template resolution]
+    end
+    
+    subgraph "Logic Layer"
+        RE[Rules Engine<br/>Conditional logic]
+        TM[Theme Manager<br/>Theme & defaults]
+    end
+    
+    subgraph "Rendering Layer"
+        AR[Advanced Renderer<br/>Main renderer]
+        SR[Specialized Renderers<br/>Text, Button, Line, etc.]
+    end
+    
+    subgraph "Support Systems"
+        APM[Attachment Point Manager<br/>Anchor management]
+        RC[Router Core<br/>Line routing]
+        AnimReg[Animation Registry<br/>Animations]
+        SRS[Style Resolver Service<br/>Style resolution]
+    end
+    
+    SM --> DSM
+    SM --> TP
+    SM --> RE
+    SM --> TM
+    SM --> AR
+    SM --> APM
+    SM --> RC
+    SM --> AnimReg
+    SM --> SRS
+    
+    AR --> SR
+    AR --> APM
+    AR --> RC
+    
+    DSM --> TP
+    TM --> SRS
+    
+    style SM fill:#ff9900,stroke:#cc7700,stroke-width:3px
+    style AR fill:#ff9900,stroke:#cc7700,stroke-width:2px
+    style DSM fill:#4d94ff,stroke:#0066cc,stroke-width:2px
+```
+
+### System Initialization Sequence
+
+Each system is initialized in dependency order:
+
+1. **ThemeManager** - Loads theme tokens and component defaults
+2. **DataSourceManager** - Subscribes to Home Assistant entities
+3. **TemplateProcessor** - Prepares template engine
+4. **RulesEngine** - Parses rules and tracks dependencies
+5. **StyleResolverService** - Initializes style resolution
+6. **AttachmentPointManager** - Prepares anchor system
+7. **RouterCore** - Initializes routing algorithms
+8. **AnimationRegistry** - Registers animations
+9. **AdvancedRenderer** - Creates rendering pipeline
+
+---
+
+## Rendering Pipeline
+
+### Render Flow
+
+```mermaid
+sequenceDiagram
+    participant Trigger as Update Trigger
+    participant Render as reRender()
+    participant MB as ModelBuilder
+    participant TM as ThemeManager
+    participant TP as TemplateProcessor
+    participant RE as RulesEngine
+    participant SRS as StyleResolverService
+    participant AR as AdvancedRenderer
+    participant SR as Specialized Renderers
+    participant DOM as SVG/DOM Output
+    
+    Trigger->>Render: Data change / Rule match / Manual
+    
+    Render->>MB: computeResolvedModel()
+    
+    MB->>MB: Start with base model
+    MB->>TM: Get theme defaults
+    TM-->>MB: Component defaults
+    
+    MB->>TP: Process templates
+    TP->>TP: Resolve {datasource.id} refs
+    TP->>TP: Evaluate HA {{ }} templates
+    TP-->>MB: Resolved content
+    
+    MB->>RE: Evaluate rules
+    RE->>RE: Check conditions
+    RE->>RE: Apply matching rule styles
+    RE-->>MB: Rule results
+    
+    MB->>SRS: Resolve all styles
+    SRS->>SRS: 5-tier style resolution
+    SRS->>SRS: Token resolution
+    SRS-->>MB: Final styles
+    
+    MB-->>Render: resolvedModel
+    
+    Render->>AR: render(resolvedModel)
+    
+    loop For each overlay
+        AR->>SR: Render specific overlay type
+        SR->>SR: Create/update elements
+        SR-->>AR: Rendered elements
+    end
+    
+    AR->>DOM: Update SVG container
+    AR->>DOM: Update HTML elements
+    
+    AR-->>Render: Render complete
+```
+
+### Overlay Rendering
+
+```mermaid
+graph LR
+    Model[Resolved Model] --> AR[Advanced Renderer]
+    
+    AR --> Text[TextOverlayRenderer]
+    AR --> Button[ButtonOverlayRenderer]
+    AR --> Line[LineOverlayRenderer]
+    AR --> Grid[StatusGridRenderer]
+    AR --> Chart[ApexChartsOverlay]
+    AR --> Sparkline[SparklineRenderer]
+    
+    Text --> SVG[SVG Container]
+    Button --> SVG
+    Line --> SVG
+    Sparkline --> SVG
+    
+    Grid --> DOM[HTML Elements]
+    Chart --> DOM
+    
+    style AR fill:#ff9900,stroke:#cc7700,stroke-width:2px
+    style SVG fill:#f0f0f0,stroke:#666
+    style DOM fill:#f0f0f0,stroke:#666
+```
+
+---
+
+## Runtime Updates
+
+### Update Triggers & Flow
+
+```mermaid
+graph TB
+    subgraph "Update Triggers"
+        DS[DataSource Change<br/>HA entity update]
+        Rule[Rule Match<br/>Condition becomes true]
+        Manual[Manual Update<br/>API call / user action]
+        Anim[Animation Complete<br/>Timeline callback]
+    end
+    
+    subgraph "Update Pipeline"
+        Check[Check if update needed]
+        Resolve[Resolve model]
+        Render[Render overlays]
+        Notify[Notify listeners]
+    end
+    
+    DS --> Check
+    Rule --> Check
+    Manual --> Check
+    Anim --> Check
+    
+    Check --> Resolve
+    Resolve --> Render
+    Render --> Notify
+    
+    style DS fill:#4d94ff,stroke:#0066cc
+    style Rule fill:#4d94ff,stroke:#0066cc
+    style Resolve fill:#ff9900,stroke:#cc7700
+    style Render fill:#ff9900,stroke:#cc7700
+```
+
+### DataSource Update Flow
+
+```mermaid
+sequenceDiagram
+    participant HA as Home Assistant
+    participant Entity as Entity Change
+    participant DSM as DataSourceManager
+    participant DS as DataSource Instance
+    participant Buffer as Rolling Buffer
+    participant Pipeline as Render Pipeline
+    
+    HA->>Entity: State change
+    Entity->>DSM: stateChanged event
+    DSM->>DS: Update datasource
+    
+    DS->>DS: Get new value
+    DS->>Buffer: Add to buffer
+    Buffer->>Buffer: Maintain window size
+    
+    DS->>DS: Apply transformations
+    DS->>DS: Calculate aggregations
+    DS->>DS: Update computed values
+    
+    DS->>DSM: Data updated
+    DSM->>DSM: Debounce check
+    DSM->>Pipeline: Trigger re-render
+    
+    Pipeline->>Pipeline: Resolve model
+    Pipeline->>Pipeline: Render overlays
+```
+
+### Rules Engine Update Flow
+
+```mermaid
+sequenceDiagram
+    participant DSM as DataSourceManager
+    participant RE as RulesEngine
+    participant Rule as Rule Instance
+    participant Cond as Condition Evaluator
+    participant Pipeline as Render Pipeline
+    
+    DSM->>RE: Data updated
+    
+    loop For each rule with dependencies
+        RE->>Rule: Check if needs evaluation
+        Rule->>Cond: Evaluate conditions
+        
+        alt All conditions match
+            Cond-->>Rule: true
+            Rule->>Rule: Mark as matched
+        else Some condition fails
+            Cond-->>Rule: false
+            Rule->>Rule: Mark as not matched
+        end
+        
+        Rule-->>RE: Match status
+    end
+    
+    RE->>RE: Check if matches changed
+    
+    alt Matches changed
+        RE->>Pipeline: Trigger re-render
+        Pipeline->>Pipeline: Apply rule styles
+    end
+```
+
+---
+
+## Debug & Introspection
+
+### Debug System Architecture
+
+```mermaid
+graph TB
+    subgraph "Debug Exposure"
+        WD[window.__msdDebug]
+        API[window.cblcars.msd]
+    end
+    
+    subgraph "Introspection Tools"
+        PI[Pipeline Instance]
+        SM[Systems Manager]
+        DSM[DataSource Manager]
+        RE[Rules Engine]
+        AR[Advanced Renderer]
+    end
+    
+    subgraph "Debug Renderers"
+        DBG[MsdDebugRenderer<br/>Anchors, bounds, routing]
+        CTRL[MsdControlsRenderer<br/>Interactive controls]
+    end
+    
+    WD --> PI
+    API --> PI
+    PI --> SM
+    SM --> DSM
+    SM --> RE
+    SM --> AR
+    AR --> DBG
+    AR --> CTRL
+    
+    style WD fill:#ff9900,stroke:#cc7700,stroke-width:2px
+    style API fill:#ff9900,stroke:#cc7700,stroke-width:2px
+```
+
+### Debug Access Patterns
+
+```javascript
+// Access pipeline instance
+const pipeline = window.__msdDebug.pipelineInstance;
+
+// Inspect systems
+const dsm = pipeline.systemsManager.dataSourceManager;
+const rules = pipeline.systemsManager.rulesEngine;
+const renderer = pipeline.systemsManager.renderer;
+
+// Get data source values
+const ds = dsm.getDataSource('cpu_usage');
+console.log('Current:', ds.currentValue);
+console.log('Buffer:', ds.buffer);
+console.log('Stats:', ds.stats);
+
+// Check rule matches
+const matched = rules.getMatchedRules();
+console.log('Active rules:', matched);
+
+// Inspect overlays
+const overlays = renderer.listOverlays();
+console.log('Rendered overlays:', overlays);
+
+// Get anchor positions
+const anchor = pipeline.modelBuilder.getAnchor('button_1');
+console.log('Anchor position:', anchor);
+
+// Trigger manual re-render
+window.cblcars.msd.reRender();
+
+// Highlight overlays
+window.cblcars.msd.highlight(['overlay_1', 'overlay_2'], { 
+  color: '#ff0000', 
+  duration: 2000 
+});
+```
+
+---
+
+## Key Architectural Strengths
+
+### 1. **Unidirectional Data Flow**
+```
+Config → Model → Render → Output
+```
+Changes always flow in one direction, making the system predictable and debuggable.
+
+### 2. **Immutable Models**
+Models are never mutated. Each update creates a new resolved model, ensuring:
+- No side effects
+- Easy state comparison
+- Reliable caching
+
+### 3. **Reactive Updates**
+The system automatically re-renders when:
+- DataSource values change
+- Rules match/unmatch
+- User interactions occur
+- Animations complete
+
+### 4. **Modular Systems**
+Each system has a single responsibility:
+- **DataSourceManager** - Data only
+- **RulesEngine** - Logic only
+- **AdvancedRenderer** - Rendering only
+- **ThemeManager** - Styling only
+
+### 5. **Performance Optimization**
+- Debounced updates prevent excessive renders
+- Element caching reduces DOM operations
+- Template caching reduces processing
+- LRU route caching for line rendering
+- Incremental updates where possible
+
+### 6. **Developer Experience**
+- Comprehensive debugging via `window.__msdDebug`
+- Visual debug overlays (anchors, bounds, routing)
+- Complete introspection API
+- Detailed error messages with context
+
+---
+
+## Summary
+
+The MSD system is a **mature, production-ready pipeline** for creating sophisticated LCARS interfaces:
+
+✅ **Clear initialization flow** - Configuration → Model → Systems → Render  
+✅ **Reactive data integration** - Home Assistant entities drive updates  
+✅ **Flexible styling** - Themes + Rules + Presets + User overrides  
+✅ **Powerful rendering** - SVG + HTML with specialized renderers  
+✅ **Comprehensive debugging** - Full introspection and visualization  
+✅ **Extensible architecture** - Pack system enables sharing and customization  
+
+**For more details:**
+- **[Architecture Overview](overview.md)** - System-level architecture
+- **[Subsystems](subsystems/)** - Deep dives into each component
+- **[Implementation Details](implementation-details/)** - Code-level documentation
+
+---
+
+**Last Updated:** October 26, 2025  
+**Version:** 2025.10.1-fuk.42-69

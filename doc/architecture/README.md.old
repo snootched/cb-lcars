@@ -1,0 +1,273 @@
+# MSD Architecture Documentation Index
+
+**Last Updated:** 2025-10-25
+**Version:** v2025.10.1-fuk.27-69
+
+---
+
+## 📚 Quick Navigation
+
+### Core System Architecture
+
+| Document | Purpose | When to Read |
+|----------|---------|--------------|
+| [INCREMENTAL_UPDATE_SYSTEM.md](./INCREMENTAL_UPDATE_SYSTEM.md) | Complete guide to incremental overlay style updates | Implementing style-based updates for overlays |
+| [overlay-implementation-guide.md](./overlay-implementation-guide.md) | Guide for implementing new overlay renderers | Creating new overlay types with DataSource support |
+| [StyleResolution Architecture.md](./StyleResolution%20Architecture.md) | Style resolution and merging system | Understanding how styles flow through the system |
+| [BaseRenderer Architecture.md](./BaseRenderer%20Architecture.md) | Base renderer class and provenance tracking | Extending base renderer functionality |
+
+### Overlay-Specific Features
+
+| Document | Purpose | When to Read |
+|----------|---------|--------------|
+| [OVERLAY_ATTACHMENT_IMPLEMENTATION.md](./OVERLAY_ATTACHMENT_IMPLEMENTATION.md) | Unified overlay attachment point system | Attaching lines to any overlay type |
+| [overlay_to_overlay_implementation.md](./overlay_to_overlay_implementation.md) | Overlay-to-overlay line connections | Creating lines between overlays |
+
+### Configuration & Data Flow
+
+| Document | Purpose | When to Read |
+|----------|---------|--------------|
+| [MSD Configuration Layering.md](./MSD%20Configuration%20Layering.md) | Configuration inheritance and merging | Understanding config resolution |
+| [MSD Pack Structure.md](./MSD%20Pack%20Structure.md) | MSD pack organization and loading | Creating reusable MSD packs |
+| [template-system-architecture.md](./template-system-architecture.md) | Template processing system | Working with dynamic content |
+
+### Validation & Schema
+
+| Document | Purpose | When to Read |
+|----------|---------|--------------|
+| [validation_architecture.md](./validation_architecture.md) | Validation system architecture | Adding new validation rules |
+| [MSD_SCHEMA_V1_Ratified.yaml](./MSD_SCHEMA_V1_Ratified.yaml) | Complete MSD YAML schema | Reference for YAML structure |
+
+---
+
+## 🎯 Common Tasks
+
+### "I want to create a new overlay type"
+
+**Read in this order:**
+1. [overlay-implementation-guide.md](./overlay-implementation-guide.md) - Complete implementation guide
+2. [INCREMENTAL_UPDATE_SYSTEM.md](./INCREMENTAL_UPDATE_SYSTEM.md) - Optional: Add incremental style updates
+3. [OVERLAY_ATTACHMENT_IMPLEMENTATION.md](./OVERLAY_ATTACHMENT_IMPLEMENTATION.md) - Optional: Support line attachments
+
+### "I want to add incremental updates to an existing overlay"
+
+**Read:**
+1. [INCREMENTAL_UPDATE_SYSTEM.md](./INCREMENTAL_UPDATE_SYSTEM.md) - Complete incremental update guide
+
+**Key sections:**
+- Renderer Interface (required methods)
+- Critical Bug Fixes (finalStyle merge)
+- Implementing New Renderers (step-by-step)
+
+### "I want to understand how overlays update when entities change"
+
+**Read in this order:**
+1. [overlay-implementation-guide.md](./overlay-implementation-guide.md) - DataSource integration section
+2. [INCREMENTAL_UPDATE_SYSTEM.md](./INCREMENTAL_UPDATE_SYSTEM.md) - Update flow section
+
+**Key concepts:**
+- **Content updates** → BaseOverlayUpdater → Template processing
+- **Style updates** → SystemsManager → Incremental updates or selective re-render
+
+### "I want to attach lines to overlays"
+
+**Read:**
+1. [OVERLAY_ATTACHMENT_IMPLEMENTATION.md](./OVERLAY_ATTACHMENT_IMPLEMENTATION.md) - Complete attachment system
+2. [overlay_to_overlay_implementation.md](./overlay_to_overlay_implementation.md) - Overlay-to-overlay specifics
+
+---
+
+## 📖 System Overview
+
+### MSD Pipeline Flow
+
+```
+User YAML Configuration
+  ↓
+Validation (schemas/)
+  ↓
+ModelBuilder (pipeline/ModelBuilder.js)
+  ├─> Style Resolution
+  ├─> Template Detection
+  └─> finalStyle Creation
+  ↓
+AdvancedRenderer (renderer/AdvancedRenderer.js)
+  ├─> Delegates to Specialized Renderers
+  ├─> Builds SVG Markup
+  └─> Caches DOM Elements
+  ↓
+SystemsManager (pipeline/SystemsManager.js)
+  ├─> Entity Change Listener
+  ├─> Rules Engine Evaluation
+  ├─> Incremental Update Orchestration
+  └─> Fallback to Selective Re-render
+  ↓
+BaseOverlayUpdater (BaseOverlayUpdater.js)
+  ├─> DataSource Change Detection
+  ├─> Template Processing
+  └─> Content Updates
+```
+
+### Update Systems
+
+**Two parallel update systems:**
+
+#### 1. Content Updates (BaseOverlayUpdater)
+- **Trigger:** Entity state changes
+- **Detection:** Overlays with template placeholders (`{field.path}`)
+- **Action:** Process templates with new entity data
+- **Update:** Change text content, not styles
+- **Performance:** Very fast (DOM text update only)
+
+#### 2. Style Updates (SystemsManager Incremental)
+- **Trigger:** Entity state changes + matching rules
+- **Detection:** Rules engine produces style patches
+- **Action:** Merge patches into `overlay.finalStyle`, call renderer
+- **Update:** Change colors, sizes, other style properties
+- **Performance:** Fast (no full rebuild), smooth transitions
+- **Fallback:** Selective re-render if incremental not available
+
+### Renderer Capabilities
+
+| Overlay Type | Content Updates | Style Updates (Incremental) |
+|--------------|----------------|----------------------------|
+| StatusGrid | ✅ Via templates | ✅ Phase 1 Complete |
+| ApexCharts | ✅ Via templates | ✅ Phase 2 Complete |
+| Text | ✅ Via templates | ⏳ Phase 5 Pending |
+| Button | ✅ Via templates | ⏳ Phase 3 Pending |
+| Line | ❌ N/A | ⏳ Phase 4 Pending |
+| Sparkline | ✅ Via templates | ⏳ Future |
+| HistoryBar | ✅ Via templates | ⏳ Future |
+
+---
+
+## 🔧 Implementation Status
+
+### ✅ Complete Features
+
+- **StatusGrid Incremental Updates** - Cell-level and grid-level style updates
+- **ApexCharts Incremental Updates** - Complete color API with CSS variable resolution
+- **Overlay Attachment System** - Lines can attach to any overlay type
+- **Template Processing** - Dynamic content from DataSource entities
+- **Rules Engine Integration** - Style patches from entity state rules
+- **Patch Merge System** - Critical fix for finalStyle updating
+
+### ⏳ In Progress
+
+- **Button Incremental Updates** - Phase 3 (recommended next)
+- **Line Incremental Updates** - Phase 4
+- **Text Incremental Updates** - Phase 5
+
+### 🎯 Future Enhancements
+
+- Batch incremental updates for multiple overlays
+- Animation coordination with incremental updates
+- Partial chart updates (series-level)
+- Grid cell transition animations
+
+---
+
+## 🐛 Known Issues & Fixes
+
+### Fixed Issues
+
+1. **finalStyle Not Updated During Incremental Updates** ✅
+   - **Problem:** finalStyle created once at page load, never updated
+   - **Solution:** SystemsManager now merges patches into finalStyle
+   - **Impact:** All renderers receive correctly updated styles
+   - **See:** [INCREMENTAL_UPDATE_SYSTEM.md](./INCREMENTAL_UPDATE_SYSTEM.md#critical-bug-fixes)
+
+2. **CSS Variables Not Resolved for ApexCharts** ✅
+   - **Problem:** Canvas-based rendering doesn't understand CSS vars
+   - **Solution:** Recursive CSS variable resolver in ApexChartsAdapter
+   - **Impact:** Theme colors work correctly in charts
+   - **See:** [INCREMENTAL_UPDATE_SYSTEM.md](./INCREMENTAL_UPDATE_SYSTEM.md#bug-2-css-variables-not-resolved-for-apexcharts)
+
+---
+
+## 📝 Contributing
+
+### Adding New Documentation
+
+When adding new architecture documentation:
+
+1. **Create document in `doc/architecture/`**
+2. **Use clear naming:** `{FEATURE}_ARCHITECTURE.md` or `{feature}-guide.md`
+3. **Include header with:**
+   - Last Updated date
+   - Version number
+   - Purpose/scope
+4. **Add entry to this README.md**
+5. **Link from related documents**
+
+### Documentation Standards
+
+- **Use emoji markers** for status: ✅ Complete, ⏳ In Progress, ❌ Blocked
+- **Include code examples** with syntax highlighting
+- **Add troubleshooting sections** for common issues
+- **Link to related documents** for context
+- **Keep table of contents** updated for long documents
+
+---
+
+## 🔗 Related Resources
+
+### External Documentation
+- [Home Assistant Developer Docs](https://developers.home-assistant.io/)
+- [ApexCharts Documentation](https://apexcharts.com/docs/)
+- [SVG Specification](https://www.w3.org/TR/SVG/)
+
+### Internal Resources
+- `examples/` - Example MSD configurations
+- `msd/` - Technical implementation notes
+- `proposals/` - Proposed features and designs
+
+---
+
+## 📊 Quick Reference
+
+### File Locations
+
+```
+src/
+├── msd/
+│   ├── pipeline/
+│   │   ├── SystemsManager.js      # Incremental update orchestration
+│   │   └── ModelBuilder.js        # Initial model building
+│   ├── renderer/
+│   │   ├── AdvancedRenderer.js    # Rendering orchestration
+│   │   ├── StatusGridRenderer.js  # StatusGrid with incremental updates
+│   │   ├── ApexChartsOverlayRenderer.js  # ApexCharts with incremental updates
+│   │   ├── TextOverlayRenderer.js
+│   │   └── LineOverlayRenderer.js
+│   ├── charts/
+│   │   └── ApexChartsAdapter.js   # CSS variable resolution
+│   ├── validation/
+│   │   └── schemas/               # Validation schemas
+│   └── BaseOverlayUpdater.js      # Content update system
+```
+
+### Key Classes & Methods
+
+**SystemsManager:**
+- `_overlayRenderers` - Renderer registry Map
+- `_applyIncrementalUpdates()` - Orchestrate incremental updates
+- `_findOverlayById()` - Lookup overlay config
+- `_findOverlayElement()` - Lookup DOM element
+
+**Renderer Interface:**
+- `static render()` - Initial markup generation
+- `static supportsIncrementalUpdate()` - Declare capability
+- `static updateIncremental()` - Perform style update
+- `static update{Type}Data()` - Perform content update
+
+**BaseOverlayUpdater:**
+- `_registerUpdaters()` - Register overlay types
+- `_hasTemplateContent()` - Detect templates
+- `updateOverlaysForDataSourceChanges()` - Trigger content updates
+
+---
+
+**Index Version:** 1.0
+**Last Updated:** 2025-10-25
+**Maintainer:** CB-LCARS Team
