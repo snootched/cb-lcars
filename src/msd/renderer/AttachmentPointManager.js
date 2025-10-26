@@ -70,13 +70,21 @@ export class AttachmentPointManager {
     this._attachmentPoints.set(overlayId, attachmentData);
 
     // Also create virtual anchors for each side
+    // BUT: don't overwrite explicitly-set anchors (e.g., gap-adjusted ones from _buildDynamicOverlayAnchors)
     if (attachmentData.points) {
       Object.entries(attachmentData.points).forEach(([side, point]) => {
         const virtualAnchorId = `${overlayId}.${side}`;
-        this._anchors.set(virtualAnchorId, point);
+
+        // Only set if not already explicitly set (preserves gap-adjusted anchors)
+        if (!this._anchors.has(virtualAnchorId)) {
+          cblcarsLog.debug(`[AttachmentPointManager] 📝 Setting base anchor ${virtualAnchorId}: [${point}]`);
+          this._anchors.set(virtualAnchorId, point);
+        } else {
+          cblcarsLog.debug(`[AttachmentPointManager] ⏭️  Skipping ${virtualAnchorId} (already exists with gap)`);
+        }
       });
 
-      // Default anchor is the center
+      // Default anchor is the center (safe to always update)
       this._anchors.set(overlayId, attachmentData.center);
     }
 
@@ -126,6 +134,15 @@ export class AttachmentPointManager {
     if (!anchorId || !Array.isArray(coordinate) || coordinate.length !== 2) {
       cblcarsLog.warn('[AttachmentPointManager] Invalid setAnchor call', { anchorId, coordinate });
       return;
+    }
+
+    const existing = this._anchors.get(anchorId);
+    if (existing && anchorId.includes('title_overlay.right')) {
+      // Log stack trace for title_overlay.right overwrites
+      console.trace(`[AttachmentPointManager] Stack trace for title_overlay.right overwrite`);
+      cblcarsLog.debug(`[AttachmentPointManager] ⚠️  Overwriting anchor ${anchorId}: [${existing}] → [${coordinate}]`);
+    } else if (existing) {
+      cblcarsLog.debug(`[AttachmentPointManager] ⚠️  Overwriting anchor ${anchorId}: [${existing}] → [${coordinate}]`);
     }
 
     this._anchors.set(anchorId, coordinate);

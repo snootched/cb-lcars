@@ -249,12 +249,14 @@ export class AdvancedRenderer {
     // This ensures line overlays have correct attachment points on initial render
     this._populateInitialAttachmentPoints(overlays, anchors);
 
-    // Build dynamic anchors (overlay destinations)
+    // Build virtual anchors from Phase 1 overlays (text) for line anchoring
+    // These are base anchors without gaps - lines will overwrite with gap-applied versions
+    this._buildVirtualAnchorsFromAllOverlays(overlays);
+
+    // Build dynamic anchors (overlay destinations) with gap applied
+    // This OVERWRITES the base anchors from _buildVirtualAnchorsFromAllOverlays with gap-applied versions
     this.attachmentManager.setAnchorsFromObject(anchors);
     this._buildDynamicOverlayAnchors(overlays);
-
-    // Build virtual anchors from Phase 1 overlays (text) for line anchoring
-    this._buildVirtualAnchorsFromAllOverlays(overlays);
 
     // ADDED: Separate action queue for Phase 2
     const phase2ActionQueue = [];
@@ -334,9 +336,12 @@ export class AdvancedRenderer {
     this._populateInitialAttachmentPoints(overlays, anchors);
 
     // Rebuild virtual anchors now that we have Phase 2a overlays (buttons, status_grids, etc.)
+    // IMPORTANT: This must run BEFORE _buildDynamicOverlayAnchors so that
+    // gap-applied anchors don't get overwritten by non-gap anchors
     this._buildVirtualAnchorsFromAllOverlays(overlays);
 
     // CRITICAL: Rebuild dynamic overlay anchors now that Phase 2a overlays have attachment points
+    // This runs AFTER _buildVirtualAnchorsFromAllOverlays so gaps are preserved
     this._buildDynamicOverlayAnchors(overlays);
 
     // Phase 2b: render line overlays (now ALL targets exist with attachment points)
@@ -829,6 +834,16 @@ export class AdvancedRenderer {
     changedIds.forEach(id => {
       const tap = this.attachmentManager.getAttachmentPoints(id);
       if (!tap || !tap.points) return;
+
+      // Log what attachment points we're reading for title_overlay
+      if (id === 'title_overlay') {
+        cblcarsLog.debug(`[AdvancedRenderer] 🔍 _updateDynamicAnchorsForOverlays reading title_overlay attachment points:`, {
+          right: tap.points.right,
+          bboxRight: tap.bbox?.right,
+          bboxWidth: tap.bbox?.width
+        });
+      }
+
       const dep = this._lineDeps.get(id);
       if (!dep) return;
       dep.forEach(lineId => {
@@ -854,6 +869,15 @@ export class AdvancedRenderer {
         // Construct the proper virtual anchor ID based on effective side (which may be auto-determined)
         const virtualAnchorId = effectiveSide && effectiveSide !== 'center' ? `${id}.${effectiveSide}` : id;
 
+        // Log for title_overlay
+        if (id === 'title_overlay' && effectiveSide === 'right') {
+          cblcarsLog.debug(`[AdvancedRenderer] 🔍 _updateDynamicAnchorsForOverlays setting title_overlay.right:`, {
+            basePt,
+            gapPt,
+            gap: raw.attach_gap
+          });
+        }
+
         // Update in attachment manager
         this.attachmentManager.setAnchor(virtualAnchorId, gapPt);
 
@@ -877,10 +901,27 @@ export class AdvancedRenderer {
 
   // NEW: apply attach_gap offsets
   _applyAttachGap(point, side, raw, bbox) {
-    const gap = Number(raw.attach_gap || raw.attachGap || 0);
-    const gapX = Number(raw.attach_gap_x || raw.attachGapX || gap || 0);
-    const gapY = Number(raw.attach_gap_y || raw.attachGapY || gap || 0);
-    if (!(gapX || gapY)) return point;
+    const gap = Number(raw.attach_gap || raw.attachGap || raw.anchor_gap || raw.anchorGap || 0);
+    const gapX = Number(raw.attach_gap_x || raw.attachGapX || raw.anchor_gap_x || raw.anchorGapX || gap || 0);
+    const gapY = Number(raw.attach_gap_y || raw.attachGapY || raw.anchor_gap_y || raw.anchorGapY || gap || 0);
+
+    cblcarsLog.debug(`[AdvancedRenderer] 🔧 _applyAttachGap:`, {
+      point,
+      side,
+      gap,
+      gapX,
+      gapY,
+      rawGaps: {
+        attach_gap: raw.attach_gap,
+        anchor_gap: raw.anchor_gap
+      }
+    });
+
+    if (!(gapX || gapY)) {
+      cblcarsLog.debug(`[AdvancedRenderer] ⏭️ No gap to apply, returning original point`);
+      return point;
+    }
+
     const [x, y] = point;
     let dx = 0, dy = 0;
     switch (side) {
@@ -894,14 +935,10 @@ export class AdvancedRenderer {
       case 'bottom-right': dx = gapX; dy = gapY; break;
       default: break;
     }
-    // Optional: ensure gap extends outward (based on bbox) if bbox provided
-    if (bbox) {
-      if (side.includes('left') && x > bbox.left) dx = -Math.abs(dx);
-      if (side.includes('right') && x < bbox.right) dx = Math.abs(dx);
-      if (side.includes('top') && y > bbox.top) dy = -Math.abs(dy);
-      if (side.includes('bottom') && y < bbox.bottom) dy = Math.abs(dy);
-    }
-    return [x + dx, y + dy];
+
+    const result = [x + dx, y + dy];
+    cblcarsLog.debug(`[AdvancedRenderer] ✅ Applied gap: [${point}] + [${dx}, ${dy}] = [${result}]`);
+    return result;
   }
 
   // NEW: resolve which attachment point to use based on side keyword
@@ -1944,18 +1981,25 @@ export class AdvancedRenderer {
       if (!attachmentPoints || !attachmentPoints.points) return;
 
       // Create virtual anchors for each attachment point of this overlay
+      // BUT: Don't overwrite gap-adjusted anchors from _buildDynamicOverlayAnchors
       const createdAnchors = [];
       Object.entries(attachmentPoints.points).forEach(([side, point]) => {
         const virtualAnchorId = `${overlay.id}.${side}`;
-        this.attachmentManager.setAnchor(virtualAnchorId, point);
-        createdAnchors.push({ id: virtualAnchorId, point });
+
+        // Only set if not already set (preserves gap-adjusted anchors)
+        if (!this.attachmentManager.hasAnchor(virtualAnchorId)) {
+          this.attachmentManager.setAnchor(virtualAnchorId, point);
+          createdAnchors.push({ id: virtualAnchorId, point });
+        }
       });
 
-      // Also create a default virtual anchor using the center point
+      // Also create a default virtual anchor using the center point (safe to always update)
       this.attachmentManager.setAnchor(overlay.id, attachmentPoints.center);
       createdAnchors.push({ id: overlay.id, point: attachmentPoints.center });
 
-      cblcarsLog.debug(`[AdvancedRenderer] 🔗 Created ${createdAnchors.length} virtual anchors for overlay ${overlay.id}:`, createdAnchors);
+      if (createdAnchors.length > 0) {
+        cblcarsLog.debug(`[AdvancedRenderer] 🔗 Created ${createdAnchors.length} virtual anchors for overlay ${overlay.id}:`, createdAnchors);
+      }
     });
   }
 
@@ -1976,6 +2020,13 @@ export class AdvancedRenderer {
 
   _updateTextAttachmentPointsFromDom(overlay, groupEl, bb) {
     if (!overlay || !groupEl || !bb) return;
+
+    // Validate bbox - skip if invalid (text not rendered yet or during font load)
+    if (bb.width <= 0 || bb.height <= 0) {
+      cblcarsLog.debug(`[AdvancedRenderer] ⏭️ Skipping attachment point update for ${overlay.id} - invalid bbox:`, bb);
+      return;
+    }
+
     const ap = {
       id: overlay.id,
       center: [bb.centerX, bb.centerY],
@@ -2293,6 +2344,13 @@ export class AdvancedRenderer {
   _updateStatusIndicatorPosition(groupEl, textBBox) {
     try {
       if (!groupEl) return;
+
+      // Validate textBBox - skip if invalid (text not rendered yet)
+      if (!textBBox || textBBox.width <= 0 || textBBox.height <= 0) {
+        cblcarsLog.debug('[AdvancedRenderer] ⏭️ Skipping status indicator update - invalid textBBox:', textBBox);
+        return;
+      }
+
       const circle = groupEl.querySelector('circle[data-decoration="status-indicator"]');
       if (!circle) return;
 
@@ -2463,6 +2521,12 @@ export class AdvancedRenderer {
    */
   _updateTextAttachmentPointsAfterStabilization(overlay, groupEl, textBbox, viewBox) {
     if (!overlay || !groupEl || !textBbox) return;
+
+    // Validate textBbox - skip if invalid (text not rendered yet or during font load)
+    if (textBbox.width <= 0 || textBbox.height <= 0) {
+      cblcarsLog.debug(`[AdvancedRenderer] ⏭️ Skipping attachment point update after stabilization for ${overlay.id} - invalid textBbox:`, textBbox);
+      return;
+    }
 
     try {
       // Create expanded bbox that includes decorations (status indicator, etc.)

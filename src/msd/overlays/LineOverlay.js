@@ -134,6 +134,8 @@ export class LineOverlay extends OverlayBase {
     let anchor = this._resolveAnchor(overlay, anchors);
     let anchor2 = this._resolveAttachTo(overlay, anchors);
 
+    cblcarsLog.debug(`[LineOverlay] 📍 Resolved anchors for ${overlay.id}: anchor=[${anchor}], anchor2=[${anchor2}], attach_gap=${overlay.attach_gap}, anchor_gap=${overlay.anchor_gap}`);
+
     // Validate anchors
     if (!anchor || !Array.isArray(anchor) || anchor.length !== 2) {
       cblcarsLog.error(`[LineOverlay] Invalid anchor for ${overlay.id}:`, { anchor });
@@ -420,23 +422,8 @@ export class LineOverlay extends OverlayBase {
       hasOverlayAttachmentPoints: this.overlayAttachmentPoints?.has(overlay.anchor)
     });
 
-    // Check if anchor refers to an overlay
-    if (typeof overlay.anchor === 'string' && this.overlayAttachmentPoints?.has(overlay.anchor)) {
-      const sourceAttachmentPoints = this.overlayAttachmentPoints.get(overlay.anchor);
-      if (sourceAttachmentPoints?.points) {
-        const anchorSide = overlay.anchor_side || 'center';
-        const sourcePoint = this._resolveAttachmentPoint(sourceAttachmentPoints.points, anchorSide);
-
-        if (sourcePoint) {
-          const anchorGap = overlay.anchor_gap || 0;
-          const result = this._applyGapToAttachmentPoint(sourcePoint, anchorSide, anchorGap, sourceAttachmentPoints.bbox);
-          cblcarsLog.debug(`[LineOverlay] ✅ Resolved from overlayAttachmentPoints:`, result);
-          return result;
-        }
-      }
-    }
-
-    // Check if we have a virtual anchor (overlay.side format) for source
+    // PRIORITY 1: Check if we have a virtual anchor (overlay.side format) with gap already applied
+    // This is created by AdvancedRenderer when it processes overlay-to-overlay connections
     if (typeof overlay.anchor === 'string') {
       const anchorSide = (overlay.anchor_side || '').toLowerCase();
 
@@ -451,15 +438,31 @@ export class LineOverlay extends OverlayBase {
         hasInAnchors: !!anchors[virtualAnchorId]
       });
 
-      // Try to resolve the virtual anchor first
+      // Try to resolve the virtual anchor first (gap already applied by AdvancedRenderer)
       const virtualAnchor = OverlayUtils.resolvePosition(virtualAnchorId, anchors);
       if (virtualAnchor) {
-        cblcarsLog.debug(`[LineOverlay] ✅ Resolved virtual anchor:`, virtualAnchor);
+        cblcarsLog.debug(`[LineOverlay] ✅ Resolved virtual anchor (gap pre-applied):`, virtualAnchor);
         return virtualAnchor;
       }
     }
 
-    // Standard anchor resolution (fallback)
+    // PRIORITY 2: Check if anchor refers to an overlay (fallback if virtual anchor doesn't exist)
+    if (typeof overlay.anchor === 'string' && this.overlayAttachmentPoints?.has(overlay.anchor)) {
+      const sourceAttachmentPoints = this.overlayAttachmentPoints.get(overlay.anchor);
+      if (sourceAttachmentPoints?.points) {
+        const anchorSide = overlay.anchor_side || 'center';
+        const sourcePoint = this._resolveAttachmentPoint(sourceAttachmentPoints.points, anchorSide);
+
+        if (sourcePoint) {
+          const anchorGap = overlay.anchor_gap || 0;
+          const result = this._applyGapToAttachmentPoint(sourcePoint, anchorSide, anchorGap, sourceAttachmentPoints.bbox);
+          cblcarsLog.debug(`[LineOverlay] ✅ Resolved from overlayAttachmentPoints (gap applied on-the-fly):`, result);
+          return result;
+        }
+      }
+    }
+
+    // PRIORITY 3: Standard anchor resolution (final fallback)
     const fallback = OverlayUtils.resolvePosition(overlay.anchor, anchors);
     cblcarsLog.debug(`[LineOverlay] 🔄 Using fallback resolution:`, fallback);
     return fallback;
@@ -477,23 +480,8 @@ export class LineOverlay extends OverlayBase {
       hasOverlayAttachmentPoints: this.overlayAttachmentPoints?.has(overlay.attach_to)
     });
 
-    // Check if attach_to refers to an overlay
-    if (typeof overlay.attach_to === 'string' && this.overlayAttachmentPoints?.has(overlay.attach_to)) {
-      const targetAttachmentPoints = this.overlayAttachmentPoints.get(overlay.attach_to);
-      if (targetAttachmentPoints?.points) {
-        const attachSide = overlay.attach_side || 'center';
-        const targetPoint = this._resolveAttachmentPoint(targetAttachmentPoints.points, attachSide);
-
-        if (targetPoint) {
-          const attachGap = overlay.attach_gap || 0;
-          const result = this._applyGapToAttachmentPoint(targetPoint, attachSide, attachGap, targetAttachmentPoints.bbox);
-          cblcarsLog.debug(`[LineOverlay] ✅ Resolved from overlayAttachmentPoints:`, result);
-          return result;
-        }
-      }
-    }
-
-    // Check if we have a virtual anchor (overlay.side format)
+    // PRIORITY 1: Check if we have a virtual anchor (overlay.side format) with gap already applied
+    // This is created by AdvancedRenderer when it processes overlay-to-overlay connections
     if (typeof overlay.attach_to === 'string') {
       const attachSide = (overlay.attach_side || '').toLowerCase();
 
@@ -508,15 +496,31 @@ export class LineOverlay extends OverlayBase {
         hasInAnchors: !!anchors[virtualAnchorId]
       });
 
-      // Try to resolve the virtual anchor first
+      // Try to resolve the virtual anchor first (gap already applied by AdvancedRenderer)
       const virtualAnchor = OverlayUtils.resolvePosition(virtualAnchorId, anchors);
       if (virtualAnchor) {
-        cblcarsLog.debug(`[LineOverlay] ✅ Resolved virtual anchor:`, virtualAnchor);
+        cblcarsLog.debug(`[LineOverlay] ✅ Resolved virtual anchor (gap pre-applied):`, virtualAnchor);
         return virtualAnchor;
       }
     }
 
-    // Standard attach_to resolution (fallback)
+    // PRIORITY 2: Check if attach_to refers to an overlay (fallback if virtual anchor doesn't exist)
+    if (typeof overlay.attach_to === 'string' && this.overlayAttachmentPoints?.has(overlay.attach_to)) {
+      const targetAttachmentPoints = this.overlayAttachmentPoints.get(overlay.attach_to);
+      if (targetAttachmentPoints?.points) {
+        const attachSide = overlay.attach_side || 'center';
+        const targetPoint = this._resolveAttachmentPoint(targetAttachmentPoints.points, attachSide);
+
+        if (targetPoint) {
+          const attachGap = overlay.attach_gap || 0;
+          const result = this._applyGapToAttachmentPoint(targetPoint, attachSide, attachGap, targetAttachmentPoints.bbox);
+          cblcarsLog.debug(`[LineOverlay] ✅ Resolved from overlayAttachmentPoints (gap applied on-the-fly):`, result);
+          return result;
+        }
+      }
+    }
+
+    // PRIORITY 3: Standard attach_to resolution (final fallback)
     const fallback = OverlayUtils.resolvePosition(overlay.attach_to, anchors);
     cblcarsLog.debug(`[LineOverlay] 🔄 Using fallback resolution:`, fallback);
     return fallback;

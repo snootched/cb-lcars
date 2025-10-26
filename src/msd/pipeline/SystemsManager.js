@@ -698,6 +698,7 @@ export class SystemsManager {
           const debugOptions = {
             anchors: resolvedModel.anchors || {},
             overlays: resolvedModel.overlays || [],
+            router: this.router,  // ✅ FIXED: Pass router for routing debug visualization
             showAnchors: debugState.anchors,
             showBoundingBoxes: debugState.bounding_boxes,
             showRouting: this.debugManager.canRenderRouting(),
