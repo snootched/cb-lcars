@@ -350,11 +350,15 @@ export class TextRenderer {
 
   /**
    * Build metadata object with text measurements and style information
-   * Includes status indicator adjustments for attachment points
+   * Includes status indicator adjustments for attachment points AND bbox
    * @private
    */
   static _buildMetadata(content, x, y, style, container) {
-    const bbox = this._getTextBBox(content, x, y, style, container);
+    let bbox = this._getTextBBox(content, x, y, style, container);
+
+    // DEBUG: Log status_indicator info and original bbox
+    cblcarsLog.debug(`[TextRenderer._buildMetadata] status_indicator=${style.status_indicator}, position=${style.status_indicator_position}, size=${style.status_indicator_size}, padding=${style.status_indicator_padding}`);
+    cblcarsLog.debug(`[TextRenderer._buildMetadata] ORIGINAL bbox: left=${bbox.left}, right=${bbox.right}, width=${bbox.width}`);
 
     // Default attachment points based on text bbox
     const attachmentPoints = {
@@ -369,7 +373,7 @@ export class TextRenderer {
       bottomRight: [bbox.right, bbox.bottom]
     };
 
-    // ✅ FIXED: Adjust attachment points if status indicator is present
+    // ✅ FIXED: Adjust attachment points AND bbox if status indicator is present
     if (style.status_indicator) {
       const fontSize = parseFloat(style.fontSize) || 16;
       const indicatorSize = style.status_indicator_size !== null && style.status_indicator_size !== undefined ?
@@ -385,51 +389,138 @@ export class TextRenderer {
       switch (position) {
         case 'left':
         case 'left-center':
-          const leftCx = bbox.left - padding - indicatorSize;
+          const leftCx = bbox.left - padding - indicatorSize * 2; // Center - radius to get left edge
           attachmentPoints.left = [leftCx, bbox.centerY];
           attachmentPoints.topLeft = [leftCx, bbox.top];
           attachmentPoints.bottomLeft = [leftCx, bbox.bottom];
           break;
         case 'right':
         case 'right-center':
-          const rightCx = bbox.right + padding + indicatorSize;
+          const rightCx = bbox.right + padding + indicatorSize * 2; // Center + radius to get right edge
           attachmentPoints.right = [rightCx, bbox.centerY];
           attachmentPoints.topRight = [rightCx, bbox.top];
           attachmentPoints.bottomRight = [rightCx, bbox.bottom];
           break;
         case 'top':
-          const topCy = bbox.top - padding - indicatorSize;
+          const topCy = bbox.top - padding - indicatorSize * 2; // Center - radius to get top edge
           attachmentPoints.top = [bbox.centerX, topCy];
           attachmentPoints.topLeft = [bbox.left, topCy];
           attachmentPoints.topRight = [bbox.right, topCy];
           break;
         case 'bottom':
-          const bottomCy = bbox.bottom + padding + indicatorSize;
+          const bottomCy = bbox.bottom + padding + indicatorSize * 2; // Center + radius to get bottom edge
           attachmentPoints.bottom = [bbox.centerX, bottomCy];
           attachmentPoints.bottomLeft = [bbox.left, bottomCy];
           attachmentPoints.bottomRight = [bbox.right, bottomCy];
           break;
         case 'top-left':
-          const topLeftCx = bbox.left - padding - indicatorSize;
-          const topLeftCy = bbox.top - padding - indicatorSize;
+          const topLeftCx = bbox.left - padding - indicatorSize * 2;
+          const topLeftCy = bbox.top - padding - indicatorSize * 2;
           attachmentPoints.topLeft = [topLeftCx, topLeftCy];
           break;
         case 'top-right':
-          const topRightCx = bbox.right + padding + indicatorSize;
-          const topRightCy = bbox.top - padding - indicatorSize;
+          const topRightCx = bbox.right + padding + indicatorSize * 2;
+          const topRightCy = bbox.top - padding - indicatorSize * 2;
           attachmentPoints.topRight = [topRightCx, topRightCy];
           break;
         case 'bottom-left':
-          const bottomLeftCx = bbox.left - padding - indicatorSize;
-          const bottomLeftCy = bbox.bottom + padding + indicatorSize;
+          const bottomLeftCx = bbox.left - padding - indicatorSize * 2;
+          const bottomLeftCy = bbox.bottom + padding + indicatorSize * 2;
           attachmentPoints.bottomLeft = [bottomLeftCx, bottomLeftCy];
           break;
         case 'bottom-right':
-          const bottomRightCx = bbox.right + padding + indicatorSize;
-          const bottomRightCy = bbox.bottom + padding + indicatorSize;
+          const bottomRightCx = bbox.right + padding + indicatorSize * 2;
+          const bottomRightCy = bbox.bottom + padding + indicatorSize * 2;
           attachmentPoints.bottomRight = [bottomRightCx, bottomRightCy];
           break;
       }
+
+      // ✅ NEW: Expand bbox to include status indicator
+      // This ensures the bbox covers the entire visual element including the status indicator
+      const totalIndicatorSpace = padding + indicatorSize * 2; // indicator diameter
+      switch (position) {
+        case 'left':
+        case 'left-center':
+          bbox = {
+            ...bbox,
+            left: bbox.left - totalIndicatorSpace,
+            width: bbox.width + totalIndicatorSpace,
+            centerX: bbox.left - totalIndicatorSpace / 2 + (bbox.width + totalIndicatorSpace) / 2
+          };
+          break;
+        case 'right':
+        case 'right-center':
+          bbox = {
+            ...bbox,
+            right: bbox.right + totalIndicatorSpace,
+            width: bbox.width + totalIndicatorSpace,
+            centerX: bbox.left + (bbox.width + totalIndicatorSpace) / 2
+          };
+          break;
+        case 'top':
+          bbox = {
+            ...bbox,
+            top: bbox.top - totalIndicatorSpace,
+            height: bbox.height + totalIndicatorSpace,
+            centerY: bbox.top - totalIndicatorSpace / 2 + (bbox.height + totalIndicatorSpace) / 2
+          };
+          break;
+        case 'bottom':
+          bbox = {
+            ...bbox,
+            bottom: bbox.bottom + totalIndicatorSpace,
+            height: bbox.height + totalIndicatorSpace,
+            centerY: bbox.top + (bbox.height + totalIndicatorSpace) / 2
+          };
+          break;
+        case 'top-left':
+          bbox = {
+            ...bbox,
+            left: bbox.left - totalIndicatorSpace,
+            top: bbox.top - totalIndicatorSpace,
+            width: bbox.width + totalIndicatorSpace,
+            height: bbox.height + totalIndicatorSpace,
+            centerX: bbox.left - totalIndicatorSpace / 2 + (bbox.width + totalIndicatorSpace) / 2,
+            centerY: bbox.top - totalIndicatorSpace / 2 + (bbox.height + totalIndicatorSpace) / 2
+          };
+          break;
+        case 'top-right':
+          bbox = {
+            ...bbox,
+            right: bbox.right + totalIndicatorSpace,
+            top: bbox.top - totalIndicatorSpace,
+            width: bbox.width + totalIndicatorSpace,
+            height: bbox.height + totalIndicatorSpace,
+            centerX: bbox.left + (bbox.width + totalIndicatorSpace) / 2,
+            centerY: bbox.top - totalIndicatorSpace / 2 + (bbox.height + totalIndicatorSpace) / 2
+          };
+          break;
+        case 'bottom-left':
+          bbox = {
+            ...bbox,
+            left: bbox.left - totalIndicatorSpace,
+            bottom: bbox.bottom + totalIndicatorSpace,
+            width: bbox.width + totalIndicatorSpace,
+            height: bbox.height + totalIndicatorSpace,
+            centerX: bbox.left - totalIndicatorSpace / 2 + (bbox.width + totalIndicatorSpace) / 2,
+            centerY: bbox.top + (bbox.height + totalIndicatorSpace) / 2
+          };
+          break;
+        case 'bottom-right':
+          bbox = {
+            ...bbox,
+            right: bbox.right + totalIndicatorSpace,
+            bottom: bbox.bottom + totalIndicatorSpace,
+            width: bbox.width + totalIndicatorSpace,
+            height: bbox.height + totalIndicatorSpace,
+            centerX: bbox.left + (bbox.width + totalIndicatorSpace) / 2,
+            centerY: bbox.top + (bbox.height + totalIndicatorSpace) / 2
+          };
+          break;
+      }
+
+      // DEBUG: Log bbox after expansion
+      cblcarsLog.debug(`[TextRenderer._buildMetadata] EXPANDED bbox: left=${bbox.left}, right=${bbox.right}, width=${bbox.width}, totalIndicatorSpace=${padding + indicatorSize * 2}`);
     }
 
     return {

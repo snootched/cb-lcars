@@ -21,6 +21,7 @@ import { initializeThemeSystem } from '../themes/initializeThemeSystem.js';
 // ✅ ADDED: Import overlay renderers for incremental update capabilities
 import { StatusGridRenderer } from '../renderer/StatusGridRenderer.js';
 import { ButtonOverlay } from '../overlays/ButtonOverlay.js';
+import { TextOverlay } from '../overlays/TextOverlay.js';
 
 export class SystemsManager {
   constructor() {
@@ -91,9 +92,9 @@ export class SystemsManager {
       ['status_grid', StatusGridRenderer],
       ['apexchart', ApexChartsOverlayRenderer], // ✅ Phase 2: COMPLETE
       ['button', ButtonOverlay], // ✅ Phase 3: COMPLETE
+      // ['text', TextOverlay], // ❌ REMOVED: Too complex due to bbox recalculation needs
       // Add more renderers as they gain incremental update support:
-      // ['text', TextOverlayRenderer], // Phase 5: Future
-      // ['line', LineOverlayRenderer], // Phase 4: Future
+      // ['line', LineOverlayRenderer], // Phase 5: Future
     ]);
   }
 
@@ -1299,6 +1300,12 @@ export class SystemsManager {
 
         if (success) {
           cblcarsLog.info('[SystemsManager] ✅ SELECTIVE RE-RENDER COMPLETE');
+
+          // ✅ NEW: Re-render debug visualizations after selective re-render
+          if (this.debugManager.isAnyEnabled()) {
+            cblcarsLog.debug('[SystemsManager] 🔍 Updating debug visualizations after selective re-render');
+            this.renderDebugAndControls(resolvedModel);
+          }
         } else {
           cblcarsLog.warn('[SystemsManager] ⚠️ Selective re-render failed - falling back to FULL re-render');
           this._scheduleFullReRender();

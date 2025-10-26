@@ -76,18 +76,28 @@ export class TextOverlay extends OverlayBase {
    * Render the text overlay
    * Generates complete SVG markup for initial render
    *
-   * @param {Object} context - Rendering context with container, viewBox, etc.
+   * @param {Object} overlay - Overlay configuration (this.overlay, but passed for consistency)
+   * @param {Object} anchors - Available anchors for positioning
+   * @param {Array} viewBox - SVG viewBox [minX, minY, width, height]
+   * @param {Element} svgContainer - SVG container element
+   * @param {Object} cardInstance - Card instance for data sources (optional)
    * @returns {Object} Render result with markup and metadata
    */
-  render(context) {
+  render(overlay, anchors, viewBox, svgContainer, cardInstance) {
     try {
-      cblcarsLog.debug(`[TextOverlay] 🎨 Rendering text overlay: ${this.overlay.id}`);
+      cblcarsLog.debug(`[TextOverlay] 🎨 Rendering text overlay: ${overlay.id}`);
 
-      const overlay = this.overlay;
+      // Use passed overlay (with finalStyle if present) instead of this.overlay
       const style = overlay.finalStyle || overlay.style || {};
-      const viewBox = context.viewBox || this.viewBox;
 
-      this.container = context.container;
+      // DEBUG: Check status_indicator on initial load
+      if (style.status_indicator) {
+        cblcarsLog.debug(`[TextOverlay] 📍 Status indicator present: ${style.status_indicator}, position: ${style.status_indicator_position}, size: ${style.status_indicator_size}, padding: ${style.status_indicator_padding}`);
+      } else {
+        cblcarsLog.warn(`[TextOverlay] ⚠️ No status_indicator in style for ${overlay.id}`);
+      }
+
+      this.container = svgContainer;
       this.viewBox = viewBox;
 
       // 1. Resolve position
@@ -95,10 +105,10 @@ export class TextOverlay extends OverlayBase {
       this._cachedPosition = position;
       const [x, y] = position;
 
-      // 2. Resolve text styling (with caching)
-      if (!this._cachedTextStyle) {
-        this._cachedTextStyle = this._resolveTextStyles(style, overlay.id, viewBox);
-      }
+      // 2. Resolve text styling
+      // ALWAYS re-resolve during render (we're doing full re-renders, no incremental)
+      // This ensures bbox is correctly calculated for current font size/weight
+      this._cachedTextStyle = this._resolveTextStyles(style, overlay.id, viewBox);
       const textStyle = this._cachedTextStyle;
 
       // Adopt computed font when 'inherit' to prevent initial fallback mismatch
@@ -118,10 +128,9 @@ export class TextOverlay extends OverlayBase {
       }
 
       // 3. Resolve text content from DataSource/templates
-      if (!this._cachedTextContent) {
-        this._cachedTextContent = this._resolveTextContent(overlay, style);
-      }
-      const textContent = this._cachedTextContent;
+      // ALWAYS re-resolve during render (might have changed due to data/template updates)
+      const textContent = this._resolveTextContent(overlay, style);
+      this._cachedTextContent = textContent; // Update cache for potential incremental updates
 
       // Runtime check: Verify resolved content
       if (!textContent) {
@@ -174,10 +183,29 @@ export class TextOverlay extends OverlayBase {
         hasMetadata: !!renderResult.metadata
       });
 
-      // Build overlay markup
+      // Build overlay markup with style data for incremental updates
+      const styleData = {
+        color: textStyle.color,
+        opacity: textStyle.opacity,
+        font_size: textStyle.fontSize,
+        font_weight: textStyle.fontWeight,
+        font_style: textStyle.fontStyle,
+        stroke: textStyle.stroke,
+        stroke_width: textStyle.strokeWidth,
+        status_indicator: style.status_indicator,
+        status_indicator_position: style.status_indicator_position,
+        status_indicator_size: style.status_indicator_size,
+        status_indicator_padding: style.status_indicator_padding,
+        bracket_style: style.bracket_style,
+        highlight: style.highlight,
+        multiline: style.multiline,
+        position: overlay.position
+      };
+
       const overlayMarkup = `<g data-overlay-id="${overlay.id}"
                 data-overlay-type="text"
                 data-text-features="${textFeaturesStr}"
+                data-text-style='${JSON.stringify(styleData)}'
                 data-animation-ready="${!!textStyle.animatable}"
                 data-text-width="${estimatedWidth}"
                 data-text-height="${estimatedHeight}"
@@ -186,6 +214,7 @@ export class TextOverlay extends OverlayBase {
                 data-dominant-baseline="${textStyle.dominantBaseline || textStyle.dominant_baseline || 'central'}"
                 data-text-anchor="${textStyle.textAnchor || textStyle.text_anchor || 'start'}"
                 data-font-stabilized="0"
+                data-expanded-bbox='${JSON.stringify(textBBox)}'
                 ${hasActions ? 'data-has-actions="true"' : ''}
                 ${hasActions ? 'style="pointer-events: all; cursor: pointer;"' : ''}>
 ${renderResult.markup}
@@ -194,7 +223,7 @@ ${renderResult.markup}
       // 5. Handle actions if present
       let actionInfo = null;
       if (hasActions) {
-        actionInfo = this._processActions(overlay, context);
+        actionInfo = this._processActions(overlay, { viewBox, container: svgContainer });
       }
 
       return {
@@ -884,5 +913,244 @@ ${renderResult.markup}
       overlayId: overlay.id,
       isFallback: true
     };
+  }
+
+  // ============================================================================
+  // INCREMENTAL UPDATE SUPPORT
+  // ============================================================================
+
+  /**
+   * Check if this overlay type supports incremental updates
+   * @static
+   * @returns {boolean} True if incremental updates are supported
+   */
+  static supportsIncrementalUpdate() {
+    return true;
+  }
+
+  /**
+   * Perform incremental update on existing text overlay
+   * Updates text content, colors, fonts without full rebuild
+   *
+   * Returns false if geometry changes detected (status indicator, brackets, position)
+   * which triggers automatic fallback to selective re-render via SystemsManager
+   *
+   * @static
+   * @param {Object} overlay - Overlay configuration with updated finalStyle
+   * @param {Element} overlayElement - Existing DOM element (the <g> wrapper)
+   * @param {Object} context - Update context { dataSourceManager, systemsManager, hass }
+   * @returns {boolean} True if update succeeded, false to trigger fallback
+   */
+  static updateIncremental(overlay, overlayElement, context) {
+    cblcarsLog.info(`[TextOverlay] 🎨 INCREMENTAL UPDATE: ${overlay.id}`);
+
+    try {
+      // Get updated style (already patched by SystemsManager)
+      const newStyle = overlay.finalStyle || overlay.style || {};
+
+      // Find the text element within the overlay group
+      const textElement = overlayElement.querySelector('text');
+      if (!textElement) {
+        cblcarsLog.warn(`[TextOverlay] ⚠️ Text element not found for ${overlay.id}`);
+        return false;
+      }
+
+      // Get old style from data attributes if available
+      const oldStyleJson = overlayElement.getAttribute('data-text-style');
+      const oldStyle = oldStyleJson ? JSON.parse(oldStyleJson) : {};
+
+      // Check for geometry changes that require full re-render
+      const geometryChanged = this._detectGeometryChanges(oldStyle, newStyle, overlay);
+      if (geometryChanged) {
+        cblcarsLog.warn(`[TextOverlay] ⚠️ Geometry changes detected - returning false to trigger selective re-render: ${overlay.id}`);
+        return false;
+      }
+
+      // Update text content if changed
+      const newContent = overlay.text || overlay.content || '';
+      const oldContent = textElement.textContent;
+      if (newContent !== oldContent) {
+        cblcarsLog.debug(`[TextOverlay] 📝 Updating text content: "${oldContent}" → "${newContent}"`);
+        textElement.textContent = newContent;
+      }
+
+      // Update style attributes incrementally
+      let updated = false;
+
+      // Color/Fill
+      if (newStyle.color !== oldStyle.color) {
+        const color = newStyle.color || 'var(--lcars-orange)';
+        textElement.setAttribute('fill', color);
+        updated = true;
+        cblcarsLog.debug(`[TextOverlay] 🎨 Updated color: ${color}`);
+      }
+
+      // Opacity
+      if (newStyle.opacity !== oldStyle.opacity) {
+        const opacity = newStyle.opacity !== undefined ? newStyle.opacity : 1;
+        textElement.setAttribute('fill-opacity', opacity);
+        updated = true;
+        cblcarsLog.debug(`[TextOverlay] 🎨 Updated opacity: ${opacity}`);
+      }
+
+      // Font size
+      if (newStyle.font_size !== oldStyle.font_size || newStyle.fontSize !== oldStyle.fontSize) {
+        const fontSize = newStyle.font_size || newStyle.fontSize || '16px';
+        const sizeValue = typeof fontSize === 'number' ? `${fontSize}px` : fontSize;
+        textElement.setAttribute('font-size', sizeValue);
+        updated = true;
+        cblcarsLog.debug(`[TextOverlay] 🎨 Updated font-size: ${sizeValue}`);
+      }
+
+      // Font weight
+      if (newStyle.font_weight !== oldStyle.font_weight || newStyle.fontWeight !== oldStyle.fontWeight) {
+        const weight = newStyle.font_weight || newStyle.fontWeight;
+        if (weight && weight !== 'normal') {
+          textElement.setAttribute('font-weight', weight);
+          updated = true;
+          cblcarsLog.debug(`[TextOverlay] 🎨 Updated font-weight: ${weight}`);
+        }
+      }
+
+      // Font style (italic, etc.)
+      if (newStyle.font_style !== oldStyle.font_style || newStyle.fontStyle !== oldStyle.fontStyle) {
+        const fontStyle = newStyle.font_style || newStyle.fontStyle;
+        if (fontStyle && fontStyle !== 'normal') {
+          textElement.setAttribute('font-style', fontStyle);
+          updated = true;
+          cblcarsLog.debug(`[TextOverlay] 🎨 Updated font-style: ${fontStyle}`);
+        }
+      }
+
+      // Stroke (outline)
+      if (newStyle.stroke !== oldStyle.stroke || newStyle.stroke_width !== oldStyle.stroke_width ||
+          newStyle.strokeWidth !== oldStyle.strokeWidth) {
+        const stroke = newStyle.stroke;
+        const strokeWidth = newStyle.stroke_width || newStyle.strokeWidth || 0;
+
+        if (stroke && strokeWidth > 0) {
+          textElement.setAttribute('stroke', stroke);
+          textElement.setAttribute('stroke-width', strokeWidth);
+
+          const strokeOpacity = newStyle.stroke_opacity || newStyle.strokeOpacity || 1;
+          textElement.setAttribute('stroke-opacity', strokeOpacity);
+          updated = true;
+          cblcarsLog.debug(`[TextOverlay] 🎨 Updated stroke: ${stroke} width: ${strokeWidth}`);
+        } else if (oldStyle.stroke) {
+          // Remove stroke if it was present before
+          textElement.removeAttribute('stroke');
+          textElement.removeAttribute('stroke-width');
+          textElement.removeAttribute('stroke-opacity');
+          updated = true;
+        }
+      }
+
+      // Update status indicator color if present
+      const statusIndicator = overlayElement.querySelector('[data-decoration="status-indicator"]');
+      if (statusIndicator && newStyle.status_indicator) {
+        const statusColor = typeof newStyle.status_indicator === 'string' ?
+          newStyle.status_indicator :
+          'var(--lcars-green)';
+
+        if (statusColor !== oldStyle.status_indicator) {
+          statusIndicator.setAttribute('fill', statusColor);
+          updated = true;
+          cblcarsLog.debug(`[TextOverlay] 🎨 Updated status indicator color: ${statusColor}`);
+        }
+      }
+
+      // Store updated style for next comparison
+      overlayElement.setAttribute('data-text-style', JSON.stringify(newStyle));
+
+      if (updated) {
+        cblcarsLog.info(`[TextOverlay] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.id}`);
+        return true;
+      } else {
+        cblcarsLog.debug(`[TextOverlay] ℹ️ No style changes for ${overlay.id}`);
+        return true;
+      }
+
+    } catch (error) {
+      cblcarsLog.error(`[TextOverlay] ❌ INCREMENTAL UPDATE ERROR for ${overlay.id}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Detect geometry changes that require full re-render
+   * @private
+   * @static
+   */
+  static _detectGeometryChanges(oldStyle, newStyle, overlay) {
+    // Status indicator changes (added, removed, position, or size changed)
+    const oldHasIndicator = !!oldStyle.status_indicator;
+    const newHasIndicator = !!newStyle.status_indicator;
+
+    if (oldHasIndicator !== newHasIndicator) {
+      cblcarsLog.debug(`[TextOverlay] Geometry change: status indicator ${newHasIndicator ? 'added' : 'removed'}`);
+      return true;
+    }
+
+    if (newHasIndicator) {
+      // Check indicator position change
+      if (oldStyle.status_indicator_position !== newStyle.status_indicator_position) {
+        cblcarsLog.debug(`[TextOverlay] Geometry change: status indicator position changed`);
+        return true;
+      }
+
+      // Check indicator size change
+      if (oldStyle.status_indicator_size !== newStyle.status_indicator_size) {
+        cblcarsLog.debug(`[TextOverlay] Geometry change: status indicator size changed`);
+        return true;
+      }
+
+      // Check indicator padding change
+      if (oldStyle.status_indicator_padding !== newStyle.status_indicator_padding) {
+        cblcarsLog.debug(`[TextOverlay] Geometry change: status indicator padding changed`);
+        return true;
+      }
+    }
+
+    // Bracket changes
+    const oldHasBrackets = !!oldStyle.bracket_style;
+    const newHasBrackets = !!newStyle.bracket_style;
+
+    if (oldHasBrackets !== newHasBrackets) {
+      cblcarsLog.debug(`[TextOverlay] Geometry change: brackets ${newHasBrackets ? 'added' : 'removed'}`);
+      return true;
+    }
+
+    if (newHasBrackets && oldStyle.bracket_style !== newStyle.bracket_style) {
+      cblcarsLog.debug(`[TextOverlay] Geometry change: bracket style changed`);
+      return true;
+    }
+
+    // Highlight changes
+    const oldHasHighlight = !!oldStyle.highlight;
+    const newHasHighlight = !!newStyle.highlight;
+
+    if (oldHasHighlight !== newHasHighlight) {
+      cblcarsLog.debug(`[TextOverlay] Geometry change: highlight ${newHasHighlight ? 'added' : 'removed'}`);
+      return true;
+    }
+
+    // Position changes (requires full re-render for proper repositioning)
+    if (overlay.position && oldStyle.position) {
+      const [oldX, oldY] = oldStyle.position;
+      const [newX, newY] = overlay.position;
+
+      if (oldX !== newX || oldY !== newY) {
+        cblcarsLog.debug(`[TextOverlay] Geometry change: position changed`);
+        return true;
+      }
+    }
+
+    // Multiline changes (affects layout)
+    if (oldStyle.multiline !== newStyle.multiline) {
+      cblcarsLog.debug(`[TextOverlay] Geometry change: multiline mode changed`);
+      return true;
+    }
+
+    return false;
   }
 }
