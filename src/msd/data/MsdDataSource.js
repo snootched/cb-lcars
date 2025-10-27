@@ -117,6 +117,11 @@ export class MsdDataSource {
       last_updated: null
     };
 
+    // ✅ NEW: Apply config-level metadata overrides if provided
+    if (cfg.metadata) {
+      this._applyMetadataOverrides(cfg.metadata);
+    }
+
     // Initialize processors from configuration (including profiles)
     this._initializeProcessors(cfg);
   }
@@ -895,6 +900,40 @@ export class MsdDataSource {
   }
 
   /**
+   * Apply user-specified metadata overrides from configuration
+   * @private
+   * @param {Object} metadataConfig - User-provided metadata object
+   */
+  _applyMetadataOverrides(metadataConfig) {
+    if (!metadataConfig || typeof metadataConfig !== 'object') return;
+
+    // Track which properties have been explicitly set by user
+    this._metadataOverrides = {};
+
+    // Apply overrides for supported properties
+    const supportedProperties = [
+      'unit_of_measurement',
+      'device_class',
+      'friendly_name',
+      'state_class',
+      'icon',
+      'area',
+      'device_id'
+    ];
+
+    supportedProperties.forEach(prop => {
+      if (metadataConfig.hasOwnProperty(prop)) {
+        this.metadata[prop] = metadataConfig[prop];
+        this._metadataOverrides[prop] = true; // Mark as user-overridden
+
+        if (this.cfg.debug) {
+          cblcarsLog.debug(`[MsdDataSource] 🔧 Config override for ${this.cfg.entity || 'computed'}.metadata.${prop}: "${metadataConfig[prop]}"`);
+        }
+      }
+    });
+  }
+
+  /**
    * Extract and store entity metadata from Home Assistant state
    * @private
    * @param {Object} entityState - Home Assistant entity state object
@@ -904,24 +943,34 @@ export class MsdDataSource {
 
     const attributes = entityState.attributes || {};
 
-    // Core metadata
-    this.metadata.unit_of_measurement = attributes.unit_of_measurement || null;
-    this.metadata.device_class = attributes.device_class || null;
-    this.metadata.friendly_name = attributes.friendly_name || entityState.entity_id;
-    this.metadata.state_class = attributes.state_class || null;
-    this.metadata.icon = attributes.icon || null;
+    // Core metadata - only extract if not overridden by config
+    if (!this._metadataOverrides?.unit_of_measurement) {
+      this.metadata.unit_of_measurement = attributes.unit_of_measurement || null;
+    }
+    if (!this._metadataOverrides?.device_class) {
+      this.metadata.device_class = attributes.device_class || null;
+    }
+    if (!this._metadataOverrides?.friendly_name) {
+      this.metadata.friendly_name = attributes.friendly_name || entityState.entity_id;
+    }
+    if (!this._metadataOverrides?.state_class) {
+      this.metadata.state_class = attributes.state_class || null;
+    }
+    if (!this._metadataOverrides?.icon) {
+      this.metadata.icon = attributes.icon || null;
+    }
 
-    // Timestamps
+    // Timestamps - always update from entity
     this.metadata.last_changed = entityState.last_changed;
     this.metadata.last_updated = entityState.last_updated;
 
-    // Device and area information (if available)
-    if (attributes.device_id) {
+    // Device and area information (if available and not overridden)
+    if (!this._metadataOverrides?.device_id && attributes.device_id) {
       this.metadata.device_id = attributes.device_id;
     }
 
-    // Try to get area from device registry (if available)
-    if (this.hass?.entities?.[this.cfg.entity]) {
+    // Try to get area from device registry (if not overridden)
+    if (!this._metadataOverrides?.area && this.hass?.entities?.[this.cfg.entity]) {
       const entityInfo = this.hass.entities[this.cfg.entity];
       this.metadata.area = entityInfo.area_id || null;
     }
@@ -931,7 +980,8 @@ export class MsdDataSource {
       cblcarsLog.debug(`[MsdDataSource] 📊 Captured metadata for ${this.cfg.entity}:`, {
         unit: this.metadata.unit_of_measurement,
         device_class: this.metadata.device_class,
-        friendly_name: this.metadata.friendly_name
+        friendly_name: this.metadata.friendly_name,
+        overridden: Object.keys(this._metadataOverrides || {})
       });
     }
   }

@@ -234,7 +234,414 @@ sequenceDiagram
 
 ---
 
-## 🎨 Template Integration
+## �️ Entity Metadata System
+
+**DataSources automatically capture and propagate entity metadata from Home Assistant.** This metadata system provides access to entity attributes like units, friendly names, device information, and more without manual configuration.
+
+### Metadata Architecture
+
+```mermaid
+graph TB
+    subgraph "Home Assistant Entity"
+        EntityState[Entity State Object]
+        Attributes[attributes Object]
+    end
+
+    subgraph "DataSource"
+        Extract[_extractMetadata Method]
+        MetaObj[metadata Object]
+    end
+
+    subgraph "Available Metadata"
+        UOM[unit_of_measurement]
+        FName[friendly_name]
+        DClass[device_class]
+        SClass[state_class]
+        Icon[icon]
+        DeviceID[device_id]
+        Area[area]
+        Timestamps[last_changed/last_updated]
+    end
+
+    subgraph "Consumption"
+        Template[Template System]
+        Display[Overlay Rendering]
+        Format[Number Formatting]
+    end
+
+    EntityState --> Extract
+    Attributes --> Extract
+    Extract --> MetaObj
+
+    MetaObj --> UOM
+    MetaObj --> FName
+    MetaObj --> DClass
+    MetaObj --> SClass
+    MetaObj --> Icon
+    MetaObj --> DeviceID
+    MetaObj --> Area
+    MetaObj --> Timestamps
+
+    UOM --> Template
+    FName --> Template
+    DClass --> Template
+
+    UOM --> Format
+    FName --> Display
+
+    style EntityState fill:#4d94ff,stroke:#0066cc,color:#fff
+    style MetaObj fill:#ff9933,stroke:#cc6600,color:#fff
+    style Template fill:#00cc66,stroke:#009944,color:#fff
+```
+
+### Metadata Extraction Flow
+
+```mermaid
+sequenceDiagram
+    participant HA as Home Assistant
+    participant DS as MsdDataSource
+    participant Meta as metadata Object
+    participant Data as getCurrentData()
+    participant Consumer as Template/Overlay
+
+    HA->>DS: subscribeEvents(state_changed)
+    Note over HA,DS: Initial entity state
+
+    DS->>DS: _extractMetadata(entityState)
+
+    DS->>Meta: unit_of_measurement = attributes.unit_of_measurement
+    DS->>Meta: friendly_name = attributes.friendly_name
+    DS->>Meta: device_class = attributes.device_class
+    DS->>Meta: icon = attributes.icon
+    DS->>Meta: state_class = attributes.state_class
+    DS->>Meta: last_changed, last_updated
+
+    Note over DS,Meta: Metadata stored in datasource
+
+    loop Real-time Updates
+        HA->>DS: State changed event
+        DS->>DS: _extractMetadata(newState)
+        DS->>Meta: Update metadata if changed
+
+        DS->>Data: Include metadata in data object
+        Data->>Consumer: { v, t, metadata: {...}, ... }
+        Consumer->>Consumer: Access via {source.metadata.unit_of_measurement}
+    end
+```
+
+### Metadata Object Structure
+
+```typescript
+interface DataSourceMetadata {
+  // Core attributes from HA entity
+  unit_of_measurement: string | null;  // "°C", "kWh", "%", etc.
+  device_class: string | null;         // "temperature", "power", etc.
+  friendly_name: string | null;        // "Living Room Temperature"
+  state_class: string | null;          // "measurement", "total", etc.
+  icon: string | null;                 // "mdi:thermometer"
+
+  // Entity identification
+  entity_id: string;                   // "sensor.temperature"
+  device_id: string | null;            // Device registry ID
+  area: string | null;                 // Area/room assignment
+
+  // Timestamps
+  last_changed: string;                // ISO 8601 timestamp
+  last_updated: string;                // ISO 8601 timestamp
+}
+```
+
+### Implementation Details
+
+**Extraction Method (`_extractMetadata`):**
+```javascript
+_extractMetadata(entityState) {
+  if (!entityState) return;
+
+  const attributes = entityState.attributes || {};
+
+  // Core metadata
+  this.metadata.unit_of_measurement = attributes.unit_of_measurement || null;
+  this.metadata.device_class = attributes.device_class || null;
+  this.metadata.friendly_name = attributes.friendly_name || entityState.entity_id;
+  this.metadata.state_class = attributes.state_class || null;
+  this.metadata.icon = attributes.icon || null;
+
+  // Timestamps
+  this.metadata.last_changed = entityState.last_changed;
+  this.metadata.last_updated = entityState.last_updated;
+
+  // Device and area information (if available)
+  if (attributes.device_id) {
+    this.metadata.device_id = attributes.device_id;
+  }
+
+  // Try to get area from device registry
+  if (this.hass?.entities?.[this.cfg.entity]) {
+    const entityInfo = this.hass.entities[this.cfg.entity];
+    this.metadata.area = entityInfo.area_id || null;
+  }
+}
+```
+
+**Data Propagation:**
+Metadata is included in every data emission:
+
+```javascript
+getCurrentData() {
+  return {
+    t: lastPoint.t,
+    v: lastPoint.v,
+    buffer: this.buffer,
+    stats: { ...this._stats },
+    transformations: this._getTransformationData(),
+    aggregations: this._getAggregationData(),
+    entity: this.cfg.entity,
+    metadata: { ...this.metadata },  // ✅ Metadata included
+    historyReady: this._stats.historyLoaded > 0,
+    bufferSize: this.buffer.size(),
+    started: this._started
+  };
+}
+```
+
+### Automatic Unit Formatting Integration
+
+The `unit_of_measurement` is automatically used in number formatting:
+
+```javascript
+// DataSourceMixin.js
+applyNumberFormat(value, formatSpec, dataSourceData?.unit_of_measurement) {
+  // Format number according to spec
+  const formattedValue = applyFormat(value, formatSpec);
+
+  // Automatically append unit if available
+  if (dataSourceData?.unit_of_measurement) {
+    return `${formattedValue}${dataSourceData.unit_of_measurement}`;
+  }
+
+  return formattedValue;
+}
+```
+
+**Usage in Text Overlays:**
+```javascript
+// TextOverlay.js
+const unitOfMeasurement = dataSource?.getCurrentData()?.unit_of_measurement;
+return DataSourceMixin.applyNumberFormat(numericValue, formatSpec, unitOfMeasurement);
+```
+
+### Helper Methods
+
+**Get Display Name:**
+```javascript
+getDisplayName() {
+  return this.metadata.friendly_name || this.cfg.entity;
+}
+```
+
+Usage:
+```javascript
+const source = dataSourceManager.getSource('temperature');
+console.log(source.getDisplayName());
+// Output: "Living Room Temperature" or "sensor.temperature"
+```
+
+### Metadata Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Uninitialized: DataSource created
+
+    Uninitialized --> Extracted: start() called
+    note right of Extracted: _extractMetadata(initialState)
+
+    Extracted --> Active: Initial metadata captured
+
+    Active --> Active: State change events
+    note right of Active: Metadata updated on each change
+
+    Active --> Available: Via getCurrentData()
+    note right of Available: metadata object in data structure
+
+    Available --> Consumed: Templates/Overlays access
+    note right of Consumed: {source.metadata.unit_of_measurement}
+
+    Active --> [*]: stop() called
+```
+
+### Usage Patterns
+
+**Pattern 1: Display Name + Value + Unit**
+```javascript
+// Template
+`{source.metadata.friendly_name}: {source.v:.1f}{source.metadata.unit_of_measurement}`
+
+// Output
+"Living Room Temperature: 23.5°C"
+```
+
+**Pattern 2: Automatic Unit in Computed Sources**
+```javascript
+// Computed source doesn't have entity, so no metadata
+// Solution: Reference dependency metadata
+`Net Power: {net_power.v:.1f}{solar.metadata.unit_of_measurement}`
+```
+
+**Pattern 3: Device Class for Icons**
+```javascript
+// Can use device_class to determine icon
+if (metadata.device_class === 'temperature') {
+  icon = 'mdi:thermometer';
+} else if (metadata.device_class === 'power') {
+  icon = 'mdi:flash';
+}
+```
+
+### Integration Points
+
+**Template System:**
+- Metadata available via `{datasource.metadata.property}`
+- Used in content, labels, tooltips
+
+**Number Formatting:**
+- `unit_of_measurement` automatically appended
+- Percentage handling (%)
+- Custom unit display
+
+**Overlay Rendering:**
+- `friendly_name` for automatic labels
+- `icon` for visual indicators
+- `device_class` for semantic styling
+
+**Debug Interface:**
+- Metadata visible in debug panels
+- Inspector shows all metadata properties
+- Console access via `source.metadata`
+
+### Configuration Override System
+
+**New Feature:** Users can specify or override metadata in datasource configuration.
+
+**Use Cases:**
+1. **Computed Sources** - Specify metadata for sources without entities
+2. **Custom Names** - Override auto-captured friendly names
+3. **Unit Representation** - Change how units are displayed
+4. **Mixed Sources** - Provide consistent metadata for combined data
+
+**Implementation:**
+
+```javascript
+// Constructor applies overrides after initialization
+if (cfg.metadata) {
+  this._applyMetadataOverrides(cfg.metadata);
+}
+
+// _applyMetadataOverrides method
+_applyMetadataOverrides(metadataConfig) {
+  // Track which properties have been explicitly set by user
+  this._metadataOverrides = {};
+
+  const supportedProperties = [
+    'unit_of_measurement',
+    'device_class',
+    'friendly_name',
+    'state_class',
+    'icon',
+    'area',
+    'device_id'
+  ];
+
+  supportedProperties.forEach(prop => {
+    if (metadataConfig.hasOwnProperty(prop)) {
+      this.metadata[prop] = metadataConfig[prop];
+      this._metadataOverrides[prop] = true; // Mark as user-overridden
+    }
+  });
+}
+
+// _extractMetadata respects overrides
+_extractMetadata(entityState) {
+  // Only extract if not overridden by config
+  if (!this._metadataOverrides?.unit_of_measurement) {
+    this.metadata.unit_of_measurement = attributes.unit_of_measurement || null;
+  }
+  // ... similar for other properties
+}
+```
+
+**Configuration Examples:**
+
+```yaml
+# Computed source with metadata
+data_sources:
+  net_power:
+    type: computed
+    expression: "solar - consumption"
+    dependencies:
+      solar: solar
+      consumption: consumption
+    metadata:
+      unit_of_measurement: "W"
+      friendly_name: "Net Power Flow"
+      device_class: "power"
+
+# Entity with override
+data_sources:
+  temperature:
+    type: entity
+    entity: sensor.outdoor_temperature
+    metadata:
+      friendly_name: "Outside Temp"  # Override entity name
+      icon: "mdi:weather-sunny"      # Custom icon
+    # unit_of_measurement preserved from entity
+```
+
+**Priority Order:**
+1. **Config override** (highest) - `cfg.metadata.property`
+2. **Entity attributes** (middle) - `entityState.attributes.property`
+3. **Fallback** (lowest) - `null` or `entity_id`
+
+### Computed Sources Special Handling
+
+**Issue:** Computed sources don't have entities, so no automatic metadata extraction.
+
+**Solution Patterns:**
+
+```yaml
+# Option 1: Manual metadata specification (RECOMMENDED)
+data_sources:
+  computed:
+    type: computed
+    expression: "a + b"
+    metadata:
+      unit_of_measurement: "kWh"
+      friendly_name: "Total Power"
+      device_class: "power"
+
+# Option 2: Reference dependency metadata
+overlays:
+  - content: "{computed.v:.1f}{dependency.metadata.unit_of_measurement}"
+```
+
+### Performance Considerations
+
+**Metadata Overhead:**
+- Extracted once per entity state change
+- Config overrides applied once at construction
+- Shallow copy on data emission
+- Minimal memory footprint (~200 bytes per datasource + ~100 bytes for overrides)
+- No impact on update frequency
+
+**Optimization:**
+- Metadata only extracted if entity state available
+- Override checking via simple boolean flags
+- Fallback to entity_id if attributes missing
+- Cached in datasource instance
+
+---
+
+## �🎨 Template Integration
 
 ### Accessing DataSource Values
 
@@ -258,18 +665,57 @@ overlays:
 ### DataSource Properties
 
 **Base Properties:**
-- `.value` - Current processed value
-- `.raw` - Original entity state
-- `.timestamp` - Last update time
-- `.available` - Data availability boolean
+- `.v` or `.value` - Current processed value
+- `.t` or `.timestamp` - Last update timestamp
+- `.entity` - Entity ID
+- `.buffer` - Rolling buffer instance
+- `.started` - Boolean indicating if datasource is active
+
+**Metadata Properties:**
+- `.metadata.unit_of_measurement` - Entity's unit (e.g., "°C", "kWh")
+- `.metadata.friendly_name` - Human-readable name
+- `.metadata.device_class` - Device type (e.g., "temperature", "power")
+- `.metadata.state_class` - State behavior (e.g., "measurement", "total")
+- `.metadata.icon` - Entity icon (e.g., "mdi:thermometer")
+- `.metadata.entity_id` - Full entity identifier
+- `.metadata.device_id` - Device registry ID
+- `.metadata.area` - Area/room assignment
+- `.metadata.last_changed` - Last state change timestamp
+- `.metadata.last_updated` - Last update timestamp
 
 **Transformation Results:**
 - `.transformations.<key>` - Named transformation output
 - Example: `.transformations.celsius`
 
 **Aggregation Results:**
-- `.aggregates.<key>` - Named aggregation output
-- Example: `.aggregates.hourly_avg`
+- `.aggregations.<key>` - Named aggregation output
+- Example: `.aggregations.hourly_avg`
+
+**Example Access:**
+```javascript
+// In templates
+{temperature.v}                                    // Current value
+{temperature.metadata.unit_of_measurement}         // Unit
+{temperature.metadata.friendly_name}               // Display name
+{temperature.transformations.celsius}              // Transformed value
+{temperature.aggregations.avg}                     // Aggregated value
+
+// In console
+const source = window.__msdDebug.systems.dataSourceManager.getSource('temperature');
+console.log(source.getCurrentData());
+// {
+//   t: 1698355200000,
+//   v: 23.5,
+//   metadata: {
+//     unit_of_measurement: "°C",
+//     friendly_name: "Living Room Temperature",
+//     device_class: "temperature",
+//     ...
+//   },
+//   transformations: { ... },
+//   aggregations: { ... }
+// }
+```
 
 ---
 

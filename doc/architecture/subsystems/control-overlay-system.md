@@ -43,30 +43,30 @@ The **Control overlay type** enables embedding any Home Assistant card (custom o
 graph TB
     Config[Control Overlay Config] --> Parser[Config Parser]
     Parser --> Model[CardModel]
-    
+
     Model --> Renderer[MsdControlsRenderer]
-    
+
     Renderer --> CardFactory[Card Factory]
     CardFactory --> Type{Card<br/>Type?}
-    
+
     Type -->|custom:*| CustomCard[Custom Card Element]
     Type -->|built-in| HUICard[HUI Card Element]
-    
+
     CustomCard --> Foreign[SVG foreignObject]
     HUICard --> Foreign
-    
+
     Foreign --> SVG[SVG Container]
-    
+
     HASS[Home Assistant Context] --> Renderer
     Renderer --> Update[HASS Propagation]
     Update --> CustomCard
     Update --> HUICard
-    
+
     Attach[Attachment Point Manager] --> Compute[Compute Attachment Points]
     Foreign --> Compute
-    
+
     Lines[Line Overlays] -.->|connect to| Compute
-    
+
     style Config fill:#4d94ff,stroke:#0066cc,color:#fff
     style Renderer fill:#ff9933,stroke:#cc6600,color:#fff
     style Foreign fill:#00cc66,stroke:#009944,color:#fff
@@ -96,17 +96,17 @@ sequenceDiagram
     participant Foreign as foreignObject
     participant SVG as SVG Container
     participant HASS as Home Assistant
-    
+
     Config->>System: Control overlay in model
     System->>Renderer: renderControls(controlOverlays)
-    
+
     loop For each control overlay
         Renderer->>Renderer: Resolve card definition
         Renderer->>Factory: createControlElement(overlay)
-        
+
         Factory->>Factory: Normalize card type
         Factory->>Factory: Determine card class
-        
+
         alt Custom Card
             Factory->>Card: createElement('custom-element')
             Factory->>Card: setConfig(config)
@@ -114,22 +114,22 @@ sequenceDiagram
             Factory->>Card: createElement('hui-*-card')
             Factory->>Card: setConfig(config)
         end
-        
+
         Card-->>Factory: Card element ready
         Factory-->>Renderer: controlElement
-        
+
         Renderer->>Foreign: createSvgForeignObject()
         Foreign->>Foreign: Set position & size
-        
+
         Renderer->>Foreign: appendChild(controlElement)
         Renderer->>SVG: appendChild(foreignObject)
-        
+
         Renderer->>Card: Apply HASS context
         HASS->>Card: hass property / setHass()
-        
+
         Card->>Card: Render & initialize
     end
-    
+
     loop Runtime Updates
         HASS->>System: State changed
         System->>Renderer: setHass(newHass)
@@ -156,20 +156,20 @@ sequenceDiagram
 ```mermaid
 graph TD
     ViewBox[SVG ViewBox<br/>1920x1080 units] --> Foreign[foreignObject Element]
-    
+
     Foreign --> Position[x, y coordinates<br/>in viewBox space]
     Foreign --> Size[width, height<br/>in viewBox units]
-    
+
     Position --> Calc1[position: x, y from config]
     Size --> Calc2[size: width, height from config]
-    
+
     Foreign --> HTML[HTML Content Space]
     HTML --> Card[Card Element<br/>100% width/height]
-    
+
     Card --> Scale[Auto-scaling via<br/>SVG viewport]
-    
+
     ViewBox -.->|scale transform| Scale
-    
+
     style ViewBox fill:#4d94ff,stroke:#0066cc,color:#fff
     style Foreign fill:#ff9933,stroke:#cc6600,color:#fff
     style Card fill:#00cc66,stroke:#009944,color:#fff
@@ -187,7 +187,7 @@ graph TD
 ```javascript
 // Create foreignObject in SVG namespace
 const foreignObject = document.createElementNS(
-  'http://www.w3.org/2000/svg', 
+  'http://www.w3.org/2000/svg',
   'foreignObject'
 );
 
@@ -221,18 +221,18 @@ sequenceDiagram
     participant Systems as SystemsManager
     participant Controls as MsdControlsRenderer
     participant Card as Card Element
-    
+
     HA->>Pipeline: State update event
     Pipeline->>Pipeline: Update HASS object
     Pipeline->>Systems: setHass(newHass)
     Systems->>Controls: setHass(newHass)
-    
+
     Controls->>Controls: Store HASS reference
     Controls->>Controls: Iterate controlElements
-    
+
     loop For each embedded card
         Controls->>Card: Detect card type
-        
+
         alt CB-LCARS Card
             Controls->>Card: card.hass = hass
             Controls->>Card: card._hass = hass
@@ -245,7 +245,7 @@ sequenceDiagram
             Controls->>Card: Try setHass() or property
             Note over Card: Fallback approach
         end
-        
+
         Card->>Card: Re-render with new context
     end
 ```
@@ -276,9 +276,9 @@ Control overlays maintain synchronization with Home Assistant state through:
 ```mermaid
 graph TD
     Control[Control Overlay<br/>foreignObject] --> Compute[computeAttachmentPoints]
-    
+
     Compute --> Grid[9-Point Grid]
-    
+
     Grid --> TL[top-left]
     Grid --> TC[top-center]
     Grid --> TR[top-right]
@@ -288,7 +288,7 @@ graph TD
     Grid --> BL[bottom-left]
     Grid --> BC[bottom-center]
     Grid --> BR[bottom-right]
-    
+
     TL --> Coords1[x, y]
     TC --> Coords2[x + w/2, y]
     TR --> Coords3[x + w, y]
@@ -298,7 +298,7 @@ graph TD
     BL --> Coords7[x, y + h]
     BC --> Coords8[x + w/2, y + h]
     BR --> Coords9[x + w, y + h]
-    
+
     Coords1 --> Lines[Line Overlays]
     Coords2 --> Lines
     Coords3 --> Lines
@@ -308,7 +308,7 @@ graph TD
     Coords7 --> Lines
     Coords8 --> Lines
     Coords9 --> Lines
-    
+
     style Control fill:#4d94ff,stroke:#0066cc,color:#fff
     style Grid fill:#ff9933,stroke:#cc6600,color:#fff
     style Lines fill:#00cc66,stroke:#009944,color:#fff
@@ -329,7 +329,7 @@ static computeAttachmentPoints(overlay, anchors, container) {
   const y = overlay.position[1];
   const width = overlay.size[0];
   const height = overlay.size[1];
-  
+
   // Calculate 9 attachment points
   return {
     'top-left': [x, y],
@@ -354,38 +354,38 @@ static computeAttachmentPoints(overlay, anchors, container) {
 ```mermaid
 graph TD
     Control[Control Overlay] --> Types[Card Types]
-    
+
     Types --> Custom[Custom Cards]
     Types --> Builtin[Built-in HA Cards]
-    
+
     Custom --> CBLCARS[CB-LCARS Cards]
     Custom --> MiniGraph[mini-graph-card]
     Custom --> ApexCharts[apexcharts-card]
     Custom --> Other[Other Custom Cards]
-    
+
     Builtin --> Button[button]
     Builtin --> Light[light]
     Builtin --> Entities[entities]
     Builtin --> Gauge[gauge]
     Builtin --> Picture[picture]
-    
+
     CBLCARS --> Pattern1[Property-based HASS]
     MiniGraph --> Pattern2[setHass method]
     ApexCharts --> Pattern2
     Other --> Pattern3[Auto-detect]
-    
+
     Button --> HUI1[hui-button-card]
     Light --> HUI2[hui-light-card]
     Entities --> HUI3[hui-entities-card]
     Gauge --> HUI4[hui-gauge-card]
     Picture --> HUI5[hui-picture-card]
-    
+
     HUI1 --> Pattern2
     HUI2 --> Pattern2
     HUI3 --> Pattern2
     HUI4 --> Pattern2
     HUI5 --> Pattern2
-    
+
     style Control fill:#4d94ff,stroke:#0066cc,color:#fff
     style Custom fill:#ff9933,stroke:#cc6600,color:#fff
     style Builtin fill:#00cc66,stroke:#009944,color:#fff
@@ -410,30 +410,30 @@ graph TD
 ```mermaid
 stateDiagram-v2
     [*] --> Configured: Control overlay defined
-    
+
     Configured --> Creating: renderControlOverlay()
-    
+
     Creating --> Resolving: Resolve card definition
     Resolving --> Instantiating: Create card element
-    
+
     Instantiating --> Configuring: setConfig(config)
     Configuring --> Positioning: Create foreignObject
-    
+
     Positioning --> Embedding: Append to foreignObject
     Embedding --> Integrating: Add to SVG container
-    
+
     Integrating --> Active: Apply HASS context
-    
+
     Active --> Updating: HASS state changes
     Updating --> Active: Re-render
-    
+
     Active --> Removing: Card removed/re-render
     Removing --> [*]
-    
+
     Creating --> Error: Card creation failed
     Instantiating --> Error: Element not found
     Configuring --> Error: Config invalid
-    
+
     Error --> [*]
 ```
 
@@ -459,28 +459,28 @@ stateDiagram-v2
 ```mermaid
 graph TD
     Render[Render Request] --> Check{Already<br/>rendering?}
-    
+
     Check -->|Yes| Skip[Skip duplicate render]
     Check -->|No| Signature[Compute signature]
-    
+
     Signature --> Same{Same as<br/>last render?}
     Same -->|Yes| Skip
     Same -->|No| Clear[Clear existing controls]
-    
+
     Clear --> Loop[For each control overlay]
-    
+
     Loop --> Exists{foreignObject<br/>exists?}
     Exists -->|Yes| Remove[Remove old element]
     Exists -->|No| Create[Create new element]
-    
+
     Remove --> Create
     Create --> Apply[Apply HASS context]
     Apply --> Track[Track in controlElements Map]
-    
+
     Track --> Next{More<br/>controls?}
     Next -->|Yes| Loop
     Next -->|No| Done[Rendering complete]
-    
+
     style Render fill:#4d94ff,stroke:#0066cc,color:#fff
     style Skip fill:#ff9933,stroke:#cc6600,color:#fff
     style Done fill:#00cc66,stroke:#009944,color:#fff
@@ -516,24 +516,24 @@ graph TD
 ```mermaid
 graph TB
     Controls[MsdControlsRenderer] --> Systems[SystemsManager]
-    
+
     Systems --> DS[DataSourceManager]
     Systems --> Renderer[AdvancedRenderer]
     Systems --> APM[AttachmentPointManager]
     Systems --> Debug[MsdDebugRenderer]
     Systems --> Theme[ThemeManager]
-    
+
     DS -.->|entity state| Controls
     Controls -.->|control elements| Renderer
     Controls -->|attachment points| APM
     APM -->|9-point grid| Lines[Line Overlays]
     Debug -.->|highlight| Controls
     Theme -.->|tokens| Controls
-    
+
     Controls --> Map[controlElements Map]
     Map -->|track| Foreign[foreignObject Elements]
     Foreign -->|contains| Cards[HA Card Elements]
-    
+
     style Controls fill:#4d94ff,stroke:#0066cc,color:#fff
     style Systems fill:#ff9933,stroke:#cc6600,color:#fff
     style Foreign fill:#00cc66,stroke:#009944,color:#fff

@@ -36,23 +36,23 @@ The **control overlay** type allows you to embed any Home Assistant card (custom
 ```mermaid
 graph LR
     Control[Control Overlay] --> Features[Key Features]
-    
+
     Features --> Interactive[🎮 Fully Interactive]
     Features --> Positioned[📍 Precise Positioning]
     Features --> Connected[🔗 Line Connections]
     Features --> Reactive[🔄 Real-time Updates]
     Features --> Styled[🎨 Theme Integration]
-    
+
     Interactive --> Tap[Tap actions work]
     Interactive --> Hold[Hold actions work]
     Interactive --> State[State changes]
-    
+
     Positioned --> ViewBox[ViewBox coordinates]
     Positioned --> Scale[Auto-scaling]
-    
+
     Connected --> Nine[9 attachment points]
     Connected --> Lines[Connect to any overlay]
-    
+
     style Control fill:#4d94ff,stroke:#0066cc,color:#fff
     style Features fill:#ff9933,stroke:#cc6600,color:#fff
 ```
@@ -97,17 +97,17 @@ graph TD
     Overlay --> Card[card: ...]
     Overlay --> Pos[position: x, y]
     Overlay --> Size[size: width, height]
-    
+
     Card --> CardType[type: card-type]
     Card --> CardConfig[config: {...}]
-    
+
     CardType --> Custom[custom:card-name]
     CardType --> Builtin[built-in-type]
-    
+
     CardConfig --> Entity[entity]
     CardConfig --> Actions[tap_action, etc.]
     CardConfig --> Options[card-specific options]
-    
+
     style Overlay fill:#4d94ff,stroke:#0066cc,color:#fff
     style Card fill:#ff9933,stroke:#cc6600,color:#fff
     style CardConfig fill:#00cc66,stroke:#009944,color:#fff
@@ -254,16 +254,16 @@ Control overlays use the **MSD viewBox coordinate system** (typically 1920×1080
 ```mermaid
 graph TD
     ViewBox[SVG ViewBox<br/>1920 x 1080] --> Origin[Origin 0, 0<br/>Top-Left]
-    
+
     Origin --> X[X-axis →<br/>0 to 1920]
     Origin --> Y[Y-axis ↓<br/>0 to 1080]
-    
+
     ViewBox --> Example1[position: 100, 100<br/>Top-left area]
     ViewBox --> Example2[position: 1600, 100<br/>Top-right area]
     ViewBox --> Example3[position: 100, 900<br/>Bottom-left area]
     ViewBox --> Example4[position: 1600, 900<br/>Bottom-right area]
     ViewBox --> Example5[position: 960, 540<br/>Center]
-    
+
     style ViewBox fill:#4d94ff,stroke:#0066cc,color:#fff
     style Origin fill:#ff9933,stroke:#cc6600,color:#fff
 ```
@@ -310,19 +310,19 @@ Control overlays support the same **9-point attachment system** as other overlay
 ```mermaid
 graph TD
     Control[Control Overlay<br/>200x150 at 400,300] --> Points[9 Attachment Points]
-    
+
     Points --> TL["top-left<br/>(400, 300)"]
     Points --> TC["top-center<br/>(500, 300)"]
     Points --> TR["top-right<br/>(600, 300)"]
-    
+
     Points --> ML["middle-left<br/>(400, 375)"]
     Points --> MC["middle-center<br/>(500, 375)"]
     Points --> MR["middle-right<br/>(600, 375)"]
-    
+
     Points --> BL["bottom-left<br/>(400, 450)"]
     Points --> BC["bottom-center<br/>(500, 450)"]
     Points --> BR["bottom-right<br/>(600, 450)"]
-    
+
     style Control fill:#4d94ff,stroke:#0066cc,color:#fff
     style Points fill:#ff9933,stroke:#cc6600,color:#fff
 ```
@@ -341,14 +341,14 @@ overlays:
         name: "Bedroom"
     position: [400, 200]
     size: [150, 80]
-  
+
   # Text label
   - type: text
     id: label
     text: "LIGHTING"
     position: [200, 200]
     size: [150, 40]
-  
+
   # Line connecting label to control
   - type: line
     id: connector
@@ -380,36 +380,36 @@ overlays:
         title: "Light Control"
     position: [800, 400]
     size: [300, 200]
-  
+
   # Status indicators
   - type: text
     id: status_1
     text: "ACTIVE"
     position: [500, 450]
-  
+
   - type: text
     id: status_2
     text: "ON"
     position: [500, 500]
-  
+
   - type: text
     id: status_3
     text: "DIM"
     position: [500, 550]
-  
+
   # Lines from indicators to control
   - type: line
     anchor_to: status_1
     anchor_side: middle-right
     attach_to: main_control
     attach_side: middle-left
-  
+
   - type: line
     anchor_to: status_2
     anchor_side: middle-right
     attach_to: main_control
     attach_side: middle-left
-  
+
   - type: line
     anchor_to: status_3
     anchor_side: middle-right
@@ -433,7 +433,7 @@ overlays:
     style:
       font_size: 24
       color: var(--lcars-orange)
-  
+
   # Temperature graph
   - type: control
     id: temp_graph
@@ -448,7 +448,7 @@ overlays:
         animate: true
     position: [100, 100]
     size: [600, 300]
-  
+
   # Climate control card
   - type: control
     id: climate_control
@@ -458,7 +458,7 @@ overlays:
         entity: climate.living_room
     position: [750, 100]
     size: [300, 300]
-  
+
   # Quick buttons
   - type: control
     id: fan_button
@@ -472,7 +472,7 @@ overlays:
           action: toggle
     position: [1100, 100]
     size: [150, 100]
-  
+
   - type: control
     id: humidifier_button
     card:
@@ -485,14 +485,14 @@ overlays:
           action: toggle
     position: [1100, 220]
     size: [150, 100]
-  
+
   # Connecting lines
   - type: line
     anchor_to: panel_title
     anchor_side: bottom-center
     attach_to: temp_graph
     attach_side: top-center
-  
+
   - type: line
     anchor_to: temp_graph
     anchor_side: middle-right
@@ -511,7 +511,7 @@ overlays:
     position: [100, 100]
     size: [300, 80]
     style_preset: lcars-header
-  
+
   # CB-LCARS control buttons
   - type: control
     id: warp_control
@@ -526,7 +526,7 @@ overlays:
           action: toggle
     position: [100, 200]
     size: [200, 180]
-  
+
   - type: control
     id: shields_control
     card:
@@ -540,7 +540,7 @@ overlays:
           action: toggle
     position: [320, 200]
     size: [200, 180]
-  
+
   - type: control
     id: weapons_control
     card:
@@ -554,7 +554,7 @@ overlays:
           action: toggle
     position: [540, 200]
     size: [200, 180]
-  
+
   # Status display
   - type: control
     id: status_entities
@@ -582,7 +582,7 @@ overlays:
 ```mermaid
 graph LR
     Label[Text Label] -->|line| Control[Control Overlay]
-    
+
     style Label fill:#4d94ff,stroke:#0066cc,color:#fff
     style Control fill:#ff9933,stroke:#cc6600,color:#fff
 ```
@@ -615,12 +615,12 @@ graph TD
     Row1 --> C1[Control 1]
     Row1 --> C2[Control 2]
     Row1 --> C3[Control 3]
-    
+
     Title --> Row2[Control Row 2]
     Row2 --> C4[Control 4]
     Row2 --> C5[Control 5]
     Row2 --> C6[Control 6]
-    
+
     style Title fill:#4d94ff,stroke:#0066cc,color:#fff
     style Row1 fill:#ff9933,stroke:#cc6600,color:#fff
     style Row2 fill:#ff9933,stroke:#cc6600,color:#fff

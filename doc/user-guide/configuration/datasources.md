@@ -33,12 +33,13 @@ That's it! The datasource subscribes to the entity and provides real-time update
 1. [Overview](#overview)
 2. [DataSource Types](#datasource-types)
 3. [Basic Configuration](#basic-configuration)
-4. [Transformations](#transformations)
-5. [Aggregations](#aggregations)
-6. [Computed Sources](#computed-sources)
-7. [Using DataSources](#using-datasources)
-8. [Performance Tuning](#performance-tuning)
-9. [Troubleshooting](#troubleshooting)
+4. [DataSource Metadata](#datasource-metadata)
+5. [Transformations](#transformations)
+6. [Aggregations](#aggregations)
+7. [Computed Sources](#computed-sources)
+8. [Using DataSources](#using-datasources)
+9. [Performance Tuning](#performance-tuning)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -364,7 +365,429 @@ graph TD
 
 ---
 
-## 🔄 Transformations
+## � DataSource Metadata
+
+**Every datasource automatically captures and provides metadata from Home Assistant entities.** This metadata gives you access to entity attributes like units, friendly names, device information, and more.
+
+### What is Metadata?
+
+When a datasource connects to a Home Assistant entity, it automatically extracts useful information about that entity and makes it available to your overlays. This means you don't have to manually configure display names, units, or other entity properties—CB-LCARS captures them for you.
+
+```mermaid
+graph LR
+    Entity[Home Assistant Entity<br/>sensor.living_room_temperature] --> Extract[Auto-Extract Metadata]
+
+    Extract --> UOM[unit_of_measurement<br/>"°C"]
+    Extract --> Name[friendly_name<br/>"Living Room Temperature"]
+    Extract --> Device[device_class<br/>"temperature"]
+    Extract --> Icon[icon<br/>"mdi:thermometer"]
+    Extract --> More[+ more...]
+
+    UOM --> DS[DataSource<br/>Metadata Object]
+    Name --> DS
+    Device --> DS
+    Icon --> DS
+    More --> DS
+
+    DS --> Available[Available to Overlays<br/>via templates]
+
+    style Entity fill:#4d94ff,stroke:#0066cc,color:#fff
+    style Extract fill:#ff9933,stroke:#cc6600,color:#fff
+    style DS fill:#00cc66,stroke:#009944,color:#fff
+    style Available fill:#00cc66,stroke:#009944,color:#fff
+```
+
+### Available Metadata Properties
+
+| Property | Description | Example Value |
+|----------|-------------|---------------|
+| `unit_of_measurement` | Entity's unit of measure | `"°C"`, `"kWh"`, `"%"`, `"lux"` |
+| `friendly_name` | Human-readable name | `"Living Room Temperature"` |
+| `device_class` | Type of device/sensor | `"temperature"`, `"power"`, `"humidity"` |
+| `state_class` | How state behaves | `"measurement"`, `"total"`, `"total_increasing"` |
+| `icon` | Entity's icon | `"mdi:thermometer"`, `"mdi:lightbulb"` |
+| `entity_id` | Entity identifier | `"sensor.living_room_temperature"` |
+| `device_id` | Device identifier | `"abc123..."` |
+| `area` | Area/room assignment | `"living_room"`, `"bedroom"` |
+| `last_changed` | Last state change timestamp | ISO 8601 timestamp |
+| `last_updated` | Last update timestamp | ISO 8601 timestamp |
+
+### Accessing Metadata in Templates
+
+Use the `metadata` property to access entity information in your overlays:
+
+#### Basic Usage
+
+```yaml
+data_sources:
+  temperature:
+    type: entity
+    entity: sensor.living_room_temperature
+
+overlays:
+  # Display friendly name
+  - type: text
+    id: temp_label
+    content: "{temperature.metadata.friendly_name}"
+    position: [100, 100]
+
+  # Display value with unit
+  - type: text
+    id: temp_value
+    content: "{temperature.v:.1f}{temperature.metadata.unit_of_measurement}"
+    position: [100, 140]
+```
+
+**Result:**
+```
+Living Room Temperature
+23.5°C
+```
+
+#### Complete Example with Multiple Metadata Properties
+
+```yaml
+data_sources:
+  power_usage:
+    type: entity
+    entity: sensor.home_power
+
+overlays:
+  # Panel title using friendly name
+  - type: text
+    id: title
+    content: "{power_usage.metadata.friendly_name}"
+    position: [100, 50]
+    style:
+      font_size: 24
+      color: var(--lcars-orange)
+
+  # Current value with automatic unit
+  - type: text
+    id: current
+    content: "Current: {power_usage.v:.2f} {power_usage.metadata.unit_of_measurement}"
+    position: [100, 100]
+
+  # Show device class
+  - type: text
+    id: device_info
+    content: "Type: {power_usage.metadata.device_class}"
+    position: [100, 140]
+
+  # Entity ID for reference
+  - type: text
+    id: entity
+    content: "Entity: {power_usage.metadata.entity_id}"
+    position: [100, 180]
+    style:
+      font_size: 12
+      color: var(--lcars-gray)
+```
+
+### Automatic Unit Formatting
+
+**The `unit_of_measurement` is automatically used when formatting numbers** in text overlays with the number format specifier:
+
+```yaml
+overlays:
+  # Manual unit specification
+  - type: text
+    content: "{temperature.v:.1f}°C"  # You write: "23.5°C"
+
+  # Automatic unit from metadata (BETTER!)
+  - type: text
+    content: "{temperature.v:.1f}{temperature.metadata.unit_of_measurement}"
+    # Automatically uses entity's unit: "23.5°C"
+```
+
+**Benefits of Automatic Units:**
+- ✅ No hardcoding units in config
+- ✅ Automatically adapts if entity changes
+- ✅ Correct units for multi-unit sensors
+- ✅ Works with transformed values
+
+### Using Metadata with Computed Sources
+
+Computed datasources **don't have entities**, so they don't automatically capture metadata. However, you can **manually specify metadata** using the `metadata` configuration option:
+
+#### Option 1: Manual Metadata Override (Recommended)
+
+```yaml
+data_sources:
+  # Base sources have metadata
+  solar:
+    type: entity
+    entity: sensor.solar_power
+    # Metadata auto-captured: unit_of_measurement: "W"
+
+  consumption:
+    type: entity
+    entity: sensor.home_power
+    # Metadata auto-captured: unit_of_measurement: "W"
+
+  # Computed source with manual metadata
+  net_power:
+    type: computed
+    expression: "solar - consumption"
+    dependencies:
+      solar: solar
+      consumption: consumption
+    # ✅ NEW: Manual metadata specification
+    metadata:
+      unit_of_measurement: "W"
+      friendly_name: "Net Power Flow"
+      device_class: "power"
+      icon: "mdi:transmission-tower"
+
+overlays:
+  # Now net_power has metadata! ✅
+  - type: text
+    content: "{net_power.metadata.friendly_name}: {net_power.v:.1f}{net_power.metadata.unit_of_measurement}"
+    # Output: "Net Power Flow: 500.0W" ✅
+```
+
+#### Option 2: Reference Dependency Metadata
+
+If you don't want to specify metadata manually, reference a dependency's metadata:
+
+```yaml
+overlays:
+  # Reference solar's metadata
+  - type: text
+    content: "Net: {net_power.v:.1f}{solar.metadata.unit_of_measurement}"
+    # Output: "Net: 500.0W" ✅
+```
+
+### Overriding Auto-Captured Metadata
+
+You can also **override** auto-captured metadata from entities. This is useful when:
+- You want a custom display name
+- You need to change the unit representation
+- You're mixing multiple sensor types
+
+```yaml
+data_sources:
+  temperature:
+    type: entity
+    entity: sensor.outdoor_temperature
+    # Entity has: unit_of_measurement: "°C", friendly_name: "Outdoor Temperature"
+
+    # Override with custom metadata
+    metadata:
+      friendly_name: "Outside Temp"  # Shorter name
+      icon: "mdi:weather-sunny"      # Custom icon
+    # unit_of_measurement: "°C" is preserved from entity (not overridden)
+
+overlays:
+  - type: text
+    content: "{temperature.metadata.friendly_name}: {temperature.v:.1f}{temperature.metadata.unit_of_measurement}"
+    # Output: "Outside Temp: 23.5°C" (custom name, auto unit)
+```
+
+### Metadata Configuration Reference
+
+**Supported Metadata Properties:**
+
+| Property | Type | Description | Example |
+|----------|------|-------------|---------|
+| `unit_of_measurement` | string | Unit of measure | `"°C"`, `"kWh"`, `"%"`, `"W"` |
+| `friendly_name` | string | Display name | `"Living Room Temperature"` |
+| `device_class` | string | Device type | `"temperature"`, `"power"`, `"humidity"` |
+| `state_class` | string | State behavior | `"measurement"`, `"total"` |
+| `icon` | string | MDI icon name | `"mdi:thermometer"`, `"mdi:flash"` |
+| `area` | string | Room/area | `"living_room"`, `"bedroom"` |
+| `device_id` | string | Device ID | Custom identifier |
+
+**Configuration Syntax:**
+
+```yaml
+data_sources:
+  my_source:
+    type: entity  # or computed
+    entity: sensor.example  # (if entity type)
+
+    # Optional metadata overrides
+    metadata:
+      unit_of_measurement: "kW"
+      friendly_name: "Custom Display Name"
+      device_class: "power"
+      icon: "mdi:flash"
+```
+
+### Complete Example: Mixed Unit Computed Source
+
+When computing from sensors with different units, specify the result unit:
+
+```yaml
+data_sources:
+  # Temperature in Celsius
+  indoor_temp:
+    type: entity
+    entity: sensor.indoor_temperature
+    # Has: unit_of_measurement: "°C"
+
+  # Temperature in Fahrenheit
+  outdoor_temp:
+    type: entity
+    entity: sensor.outdoor_temperature
+    # Has: unit_of_measurement: "°F"
+
+  # Computed average (converted to Celsius)
+  avg_temp:
+    type: computed
+    expression: "(indoor + (outdoor - 32) * 5/9) / 2"
+    dependencies:
+      indoor: indoor_temp
+      outdoor: outdoor_temp
+    # Specify result metadata
+    metadata:
+      unit_of_measurement: "°C"
+      friendly_name: "Average Temperature"
+      device_class: "temperature"
+      icon: "mdi:thermometer"
+
+overlays:
+  - type: text
+    content: "{avg_temp.metadata.friendly_name}: {avg_temp.v:.1f}{avg_temp.metadata.unit_of_measurement}"
+    # Output: "Average Temperature: 22.5°C" ✅
+```
+
+### Metadata Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant HA as Home Assistant
+    participant DS as DataSource
+    participant Meta as Metadata Object
+    participant Overlay as Text Overlay
+
+    HA->>DS: Entity state update
+    Note over HA,DS: attributes.unit_of_measurement: "°C"<br/>attributes.friendly_name: "Living Room"
+
+    DS->>Meta: Extract metadata
+    Note over Meta: Store in metadata object
+
+    DS->>Overlay: Emit data with metadata
+    Note over DS,Overlay: data = { v: 23.5, metadata: {...} }
+
+    Overlay->>Overlay: Process template
+    Note over Overlay: "{temperature.v:.1f}{temperature.metadata.unit_of_measurement}"
+
+    Overlay->>Overlay: Render
+    Note over Overlay: Display: "23.5°C"
+```
+
+### Helper Method: getDisplayName()
+
+DataSources provide a convenience method for getting the friendly name:
+
+```javascript
+// In browser console or custom expressions
+const source = window.__msdDebug.systems.dataSourceManager.getSource('temperature');
+console.log(source.getDisplayName());
+// Output: "Living Room Temperature" or entity_id if no friendly_name
+```
+
+### Common Patterns
+
+#### Pattern 1: Labeled Value with Units
+
+```yaml
+overlays:
+  - type: text
+    content: "{temp.metadata.friendly_name}: {temp.v:.1f}{temp.metadata.unit_of_measurement}"
+    # Output: "Living Room Temperature: 23.5°C"
+```
+
+#### Pattern 2: Multi-Sensor Dashboard
+
+```yaml
+data_sources:
+  temp:
+    type: entity
+    entity: sensor.temperature
+  humidity:
+    type: entity
+    entity: sensor.humidity
+  pressure:
+    type: entity
+    entity: sensor.pressure
+
+overlays:
+  # Temperature
+  - type: text
+    content: "{temp.metadata.friendly_name}"
+    position: [100, 100]
+  - type: text
+    content: "{temp.v:.1f}{temp.metadata.unit_of_measurement}"
+    position: [100, 140]
+
+  # Humidity
+  - type: text
+    content: "{humidity.metadata.friendly_name}"
+    position: [400, 100]
+  - type: text
+    content: "{humidity.v:.0f}{humidity.metadata.unit_of_measurement}"
+    position: [400, 140]
+
+  # Pressure
+  - type: text
+    content: "{pressure.metadata.friendly_name}"
+    position: [700, 100]
+  - type: text
+    content: "{pressure.v:.1f}{pressure.metadata.unit_of_measurement}"
+    position: [700, 140]
+```
+
+#### Pattern 3: Dynamic Titles
+
+```yaml
+# Page title from entity name
+- type: text
+  id: page_title
+  content: "{sensor.metadata.friendly_name} Monitor"
+  position: [100, 50]
+  style:
+    font_size: 32
+    color: var(--lcars-blue)
+```
+
+### Best Practices
+
+✅ **Do:**
+- Use `metadata.unit_of_measurement` for automatic units
+- Use `metadata.friendly_name` for display labels
+- Reference dependency metadata for computed sources
+- Test with entities that may not have all metadata properties
+
+❌ **Don't:**
+- Hardcode units when metadata provides them
+- Assume all entities have all metadata properties
+- Forget that computed sources don't auto-capture metadata
+
+### Troubleshooting Metadata
+
+**Metadata is null or missing:**
+```javascript
+// Check if datasource is connected
+const source = window.__msdDebug.systems.dataSourceManager.getSource('my_source');
+console.log('Metadata:', source.metadata);
+console.log('Entity:', source.cfg.entity);
+```
+
+**Entity doesn't have unit_of_measurement:**
+- Some entities (like binary sensors, text sensors) don't have units
+- Check in Home Assistant Developer Tools → States
+- Use conditional templates: `{temp.metadata.unit_of_measurement || ""}`
+
+**Friendly name shows entity_id:**
+- Entity might not have `friendly_name` attribute set
+- CB-LCARS falls back to `entity_id` automatically
+- Set friendly name in Home Assistant entity customization
+
+---
+
+## �🔄 Transformations
 
 Transformations process data as it flows through the datasource. They can be chained for complex processing.
 

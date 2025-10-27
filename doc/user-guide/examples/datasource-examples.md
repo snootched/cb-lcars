@@ -51,16 +51,300 @@ graph TD
 
 ## 📋 Table of Contents
 
-1. [Temperature Monitoring System](#temperature-monitoring-system)
-2. [Power & Energy Dashboard](#power--energy-dashboard)
-3. [Environmental Monitor](#environmental-monitor)
-4. [Smart Home Control](#smart-home-control)
-5. [Solar Production Tracker](#solar-production-tracker)
-6. [HVAC Optimization](#hvac-optimization)
+1. [Using DataSource Metadata](#using-datasource-metadata)
+2. [Temperature Monitoring System](#temperature-monitoring-system)
+3. [Power & Energy Dashboard](#power--energy-dashboard)
+4. [Environmental Monitor](#environmental-monitor)
+5. [Smart Home Control](#smart-home-control)
+6. [Solar Production Tracker](#solar-production-tracker)
+7. [HVAC Optimization](#hvac-optimization)
 
 ---
 
-## 🌡️ Temperature Monitoring System
+## �️ Using DataSource Metadata
+
+**Every datasource automatically captures entity metadata** from Home Assistant. This example shows how to leverage metadata for dynamic, maintainable configurations.
+
+### Why Use Metadata?
+
+- ✅ **No hardcoding** - Units and names come from HA
+- ✅ **Self-documenting** - Overlays show actual entity names
+- ✅ **Flexible** - Change entity, config adapts automatically
+- ✅ **Less maintenance** - One source of truth (HA)
+
+### Example: Multi-Sensor Dashboard with Metadata
+
+```yaml
+type: custom:cb-lcars-card
+config:
+  msd:
+    # DataSources automatically capture metadata
+    data_sources:
+      temperature:
+        type: entity
+        entity: sensor.living_room_temperature
+        # Metadata auto-captured:
+        #   - friendly_name: "Living Room Temperature"
+        #   - unit_of_measurement: "°C"
+        #   - device_class: "temperature"
+        #   - icon: "mdi:thermometer"
+
+      humidity:
+        type: entity
+        entity: sensor.living_room_humidity
+        # Metadata auto-captured:
+        #   - friendly_name: "Living Room Humidity"
+        #   - unit_of_measurement: "%"
+        #   - device_class: "humidity"
+
+      pressure:
+        type: entity
+        entity: sensor.barometric_pressure
+        # Metadata auto-captured:
+        #   - friendly_name: "Barometric Pressure"
+        #   - unit_of_measurement: "hPa"
+        #   - device_class: "pressure"
+
+      power:
+        type: entity
+        entity: sensor.home_power
+        # Metadata auto-captured:
+        #   - friendly_name: "Home Power Consumption"
+        #   - unit_of_measurement: "W"
+        #   - device_class: "power"
+
+    overlays:
+      # Panel header
+      - type: text
+        id: header
+        content: "ENVIRONMENTAL MONITOR"
+        position: [100, 50]
+        style:
+          font_size: 28
+          color: var(--lcars-orange)
+          font_weight: bold
+
+      # Temperature Section
+      # Label uses friendly_name from metadata
+      - type: text
+        id: temp_label
+        content: "{temperature.metadata.friendly_name}"
+        position: [100, 120]
+        style:
+          font_size: 16
+          color: var(--lcars-blue)
+
+      # Value uses automatic unit from metadata
+      - type: text
+        id: temp_value
+        content: "{temperature.v:.1f}{temperature.metadata.unit_of_measurement}"
+        position: [100, 150]
+        style:
+          font_size: 32
+          font_weight: bold
+
+      # Device class for context
+      - type: text
+        id: temp_type
+        content: "Type: {temperature.metadata.device_class}"
+        position: [100, 190]
+        style:
+          font_size: 12
+          color: var(--lcars-gray)
+
+      # Humidity Section
+      - type: text
+        id: humidity_label
+        content: "{humidity.metadata.friendly_name}"
+        position: [450, 120]
+        style:
+          font_size: 16
+          color: var(--lcars-blue)
+
+      - type: text
+        id: humidity_value
+        content: "{humidity.v:.0f}{humidity.metadata.unit_of_measurement}"
+        position: [450, 150]
+        style:
+          font_size: 32
+          font_weight: bold
+
+      # Pressure Section
+      - type: text
+        id: pressure_label
+        content: "{pressure.metadata.friendly_name}"
+        position: [800, 120]
+        style:
+          font_size: 16
+          color: var(--lcars-blue)
+
+      - type: text
+        id: pressure_value
+        content: "{pressure.v:.1f}{pressure.metadata.unit_of_measurement}"
+        position: [800, 150]
+        style:
+          font_size: 32
+          font_weight: bold
+
+      # Power Section with Icon
+      - type: text
+        id: power_label
+        content: "{power.metadata.friendly_name}"
+        position: [1150, 120]
+        style:
+          font_size: 16
+          color: var(--lcars-blue)
+
+      - type: text
+        id: power_value
+        content: "{power.v:.0f}{power.metadata.unit_of_measurement}"
+        position: [1150, 150]
+        style:
+          font_size: 32
+          font_weight: bold
+          color: >
+            {% if power.v > 2000 %}
+              var(--lcars-red)
+            {% elif power.v > 1000 %}
+              var(--lcars-orange)
+            {% else %}
+              var(--lcars-green)
+            {% endif %}
+
+      # Entity IDs (for debugging)
+      - type: text
+        id: debug_info
+        content: "Entities: {temperature.metadata.entity_id} | {humidity.metadata.entity_id}"
+        position: [100, 900]
+        style:
+          font_size: 10
+          color: var(--lcars-dark-gray)
+```
+
+### What This Example Shows
+
+**Automatic Labels:**
+```yaml
+content: "{temperature.metadata.friendly_name}"
+# Output: "Living Room Temperature" (from HA entity)
+# ✅ No hardcoding, automatically updates if you rename entity
+```
+
+**Automatic Units:**
+```yaml
+content: "{temperature.v:.1f}{temperature.metadata.unit_of_measurement}"
+# Output: "23.5°C"
+# ✅ Unit comes from entity, adapts if you change it in HA
+```
+
+**Device Class for Context:**
+```yaml
+content: "Type: {temperature.metadata.device_class}"
+# Output: "Type: temperature"
+# ✅ Helps identify sensor type programmatically
+```
+
+### Pattern: Reusable Sensor Display
+
+Create a consistent pattern for all sensors:
+
+```yaml
+# Template for any sensor
+- type: text
+  content: "{SENSOR.metadata.friendly_name}"  # Label
+  style:
+    font_size: 16
+    color: var(--lcars-blue)
+
+- type: text
+  content: "{SENSOR.v:.1f}{SENSOR.metadata.unit_of_measurement}"  # Value + Unit
+  style:
+    font_size: 32
+    font_weight: bold
+```
+
+**Benefits:**
+- Copy-paste pattern for each sensor
+- All sensors display consistently
+- Easy to maintain and update
+
+### Metadata with Computed Sources
+
+**Challenge:** Computed sources don't have entities, so no auto-metadata.
+
+**Solution 1: Manual metadata override (BEST)**
+
+```yaml
+data_sources:
+  solar:
+    type: entity
+    entity: sensor.solar_power
+    # Has metadata.unit_of_measurement: "W"
+
+  consumption:
+    type: entity
+    entity: sensor.home_power
+    # Has metadata.unit_of_measurement: "W"
+
+  net_power:
+    type: computed
+    expression: "solar - consumption"
+    dependencies:
+      solar: solar
+      consumption: consumption
+    # ✅ NEW: Specify metadata directly
+    metadata:
+      unit_of_measurement: "W"
+      friendly_name: "Net Power Flow"
+      device_class: "power"
+      icon: "mdi:transmission-tower"
+
+overlays:
+  # Now has full metadata support! ✅
+  - type: text
+    content: "{net_power.metadata.friendly_name}: {net_power.v:.0f}{net_power.metadata.unit_of_measurement}"
+    # Output: "Net Power Flow: 500W" ✅
+```
+
+**Solution 2: Reference dependency metadata**
+
+```yaml
+overlays:
+  # Use dependency's metadata
+  - type: text
+    content: "Net: {net_power.v:.0f}{solar.metadata.unit_of_measurement}"
+    #                                  ↑ Reference solar's unit
+    # Output: "Net: 500W" ✅
+```
+
+### Advanced: Conditional Display Based on Metadata
+
+```yaml
+overlays:
+  - type: text
+    content: >
+      {% if power.metadata.unit_of_measurement == 'W' %}
+        {power.v / 1000:.2f} kW
+      {% else %}
+        {power.v:.1f}{power.metadata.unit_of_measurement}
+      {% endif %}
+    # Converts watts to kilowatts if needed
+```
+
+### Key Takeaways
+
+| Feature | Without Metadata | With Metadata |
+|---------|------------------|---------------|
+| **Label** | `content: "Temperature"` | `content: "{temp.metadata.friendly_name}"` |
+| **Unit** | `content: "{temp.v:.1f}°C"` | `content: "{temp.v:.1f}{temp.metadata.unit_of_measurement}"` |
+| **Maintenance** | Update every overlay if entity changes | Update only entity_id in datasource |
+| **Flexibility** | Hardcoded per entity | Adapts automatically |
+
+**Best Practice:** Always use metadata for units and names. Only hardcode when you need custom display names different from HA.
+
+---
+
+## �🌡️ Temperature Monitoring System
 
 Complete temperature monitoring with unit conversion, smoothing, trends, and alerts.
 
