@@ -234,14 +234,30 @@ export class SystemsManager {
       await this.rulesEngine.setupHassMonitoring(hass);
 
       // Connect re-evaluation to render pipeline
-      // NOTE: Don't schedule full re-render here! The incremental update system
-      // will handle overlay updates. Only schedule full re-render if incremental
-      // updates fail (handled in _applyIncrementalUpdates)
+      // When rules are marked dirty (entity changes), evaluate and apply patches
       this.rulesEngine.setReEvaluationCallback(() => {
-        cblcarsLog.debug('[SystemsManager] 🔄 RulesEngine re-evaluation callback triggered (no-op - incremental updates handle this)', {
-          hasReRenderCallback: !!this._reRenderCallback
-        });
-        // Do nothing - incremental update system will handle it
+        cblcarsLog.debug('[SystemsManager] 🔄 RulesEngine re-evaluation callback triggered');
+
+        if (!this._hass) {
+          cblcarsLog.warn('[SystemsManager] Cannot evaluate rules - no HASS available');
+          return;
+        }
+
+        // Evaluate dirty rules
+        const ruleResults = this.rulesEngine.evaluateDirty(this._hass);
+
+        if (ruleResults.overlayPatches && ruleResults.overlayPatches.length > 0) {
+          cblcarsLog.info(`[SystemsManager] 🎨 Rules produced ${ruleResults.overlayPatches.length} patch(es)`);
+
+          // Apply incremental updates
+          const updateResults = this._applyIncrementalUpdates(ruleResults.overlayPatches);
+
+          // Selective re-render for overlays that failed incremental update
+          if (updateResults.failedOverlays.length > 0) {
+            cblcarsLog.info(`[SystemsManager] 🔄 Triggering SELECTIVE RE-RENDER for ${updateResults.failedOverlays.length} overlay(s)`);
+            this._scheduleSelectiveReRender(updateResults.failedOverlays);
+          }
+        }
       });
 
       cblcarsLog.debug('[SystemsManager] Rules Engine HASS monitoring configured');
@@ -1289,8 +1305,10 @@ export class SystemsManager {
         cblcarsLog.info('[SystemsManager] 🔄 Falling back to FULL re-render');
         this._scheduleFullReRender();
       } else {
-        // Extract the overlay configs that need re-rendering
-        const overlaysToReRender = failedOverlays.map(f => f.overlay).filter(o => o);
+        // ✅ CRITICAL FIX: Get fresh overlays from resolvedModel (which has patches applied)
+        // not from failedOverlays (which has stale objects from before patches)
+        const overlayIdsToReRender = failedOverlays.map(f => f.overlay?.id).filter(id => id);
+        const overlaysToReRender = resolvedModel.overlays.filter(o => overlayIdsToReRender.includes(o.id));
 
         if (overlaysToReRender.length === 0) {
           cblcarsLog.warn('[SystemsManager] ⚠️ No valid overlays to re-render');
@@ -1410,6 +1428,14 @@ export class SystemsManager {
    */
   getHass() {
     return this._hass;
+  }
+
+  /**
+   * Get the resolved model from ModelBuilder
+   * @returns {Object} Resolved model with overlays
+   */
+  getResolvedModel() {
+    return this.modelBuilder?.getResolvedModel();
   }
 }
 
