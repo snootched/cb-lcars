@@ -48,6 +48,17 @@ export const statusGridOverlaySchema = {
             type: 'string',
             format: 'color',
             optional: true
+          },
+          // ✅ NEW: Cell-level tags for bulk targeting in rules
+          tags: {
+            type: 'array',
+            items: {
+              type: 'string',
+              minLength: 1,
+              pattern: /^[a-zA-Z0-9_-]+$/
+            },
+            optional: true,
+            errorMessage: 'Cell tags must be an array of alphanumeric strings (with hyphens/underscores)'
           }
         }
       },

@@ -393,7 +393,8 @@ export class RulesEngine {
       );
 
       if (matched && rule.apply) {
-        result.overlayPatches = rule.apply.overlays || [];
+        // NEW: Resolve overlay selectors to patches (supports bulk targeting)
+        result.overlayPatches = this._resolveOverlaySelectors(rule.apply);
         result.profilesAdd = rule.apply.profiles_add || [];
         result.profilesRemove = rule.apply.profiles_remove || [];
         result.animations = rule.apply.animations || [];
@@ -422,6 +423,142 @@ export class RulesEngine {
         evaluationTime
       };
     }
+  }
+
+  /**
+   * Resolve overlay selectors to concrete overlay patches
+   *
+   * Supports bulk targeting via special selectors:
+   * - all: - Target all overlays
+   * - type:typename: - Target overlays of specific type
+   * - tag:tagname: - Target overlays with specific tag
+   * - pattern:regex: - Target overlays matching ID pattern
+   * - exclude: - Exclude specific overlay IDs
+   * - overlay_id (direct) - Target specific overlay (backwards compatible)
+   *
+   * @param {Object} ruleApply - Rule 'apply' clause
+   * @returns {Array<Object>} Array of overlay patches with {id, style, ...}
+   * @private
+   */
+  _resolveOverlaySelectors(ruleApply) {
+    if (!ruleApply.overlays) return [];
+
+    const startTime = performance.now();
+
+    // Get all available overlays from SystemsManager
+    const allOverlays = this.systemsManager?.getResolvedModel?.()?.overlays || [];
+
+    if (allOverlays.length === 0) {
+      cblcarsLog.debug('[RulesEngine] No overlays available for selector resolution');
+      return [];
+    }
+
+    // Build exclusion set
+    const excludeIds = new Set();
+    if (ruleApply.overlays.exclude) {
+      const excludeList = Array.isArray(ruleApply.overlays.exclude)
+        ? ruleApply.overlays.exclude
+        : [ruleApply.overlays.exclude];
+      excludeList.forEach(id => excludeIds.add(id));
+    }
+
+    // Collect patches by overlay ID (allows merging from multiple selectors)
+    const patchMap = new Map();
+
+    // Process each selector
+    for (const [selector, patchContent] of Object.entries(ruleApply.overlays)) {
+      // Skip exclude key (already processed)
+      if (selector === 'exclude') continue;
+
+      let matchedOverlays = [];
+
+      // Selector: all - Match all overlays
+      if (selector === 'all') {
+        matchedOverlays = allOverlays.filter(o => !excludeIds.has(o.id));
+        perfCount('rules.selector.all', 1);
+      }
+      // Selector: type:typename - Match overlays by type
+      else if (selector.startsWith('type:')) {
+        const typeName = selector.substring(5); // Remove 'type:' prefix
+        matchedOverlays = allOverlays.filter(o =>
+          o.type === typeName && !excludeIds.has(o.id)
+        );
+        perfCount('rules.selector.type', 1);
+      }
+      // Selector: tag:tagname - Match overlays by tag
+      else if (selector.startsWith('tag:')) {
+        const tagName = selector.substring(4); // Remove 'tag:' prefix
+        matchedOverlays = allOverlays.filter(o => {
+          const tags = o.tags || [];
+          return tags.includes(tagName) && !excludeIds.has(o.id);
+        });
+        perfCount('rules.selector.tag', 1);
+      }
+      // Selector: pattern:regex - Match overlays by ID pattern
+      else if (selector.startsWith('pattern:')) {
+        const pattern = selector.substring(8); // Remove 'pattern:' prefix
+        try {
+          const regex = new RegExp(pattern);
+          matchedOverlays = allOverlays.filter(o =>
+            regex.test(o.id) && !excludeIds.has(o.id)
+          );
+          perfCount('rules.selector.pattern', 1);
+        } catch (e) {
+          cblcarsLog.warn(`[RulesEngine] Invalid regex pattern: ${pattern}`, e);
+          continue;
+        }
+      }
+      // Direct overlay ID (backwards compatible)
+      else {
+        const overlay = allOverlays.find(o => o.id === selector);
+        if (overlay && !excludeIds.has(overlay.id)) {
+          matchedOverlays = [overlay];
+        }
+        perfCount('rules.selector.direct', 1);
+      }
+
+      // Create/merge patches for matched overlays
+      matchedOverlays.forEach(overlay => {
+        const existing = patchMap.get(overlay.id);
+        if (existing) {
+          // Merge with existing patch (later selectors override)
+          patchMap.set(overlay.id, {
+            ...existing,
+            ...patchContent,
+            style: {
+              ...(existing.style || {}),
+              ...(patchContent.style || {})
+            }
+          });
+        } else {
+          // New patch
+          patchMap.set(overlay.id, {
+            id: overlay.id,
+            ...patchContent
+          });
+        }
+      });
+
+      // Debug logging (if enabled)
+      if (window.cblcars?.debug?.rules) {
+        cblcarsLog.debug(`[RulesEngine] Selector '${selector}' matched ${matchedOverlays.length} overlay(s)`);
+      }
+    }
+
+    const patches = Array.from(patchMap.values());
+    const resolutionTime = performance.now() - startTime;
+
+    perfCount('rules.selector.resolutions', 1);
+    perfCount('rules.selector.patches', patches.length);
+
+    cblcarsLog.debug('[RulesEngine] Selector resolution complete:', {
+      selectors: Object.keys(ruleApply.overlays).filter(k => k !== 'exclude').length,
+      excluded: excludeIds.size,
+      patchesGenerated: patches.length,
+      resolutionTime: `${resolutionTime.toFixed(2)}ms`
+    });
+
+    return patches;
   }
 
   evaluateConditions(when, getEntity) {
@@ -1220,6 +1357,27 @@ function matchesStatusGridCellTarget(cell, cellTarget) {
   if (cellTarget.row !== undefined && cellTarget.row === cell.row) {
     if (cellTarget.col === undefined || cellTarget.col === cell.col) {
       return true;
+    }
+  }
+
+  // ✨ NEW: Target by tag(s)
+  // Single tag: {tag: "critical"}
+  if (cellTarget.tag) {
+    const cellTags = cell.tags || [];
+    return cellTags.includes(cellTarget.tag);
+  }
+
+  // Multiple tags: {tags: ["critical", "propulsion"], match_all: true}
+  if (cellTarget.tags && Array.isArray(cellTarget.tags)) {
+    const cellTags = cell.tags || [];
+    const matchAll = cellTarget.match_all === true;
+
+    if (matchAll) {
+      // AND logic: Cell must have ALL specified tags
+      return cellTarget.tags.every(tag => cellTags.includes(tag));
+    } else {
+      // OR logic (default): Cell must have ANY of the specified tags
+      return cellTarget.tags.some(tag => cellTags.includes(tag));
     }
   }
 

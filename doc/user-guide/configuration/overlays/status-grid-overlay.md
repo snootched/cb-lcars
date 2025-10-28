@@ -1103,6 +1103,68 @@ cells:
     font_size: 16                 # Override font size
 ```
 
+### Cell-Level Tags
+
+**NEW:** Tag cells for bulk targeting in rules, enabling sophisticated department-based or priority-based updates.
+
+```yaml
+cells:
+  - position: [0, 0]
+    label: "Warp Core"
+    tags: ["critical", "propulsion", "engineering"]  # ✨ Cell tags
+
+  - position: [0, 1]
+    label: "Life Support"
+    tags: ["critical", "environment"]  # ✨ Different tags
+
+  - position: [1, 0]
+    label: "Sensors"
+    tags: ["secondary", "tactical"]  # ✨ Non-critical system
+```
+
+**Targeting Cells by Tags in Rules:**
+
+```yaml
+rules:
+  # Target single tag
+  - when: {entity: input_select.alert, state: "yellow_alert"}
+    apply:
+      overlays:
+        - id: my_grid
+          cell_target:
+            tag: "critical"  # ✨ Match cells with "critical" tag
+          style:
+            color: "var(--lcars-yellow)"
+
+  # Target multiple tags (OR logic - default)
+  - when: {entity: input_select.alert, state: "engineering_alert"}
+    apply:
+      overlays:
+        - id: my_grid
+          cell_target:
+            tags: ["engineering", "propulsion"]  # ✨ Match ANY tag
+          style:
+            color: "var(--lcars-orange)"
+
+  # Target multiple tags (AND logic)
+  - when: {entity: input_select.alert, state: "warp_failure"}
+    apply:
+      overlays:
+        - id: my_grid
+          cell_target:
+            tags: ["critical", "propulsion"]  # ✨ Match BOTH tags
+            match_all: true  # ✨ AND logic
+          style:
+            color: "var(--lcars-red)"
+```
+
+**Common Tag Patterns:**
+- **By Criticality:** `critical`, `secondary`, `informational`
+- **By Department:** `engineering`, `tactical`, `medical`, `communications`
+- **By Function:** `propulsion`, `defense`, `weapons`, `environment`
+
+**See:** [Bulk Overlay Selectors Guide](../bulk-overlay-selectors.md) for complete cell tag documentation and examples.
+
 ---
 
 ## LCARS Features
@@ -1453,6 +1515,7 @@ cells:
     label: string                 # Optional: Label text
     content: string               # Optional: Template string
     value: any                    # Optional: Static value
+    tags: [string, ...]           # ✨ NEW: Tags for bulk rule targeting
 
     # Cell-specific actions (override grid actions)
     tap_action: object            # Cell tap action

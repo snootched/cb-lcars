@@ -131,6 +131,18 @@ export const commonSchema = {
       optional: true
     },
 
+    // ✅ NEW: Tags for bulk rule targeting (Appendix C - Global Alert System)
+    tags: {
+      type: 'array',
+      items: {
+        type: 'string',
+        minLength: 1,
+        pattern: /^[a-zA-Z0-9_-]+$/
+      },
+      optional: true,
+      errorMessage: 'Tags must be an array of strings (letters, numbers, hyphens, underscores only)'
+    },
+
     anchor: {
       type: 'string',
       optional: true,
