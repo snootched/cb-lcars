@@ -199,14 +199,23 @@ export class MsdDebugAPI {
          * Compare performance between renders (placeholder)
          *
          * @param {string} [baseline] - Baseline render identifier
-         * @returns {Object|null} Comparison data
+         * @returns {Object} NOT_IMPLEMENTED response
          *
          * @example
          * const comparison = window.cblcars.debug.msd.perf.compare();
          */
         compare(baseline) {
-          cblcarsLog.warn('[DebugAPI] perf.compare() not yet implemented');
-          return null;
+          cblcarsLog.warn('[DebugAPI] perf.compare() not yet implemented - planned for Phase 5');
+          cblcarsLog.info('[DebugAPI] This will enable A/B performance comparison between configs');
+          return {
+            error: 'NOT_IMPLEMENTED',
+            message: 'Feature planned for Phase 5',
+            plannedFeatures: [
+              'Compare render times between two configs',
+              'Identify performance regressions',
+              'A/B test optimization changes'
+            ]
+          };
         }
       },
 
@@ -340,14 +349,23 @@ export class MsdDebugAPI {
          * Will render visual representation of data flow paths.
          *
          * @param {string} [overlayId] - Overlay to visualize, or all if omitted
-         * @returns {Object|null} Visualization data
+         * @returns {Object} NOT_IMPLEMENTED response
          *
          * @example
          * const viz = window.cblcars.debug.msd.routing.visualize('button_1');
          */
         visualize(overlayId) {
-          cblcarsLog.warn('[DebugAPI] routing.visualize() not yet implemented');
-          return null;
+          cblcarsLog.warn('[DebugAPI] routing.visualize() not yet implemented - planned for Phase 5');
+          cblcarsLog.info('[DebugAPI] This will draw routing paths directly on the MSD');
+          return {
+            error: 'NOT_IMPLEMENTED',
+            message: 'Feature planned for Phase 5',
+            plannedFeatures: [
+              'Visual overlay of routing paths on MSD',
+              'Interactive path exploration',
+              'Highlight data flow bottlenecks'
+            ]
+          };
         }
       },
 
@@ -521,15 +539,24 @@ export class MsdDebugAPI {
          *
          * @param {string} entityId - Entity ID
          * @param {number} [n=10] - Number of history entries
-         * @returns {Array|null} History entries
+         * @returns {Object} NOT_IMPLEMENTED response
          *
          * @example
          * const history = window.cblcars.debug.msd.data.history('sensor.temp', 5);
          */
         history(entityId, n = 10) {
-          cblcarsLog.warn('[DebugAPI] data.history() not yet fully implemented');
-          // Would need integration with HA history or local state tracking
-          return null;
+          cblcarsLog.warn('[DebugAPI] data.history() not yet implemented - planned for Phase 5');
+          cblcarsLog.info('[DebugAPI] This will show historical entity state changes');
+          return {
+            error: 'NOT_IMPLEMENTED',
+            message: 'Feature planned for Phase 5',
+            plannedFeatures: [
+              'Track entity state history locally',
+              'Integration with HA history API',
+              'Show state change timeline'
+            ],
+            suggestion: 'Use Home Assistant history panel or logbook for now'
+          };
         }
       },
 
@@ -862,14 +889,23 @@ export class MsdDebugAPI {
          * Test a rule against current state.
          *
          * @param {string} ruleId - Rule ID
-         * @returns {Object|null} Evaluation result
+         * @returns {Object} NOT_IMPLEMENTED response
          *
          * @example
          * const result = window.cblcars.debug.msd.rules.evaluate('rule_1');
          */
         evaluate(ruleId) {
-          cblcarsLog.warn('[DebugAPI] rules.evaluate() not yet implemented');
-          return null;
+          cblcarsLog.warn('[DebugAPI] rules.evaluate() not yet implemented - planned for Phase 5');
+          cblcarsLog.info('[DebugAPI] This will test rule evaluation against current state');
+          return {
+            error: 'NOT_IMPLEMENTED',
+            message: 'Feature planned for Phase 5',
+            plannedFeatures: [
+              'Test rule evaluation in isolation',
+              'Preview rule outcomes',
+              'Debug rule conditions'
+            ]
+          };
         },
 
         /**
@@ -898,14 +934,23 @@ export class MsdDebugAPI {
          *
          * @param {string} ruleId - Rule ID
          * @param {Object} state - Test state
-         * @returns {Object|null} Debug result
+         * @returns {Object} NOT_IMPLEMENTED response
          *
          * @example
          * const result = window.cblcars.debug.msd.rules.debugRule('rule_1', testState);
          */
         debugRule(ruleId, state) {
-          cblcarsLog.warn('[DebugAPI] rules.debugRule() not yet implemented');
-          return null;
+          cblcarsLog.warn('[DebugAPI] rules.debugRule() not yet implemented - planned for Phase 5');
+          cblcarsLog.info('[DebugAPI] This will enable step-by-step rule debugging with test state');
+          return {
+            error: 'NOT_IMPLEMENTED',
+            message: 'Feature planned for Phase 5',
+            plannedFeatures: [
+              'Test rules with mock state',
+              'Step through rule evaluation',
+              'Preview actions without executing'
+            ]
+          };
         }
       },
 
@@ -990,14 +1035,23 @@ export class MsdDebugAPI {
          * Manually trigger an animation for testing.
          *
          * @param {string} animId - Animation ID
-         * @returns {boolean} Success status
+         * @returns {Object} NOT_IMPLEMENTED response
          *
          * @example
          * window.cblcars.debug.msd.animations.trigger('anim_1');
          */
         trigger(animId) {
-          cblcarsLog.warn('[DebugAPI] animations.trigger() not yet implemented');
-          return false;
+          cblcarsLog.warn('[DebugAPI] animations.trigger() not yet implemented - planned for Phase 5');
+          cblcarsLog.info('[DebugAPI] This will enable manual animation triggering for testing');
+          return {
+            error: 'NOT_IMPLEMENTED',
+            message: 'Feature planned for Phase 5',
+            plannedFeatures: [
+              'Manually trigger animations',
+              'Test animation sequences',
+              'Preview animation effects'
+            ]
+          };
         }
       },
 
@@ -1096,14 +1150,23 @@ export class MsdDebugAPI {
          *
          * Returns the order in which packs were loaded/merged.
          *
-         * @returns {Array} Pack loading order
+         * @returns {Object} NOT_IMPLEMENTED response
          *
          * @example
          * const order = window.cblcars.debug.msd.packs.order();
          */
         order() {
-          cblcarsLog.warn('[DebugAPI] packs.order() not yet implemented');
-          return [];
+          cblcarsLog.warn('[DebugAPI] packs.order() not yet implemented - planned for Phase 5');
+          cblcarsLog.info('[DebugAPI] This will show pack merge order and provenance');
+          return {
+            error: 'NOT_IMPLEMENTED',
+            message: 'Feature planned for Phase 5',
+            plannedFeatures: [
+              'Show pack loading order',
+              'Track configuration provenance',
+              'Identify override sources'
+            ]
+          };
         }
       },
 

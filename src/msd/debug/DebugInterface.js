@@ -66,6 +66,9 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   // Performance and validation
   setupUtilityDebugInterface(dbg, mergedConfig, systemsManager);
 
+  // ✅ PHASE 4: Add deprecation warnings for legacy duplicate methods
+  setupDeprecationWarnings(dbg);
+
   cblcarsLog.debug('[DebugInterface] Debug interface setup complete');
   cblcarsLog.debug('[DebugInterface] Available methods:', Object.keys(dbg));
 
@@ -1347,6 +1350,111 @@ function setupUtilityDebugInterface(dbg, mergedConfig, systemsManager) {
 
   // ✅ NEW: Phase 5.2B - Style Resolution Debug Methods
   // These use the provenance data collected by renderers via index.js
+
+/**
+ * ✅ PHASE 4: Setup deprecation warnings for legacy duplicate methods
+ *
+ * Wraps legacy methods with deprecation warnings that guide users to new API.
+ * Non-breaking: Old methods still work, but log helpful migration messages.
+ *
+ * @param {Object} dbg - Debug interface object (window.cblcars.debug.msd)
+ */
+function setupDeprecationWarnings(dbg) {
+  // Store original implementations before wrapping
+  const originalMethods = {
+    getPerf: dbg.getPerf,
+    getPerformanceSummary: dbg.getPerformanceSummary,
+    getSlowestOverlays: dbg.getSlowestOverlays,
+    getRendererPerformance: dbg.getRendererPerformance,
+    getOverlayPerformance: dbg.getOverlayPerformance,
+    getPerformanceWarnings: dbg.getPerformanceWarnings,
+    getRenderTimeline: dbg.getRenderTimeline,
+    compareRendererPerformance: dbg.compareRendererPerformance,
+    getStyleResolutions: dbg.getStyleResolutions,
+    findOverlaysByToken: dbg.findOverlaysByToken,
+    getGlobalStyleSummary: dbg.getGlobalStyleSummary
+  };
+
+  // Wrap getPerf -> perf.summary()
+  dbg.getPerf = function() {
+    cblcarsLog.warn('[DebugInterface] ⚠️ getPerf() is DEPRECATED. Use window.cblcars.debug.msd.perf.summary() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.perf.summary()');
+    return dbg.perf?.summary?.() || originalMethods.getPerf?.();
+  };
+
+  // Wrap getPerformanceSummary -> perf.summary()
+  dbg.getPerformanceSummary = function() {
+    cblcarsLog.warn('[DebugInterface] ⚠️ getPerformanceSummary() is DEPRECATED. Use window.cblcars.debug.msd.perf.summary() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.perf.summary()');
+    return dbg.perf?.summary?.() || originalMethods.getPerformanceSummary?.();
+  };
+
+  // Wrap getSlowestOverlays -> perf.slowestOverlays()
+  dbg.getSlowestOverlays = function(count = 5) {
+    cblcarsLog.warn('[DebugInterface] ⚠️ getSlowestOverlays() is DEPRECATED. Use window.cblcars.debug.msd.perf.slowestOverlays() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.perf.slowestOverlays(' + count + ')');
+    return dbg.perf?.slowestOverlays?.(count) || originalMethods.getSlowestOverlays?.(count);
+  };
+
+  // Wrap getRendererPerformance -> perf.byRenderer()
+  dbg.getRendererPerformance = function() {
+    cblcarsLog.warn('[DebugInterface] ⚠️ getRendererPerformance() is DEPRECATED. Use window.cblcars.debug.msd.perf.byRenderer() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.perf.byRenderer()');
+    return dbg.perf?.byRenderer?.() || originalMethods.getRendererPerformance?.();
+  };
+
+  // Wrap getOverlayPerformance -> perf.byOverlay()
+  dbg.getOverlayPerformance = function(overlayId) {
+    cblcarsLog.warn('[DebugInterface] ⚠️ getOverlayPerformance() is DEPRECATED. Use window.cblcars.debug.msd.perf.byOverlay() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.perf.byOverlay("' + overlayId + '")');
+    return dbg.perf?.byOverlay?.(overlayId) || originalMethods.getOverlayPerformance?.(overlayId);
+  };
+
+  // Wrap getPerformanceWarnings -> perf.warnings()
+  dbg.getPerformanceWarnings = function() {
+    cblcarsLog.warn('[DebugInterface] ⚠️ getPerformanceWarnings() is DEPRECATED. Use window.cblcars.debug.msd.perf.warnings() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.perf.warnings()');
+    return dbg.perf?.warnings?.() || originalMethods.getPerformanceWarnings?.();
+  };
+
+  // Wrap getRenderTimeline -> perf.timeline()
+  dbg.getRenderTimeline = function() {
+    cblcarsLog.warn('[DebugInterface] ⚠️ getRenderTimeline() is DEPRECATED. Use window.cblcars.debug.msd.perf.timeline() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.perf.timeline()');
+    return dbg.perf?.timeline?.() || originalMethods.getRenderTimeline?.();
+  };
+
+  // Wrap compareRendererPerformance -> perf.compare()
+  dbg.compareRendererPerformance = function() {
+    cblcarsLog.warn('[DebugInterface] ⚠️ compareRendererPerformance() is DEPRECATED. Use window.cblcars.debug.msd.perf.compare() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.perf.compare()');
+    cblcarsLog.info('[DebugInterface] Note: perf.compare() returns NOT_IMPLEMENTED - planned for Phase 5');
+    return dbg.perf?.compare?.() || originalMethods.compareRendererPerformance?.();
+  };
+
+  // Wrap getStyleResolutions -> styles.resolutions()
+  dbg.getStyleResolutions = function(overlayId) {
+    cblcarsLog.warn('[DebugInterface] ⚠️ getStyleResolutions() is DEPRECATED. Use window.cblcars.debug.msd.styles.resolutions() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.styles.resolutions("' + overlayId + '")');
+    return dbg.styles?.resolutions?.(overlayId) || originalMethods.getStyleResolutions?.(overlayId);
+  };
+
+  // Wrap findOverlaysByToken -> styles.findByToken()
+  dbg.findOverlaysByToken = function(tokenPath) {
+    cblcarsLog.warn('[DebugInterface] ⚠️ findOverlaysByToken() is DEPRECATED. Use window.cblcars.debug.msd.styles.findByToken() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.styles.findByToken("' + tokenPath + '")');
+    return dbg.styles?.findByToken?.(tokenPath) || originalMethods.findOverlaysByToken?.(tokenPath);
+  };
+
+  // Wrap getGlobalStyleSummary -> styles.provenance()
+  dbg.getGlobalStyleSummary = function() {
+    cblcarsLog.warn('[DebugInterface] ⚠️ getGlobalStyleSummary() is DEPRECATED. Use window.cblcars.debug.msd.styles.provenance() instead.');
+    cblcarsLog.info('[DebugInterface] Migration: window.cblcars.debug.msd.styles.provenance()');
+    return dbg.styles?.provenance?.() || originalMethods.getGlobalStyleSummary?.();
+  };
+
+  cblcarsLog.debug('[DebugInterface] ✅ Phase 4 deprecation warnings installed (11 legacy methods wrapped)');
+}
 
   /**
    * Get style resolution details for an overlay

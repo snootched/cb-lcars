@@ -446,7 +446,7 @@ export class MsdRuntimeAPI {
          *
          * @param {string} cardId - Card ID or overlay ID
          * @param {string} [overlayId] - Overlay ID
-         * @returns {boolean} Success
+         * @returns {Object} NOT_IMPLEMENTED response
          *
          * @example
          * // Show specific overlay
@@ -459,9 +459,18 @@ export class MsdRuntimeAPI {
             cardId = null;
           }
 
-          cblcarsLog.warn('[RuntimeAPI] overlays.show() not yet implemented - future feature');
-          cblcarsLog.debug('[RuntimeAPI] Would show overlay:', overlayId);
-          return false;
+          cblcarsLog.warn('[RuntimeAPI] overlays.show() not yet implemented - planned for Phase 5');
+          cblcarsLog.info('[RuntimeAPI] This will control overlay visibility dynamically');
+          return {
+            error: 'NOT_IMPLEMENTED',
+            message: 'Feature planned for Phase 5',
+            overlayId,
+            plannedFeatures: [
+              'Dynamically show/hide overlays',
+              'Conditional overlay visibility',
+              'Animation-driven visibility'
+            ]
+          };
         },
 
         /**
@@ -472,7 +481,7 @@ export class MsdRuntimeAPI {
          *
          * @param {string} cardId - Card ID or overlay ID
          * @param {string} [overlayId] - Overlay ID
-         * @returns {boolean} Success
+         * @returns {Object} NOT_IMPLEMENTED response
          *
          * @example
          * // Hide specific overlay
@@ -485,9 +494,18 @@ export class MsdRuntimeAPI {
             cardId = null;
           }
 
-          cblcarsLog.warn('[RuntimeAPI] overlays.hide() not yet implemented - future feature');
-          cblcarsLog.debug('[RuntimeAPI] Would hide overlay:', overlayId);
-          return false;
+          cblcarsLog.warn('[RuntimeAPI] overlays.hide() not yet implemented - planned for Phase 5');
+          cblcarsLog.info('[RuntimeAPI] This will control overlay visibility dynamically');
+          return {
+            error: 'NOT_IMPLEMENTED',
+            message: 'Feature planned for Phase 5',
+            overlayId,
+            plannedFeatures: [
+              'Dynamically show/hide overlays',
+              'Conditional overlay visibility',
+              'Animation-driven visibility'
+            ]
+          };
         },
 
         /**
@@ -564,7 +582,7 @@ export class MsdRuntimeAPI {
        * @param {string} [cardId] - Card ID (optional)
        * @param {string} actionId - Action ID
        * @param {Object} [params] - Action parameters
-       * @returns {boolean} Success
+       * @returns {Object} NOT_IMPLEMENTED response
        */
       trigger(cardId, actionId, params) {
         // Handle flexible arguments
@@ -575,15 +593,25 @@ export class MsdRuntimeAPI {
           cardId = null;
         }
 
-        cblcarsLog.warn('[RuntimeAPI] trigger() not yet implemented');
-        return false;
+        cblcarsLog.warn('[RuntimeAPI] trigger() not yet implemented - planned for Phase 5');
+        cblcarsLog.info('[RuntimeAPI] This will enable programmatic action triggering');
+        return {
+          error: 'NOT_IMPLEMENTED',
+          message: 'Feature planned for Phase 5',
+          actionId,
+          plannedFeatures: [
+            'Programmatically trigger card actions',
+            'Execute service calls from scripts',
+            'Chain actions together'
+          ]
+        };
       },
 
       /**
        * Play a named animation
        * @param {string} [cardId] - Card ID (optional)
        * @param {string} animationId - Animation ID
-       * @returns {boolean} Success
+       * @returns {Object} NOT_IMPLEMENTED response
        */
       animate(cardId, animationId) {
         // Handle flexible arguments: animate(animationId) or animate(cardId, animationId)
@@ -592,8 +620,18 @@ export class MsdRuntimeAPI {
           cardId = null;
         }
 
-        cblcarsLog.warn('[RuntimeAPI] animate() not yet implemented');
-        return false;
+        cblcarsLog.warn('[RuntimeAPI] animate() not yet implemented - planned for Phase 5');
+        cblcarsLog.info('[RuntimeAPI] This will enable programmatic animation control');
+        return {
+          error: 'NOT_IMPLEMENTED',
+          message: 'Feature planned for Phase 5',
+          animationId,
+          plannedFeatures: [
+            'Trigger animations from scripts',
+            'Control animation playback',
+            'Chain animation sequences'
+          ]
+        };
       }
     };
   }
