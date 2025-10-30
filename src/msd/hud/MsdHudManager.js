@@ -416,8 +416,9 @@ export class MsdHudManager {
     this.mountElement = mountElement;
 
     // ENHANCED: Store mount element in debug interface for panels to access
-    if (window.__msdDebug) {
-      window.__msdDebug.mountElement = mountElement;
+    // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
+    if (window.cblcars?.debug?.msd) {
+      window.cblcars.debug.msd.mountElement = mountElement;
     }
 
     // ADDED: Setup centralized debug status access for panels
@@ -428,15 +429,18 @@ export class MsdHudManager {
 
   // ADDED: Centralized debug status access for all panels
   _setupDebugStatusHelper() {
-    if (window.__msdDebug?.getDebugStatusSilent) return; // Already setup
+    // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
+    if (window.cblcars?.debug?.msd?.getDebugStatusSilent) return; // Already setup
 
     const W = typeof window !== 'undefined' ? window : {};
-    W.__msdDebug = W.__msdDebug || {};
+    W.cblcars = W.cblcars || {};
+    W.cblcars.debug = W.cblcars.debug || {};
+    W.cblcars.debug.msd = W.cblcars.debug.msd || {};
 
-    W.__msdDebug.getDebugStatusSilent = function() {
+    W.cblcars.debug.msd.getDebugStatusSilent = function() {
       try {
         // Try debugManager first (preferred)
-        const pipelineInstance = W.__msdDebug?.pipelineInstance;
+        const pipelineInstance = W.cblcars?.debug?.msd?.pipelineInstance;
         const debugManager = pipelineInstance?.systemsManager?.debugManager;
         if (debugManager?.getSnapshot) {
           return debugManager.getSnapshot();
@@ -702,7 +706,7 @@ export class MsdHudManager {
       <span style="background:#222;border:1px solid #444;padding:2px 6px;border-radius:4px;font-size:9px;">
         Focus: <strong style="color:#ffaa00;">${this.state.focusPanel}</strong>
         <button style="margin-left:6px;font-size:9px;background:#333;color:#ccc;border:1px solid #555;border-radius:3px;cursor:pointer;padding:0 4px;"
-          onclick="__msdHudBus && window.__msdDebug?.hud?.manager?.toggleFocusPanel && window.__msdDebug.hud.manager.toggleFocusPanel('${this.state.focusPanel}')">
+          onclick="__msdHudBus && window.cblcars?.debug?.msd?.hud?.manager?.toggleFocusPanel && window.cblcars.debug.msd.hud.manager.toggleFocusPanel('${this.state.focusPanel}')">
           Exit
         </button>
       </span>
@@ -874,7 +878,7 @@ export class MsdHudManager {
       this.hudElement.innerHTML = `
         <div class="msd-hud-header">
           <span class="msd-hud-title">MSD Debug HUD - Error</span>
-          <span class="msd-hud-close" onclick="window.__msdDebug?.hud?.hide?.()" title="Close">✕</span>
+          <span class="msd-hud-close" onclick="window.cblcars?.debug?.msd?.hud?.hide?.()" title="Close">✕</span>
         </div>
         <div style="padding:8px;color:#ff6666;">
           Render failed: ${error.message}
@@ -1016,8 +1020,8 @@ export class MsdHudManager {
         <div id="msd-selection-badge" style="flex:1;display:flex;justify-content:center;"></div>
         <div class="msd-hud-controls">
           <span class="msd-hud-menu" onclick="window.__msdHudPanelControls?.togglePanelManager?.()" title="Panel Settings">⚙</span>
-          <span class="msd-hud-refresh" onclick="window.__msdDebug?.hud?.refresh?.()" title="Refresh">⟳</span>
-          <span class="msd-hud-close" onclick="window.__msdDebug?.hud?.hide?.()" title="Close">✕</span>
+          <span class="msd-hud-refresh" onclick="window.cblcars?.debug?.msd?.hud?.refresh?.()" title="Refresh">⟳</span>
+          <span class="msd-hud-close" onclick="window.cblcars?.debug?.msd?.hud?.hide?.()" title="Close">✕</span>
         </div>
       </div>
     `;
@@ -1430,8 +1434,9 @@ export class MsdHudManager {
     // ADDED: Apply font and scale settings after creating HUD element
     this._applyFontAndScale();
 
-    if (window.__msdDebug) {
-      window.__msdDebug.hud = {
+    // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
+    if (window.cblcars?.debug?.msd) {
+      window.cblcars.debug.msd.hud = {
         manager: this,
         refresh: () => this.refresh(),
         hide: () => this.hide(),

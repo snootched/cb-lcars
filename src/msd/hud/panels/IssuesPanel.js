@@ -20,7 +20,8 @@ export class IssuesPanel {
 
     switch (action) {
       case 'overlay':
-        if (overlay && window.__msdDebug?.debug) {
+        // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
+        if (overlay && window.cblcars?.debug?.msd?.debug) {
           // Try to highlight the overlay
           cblcarsLog.debug(`[IssuesPanel] 🎯 Highlighting overlay: ${overlay}`);
           // Could integrate with overlay editor here
@@ -30,8 +31,9 @@ export class IssuesPanel {
       case 'routing':
         cblcarsLog.info('[IssuesPanel] 🔀 Opening routing diagnostics');
         // Could emit routing focus event
-        if (window.__msdDebug?.hud?.refresh) {
-          window.__msdDebug.hud.refresh();
+        // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
+        if (window.cblcars?.debug?.msd?.hud?.refresh) {
+          window.cblcars.debug.msd.hud.refresh();
         }
         break;
 
@@ -43,18 +45,20 @@ export class IssuesPanel {
       case 'debug':
         cblcarsLog.info('[IssuesPanel] 🔧 Debug issue clicked - attempting to initialize debug interface');
         // Try to initialize debug interface
-        if (window.__msdDebug?.debug?.refresh) {
-          window.__msdDebug.debug.refresh();
+        // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
+        if (window.cblcars?.debug?.msd?.debug?.refresh) {
+          window.cblcars.debug.msd.debug.refresh();
         }
         break;
 
       // ADDED: New action for enabling debug features
       case 'enable-features':
         cblcarsLog.info('[IssuesPanel] 🛠️ Enabling basic debug features');
-        if (window.__msdDebug?.debug) {
+        // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
+        if (window.cblcars?.debug?.msd?.debug) {
           // Enable a basic set of debug features
-          window.__msdDebug.debug.enable('anchors');
-          window.__msdDebug.debug.enable('bounding_boxes');
+          window.cblcars.debug.msd.debug.enable('anchors');
+          window.cblcars.debug.msd.debug.enable('bounding_boxes');
           cblcarsLog.debug('[IssuesPanel] ✅ Enabled anchors and bounding_boxes debug features');
 
           // Show user feedback

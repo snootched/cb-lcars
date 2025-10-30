@@ -2,11 +2,23 @@
  * Phase 4: Unified MsdApi structure
  * Provides window.cblcars.msd.api namespace
  * MSD v1 is now the stable system - no feature flag needed
+ *
+ * ⚠️ DEPRECATED (Phase 3): This API is deprecated in favor of:
+ * - window.cblcars.msd.* (MsdRuntimeAPI) - instance, state, overlays, theme
+ * - window.cblcars.debug.msd.* (MsdDebugAPI) - comprehensive debug features
+ *
+ * This API will be removed in a future version. Please migrate to the new APIs.
+ * Migration guide: https://github.com/CB-LCARS/cb-lcars/blob/dev-animejs/doc/api/MIGRATION_GUIDE.md
  */
 
 export class MsdApi {
   static attach() {
     if (typeof window === 'undefined') return;
+
+    // ⚠️ DEPRECATION WARNING
+    console.warn('⚠️ [MsdApi] window.cblcars.msd.api is DEPRECATED.');
+    console.warn('   Use window.cblcars.msd.* (MsdRuntimeAPI) or window.cblcars.debug.msd.* (MsdDebugAPI) instead.');
+    console.warn('   Migration guide: https://github.com/CB-LCARS/cb-lcars/blob/dev-animejs/doc/api/MIGRATION_GUIDE.md');
 
     window.cblcars = window.cblcars || {};
     window.cblcars.msd = window.cblcars.msd || {};

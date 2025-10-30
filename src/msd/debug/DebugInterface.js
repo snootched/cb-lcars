@@ -6,13 +6,33 @@ import { ChartDataValidator } from '../validation/ChartDataValidator.js';
 export function setupDebugInterface(pipelineApi, mergedConfig, provenance, systemsManager, modelBuilder) {
   if (typeof window === 'undefined') return;
 
-  const dbg = window.__msdDebug = window.__msdDebug || {};
+  // ✅ PHASE 3: Updated to use window.cblcars.debug.msd namespace
+  window.cblcars = window.cblcars || {};
+  window.cblcars.debug = window.cblcars.debug || {};
+  const dbg = window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+
+  // ✅ PHASE 3: Add backward compatibility shim for window.__msdDebug
+  if (!window.__msdDebug) {
+    Object.defineProperty(window, '__msdDebug', {
+      get() {
+        console.warn('⚠️ [DebugInterface] window.__msdDebug is DEPRECATED.');
+        console.warn('   Use window.cblcars.debug.msd instead.');
+        console.warn('   Migration guide: https://github.com/CB-LCARS/cb-lcars/blob/dev-animejs/doc/api/MIGRATION_GUIDE.md');
+        return window.cblcars.debug.msd;
+      },
+      set(value) {
+        console.warn('⚠️ [DebugInterface] Setting window.__msdDebug is DEPRECATED. Use window.cblcars.debug.msd instead.');
+        window.cblcars.debug.msd = value;
+      },
+      configurable: true
+    });
+  }
 
   // Extract debug config from mergedConfig
   const debugConfig = mergedConfig?.debug || {};
 
   // REDUCED: Minimal startup logging
-  cblcarsLog.debug('[DebugInterface] 🛠️ Debug interface ready - type window.__msdDebug.help() for usage');
+  cblcarsLog.debug('[DebugInterface] 🛠️ Debug interface ready - type window.cblcars.debug.msd.help() for usage');
 
   // Core pipeline access - UNIFIED: Only set pipelineInstance
   dbg.pipelineInstance = pipelineApi;
@@ -21,7 +41,7 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   if (!dbg.hasOwnProperty('pipeline')) {
     Object.defineProperty(dbg, 'pipeline', {
       get() {
-        cblcarsLog.warn('[DebugInterface] ⚠️ window.__msdDebug.pipeline is deprecated. Use window.__msdDebug.pipelineInstance instead.');
+        cblcarsLog.warn('[DebugInterface] ⚠️ window.cblcars.debug.msd.pipeline is deprecated. Use window.cblcars.debug.msd.pipelineInstance instead.');
         return this.pipelineInstance;
       },
       configurable: true

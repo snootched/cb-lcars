@@ -13,7 +13,8 @@ export class ExportPanel {
 
   exportCollapsed() {
     try {
-      const pipeline = window.__msdDebug?.pipelineInstance;
+      // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
+      const pipeline = window.cblcars?.debug?.msd?.pipelineInstance;
       if (pipeline?.exportCollapsedJson) {
         cblcarsLog.info('[ExportPanel] 📤 Exporting collapsed configuration');
         const json = pipeline.exportCollapsedJson(true);
@@ -29,7 +30,8 @@ export class ExportPanel {
 
   exportFull(includeMeta = false) {
     try {
-      const pipeline = window.__msdDebug?.pipelineInstance;
+      // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
+      const pipeline = window.cblcars?.debug?.msd?.pipelineInstance;
       if (pipeline?.exportFullSnapshotJson) {
         const metaText = includeMeta ? ' with metadata' : '';
         cblcarsLog.info(`[ExportPanel] 📋 Exporting full snapshot${metaText}`);
@@ -122,7 +124,8 @@ export class ExportPanel {
   }
 
   captureData() {
-    const pipeline = window.__msdDebug?.pipelineInstance;
+    // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
+    const pipeline = window.cblcars?.debug?.msd?.pipelineInstance;
 
     // FIXED: Add more detailed debugging for export panel visibility
     const data = {

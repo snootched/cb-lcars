@@ -1105,6 +1105,728 @@ export class MsdDebugAPI {
           cblcarsLog.warn('[DebugAPI] packs.order() not yet implemented');
           return [];
         }
+      },
+
+      // ==========================================
+      // VISUAL DEBUG CONTROLS (Phase 2)
+      // ==========================================
+
+      visual: {
+        /**
+         * Enable visual debug feature
+         *
+         * Shows visual debug overlays for anchors, bounding boxes, routing,
+         * or performance metrics. Use 'all' to enable all features.
+         *
+         * @param {string} feature - Feature name or 'all'
+         * @returns {boolean} Success status
+         *
+         * @example
+         * // Enable bounding boxes
+         * window.cblcars.debug.msd.visual.enable('bounding_boxes');
+         *
+         * // Enable all debug visuals
+         * window.cblcars.debug.msd.visual.enable('all');
+         *
+         * // Enable specific feature
+         * window.cblcars.debug.msd.visual.enable('anchors');
+         * window.cblcars.debug.msd.visual.enable('routing');
+         * window.cblcars.debug.msd.visual.enable('performance');
+         */
+        enable(feature) {
+          try {
+            const dbg = window.__msdDebug;
+            if (!dbg?.debug?.enable) {
+              cblcarsLog.warn('[DebugAPI] Visual debug not available');
+              return false;
+            }
+
+            dbg.debug.enable(feature);
+            cblcarsLog.debug(`[DebugAPI] Enabled visual debug: ${feature}`);
+            return true;
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error enabling visual debug:', error);
+            return false;
+          }
+        },
+
+        /**
+         * Disable visual debug feature
+         *
+         * Hides visual debug overlays for specified feature or all features.
+         *
+         * @param {string} feature - Feature name or 'all'
+         * @returns {boolean} Success status
+         *
+         * @example
+         * // Disable bounding boxes
+         * window.cblcars.debug.msd.visual.disable('bounding_boxes');
+         *
+         * // Disable all debug visuals
+         * window.cblcars.debug.msd.visual.disable('all');
+         */
+        disable(feature) {
+          try {
+            const dbg = window.__msdDebug;
+            if (!dbg?.debug?.disable) {
+              cblcarsLog.warn('[DebugAPI] Visual debug not available');
+              return false;
+            }
+
+            dbg.debug.disable(feature);
+            cblcarsLog.debug(`[DebugAPI] Disabled visual debug: ${feature}`);
+            return true;
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error disabling visual debug:', error);
+            return false;
+          }
+        },
+
+        /**
+         * Toggle visual debug feature on/off
+         *
+         * Convenient method to toggle a debug feature without checking current state.
+         *
+         * @param {string} feature - Feature name to toggle
+         * @returns {boolean} New state (true = enabled, false = disabled)
+         *
+         * @example
+         * const newState = window.cblcars.debug.msd.visual.toggle('bounding_boxes');
+         * console.log('Bounding boxes now:', newState ? 'enabled' : 'disabled');
+         */
+        toggle(feature) {
+          try {
+            const status = this.status();
+            if (!status) return false;
+
+            const isEnabled = status[feature];
+            if (isEnabled) {
+              this.disable(feature);
+              return false;
+            } else {
+              this.enable(feature);
+              return true;
+            }
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error toggling visual debug:', error);
+            return false;
+          }
+        },
+
+        /**
+         * Get visual debug status
+         *
+         * Returns current state of all visual debug features.
+         *
+         * @returns {Object|null} Debug feature status
+         *
+         * @example
+         * const status = window.cblcars.debug.msd.visual.status();
+         * console.log('Anchors enabled:', status.anchors);
+         * console.log('Bounding boxes enabled:', status.bounding_boxes);
+         * console.table(status);
+         */
+        status() {
+          try {
+            const dbg = window.__msdDebug;
+            if (!dbg?.debug?.getStatus) {
+              cblcarsLog.warn('[DebugAPI] Visual debug status not available');
+              return null;
+            }
+
+            return dbg.debug.getStatus();
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting visual debug status:', error);
+            return null;
+          }
+        },
+
+        /**
+         * Get list of active visual debug features
+         *
+         * Returns array of currently enabled debug feature names.
+         *
+         * @returns {Array<string>} Active feature names
+         *
+         * @example
+         * const active = window.cblcars.debug.msd.visual.getActive();
+         * console.log('Active debug features:', active);
+         * // ['bounding_boxes', 'anchors']
+         */
+        getActive() {
+          try {
+            const status = this.status();
+            if (!status) return [];
+
+            return Object.entries(status)
+              .filter(([key, value]) => value === true && key !== 'scale')
+              .map(([key]) => key);
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting active features:', error);
+            return [];
+          }
+        },
+
+        /**
+         * Refresh visual debug overlays
+         *
+         * Forces re-render of debug overlays to reflect current state.
+         *
+         * @returns {boolean} Success status
+         *
+         * @example
+         * window.cblcars.debug.msd.visual.refresh();
+         */
+        refresh() {
+          try {
+            const dbg = window.__msdDebug;
+            if (!dbg?.debug?.refresh) {
+              cblcarsLog.warn('[DebugAPI] Visual debug refresh not available');
+              return false;
+            }
+
+            dbg.debug.refresh();
+            return true;
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error refreshing visual debug:', error);
+            return false;
+          }
+        }
+      },
+
+      // ==========================================
+      // OVERLAY INTROSPECTION (Phase 2)
+      // ==========================================
+
+      overlays: {
+        /**
+         * Inspect overlay details
+         *
+         * Returns comprehensive overlay information including config,
+         * bounding box, type, and validation status.
+         *
+         * @param {string} overlayId - Overlay ID
+         * @returns {Object|null} Overlay details
+         *
+         * @example
+         * const overlay = window.cblcars.debug.msd.overlays.inspect('button_1');
+         * console.log('Type:', overlay.type);
+         * console.log('BBox:', overlay.bbox);
+         * console.log('Config:', overlay.config);
+         */
+        inspect(overlayId) {
+          try {
+            const dbg = window.__msdDebug;
+            const pipelineInstance = dbg?.pipelineInstance;
+            if (!pipelineInstance) {
+              cblcarsLog.warn('[DebugAPI] Pipeline instance not available');
+              return null;
+            }
+
+            const model = pipelineInstance.getResolvedModel?.();
+            if (!model) return null;
+
+            const overlay = model.overlays.find(o => o.id === overlayId);
+            if (!overlay) return null;
+
+            // Get renderer to access mountEl
+            const renderer = pipelineInstance.systemsManager?.renderer;
+            const root = renderer?.mountEl;
+
+            // Import MsdIntrospection dynamically to get bbox
+            const MsdIntrospection = window.MsdIntrospection;
+            const bbox = MsdIntrospection ?
+              MsdIntrospection.getOverlayBBox(overlayId, root) : null;
+
+            return {
+              id: overlayId,
+              type: overlay.type,
+              bbox,
+              config: overlay,
+              position: overlay.position,
+              size: overlay.size,
+              route: overlay.route,
+              visible: overlay.visible !== false
+            };
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error inspecting overlay:', error);
+            return null;
+          }
+        },
+
+        /**
+         * Get overlay bounding box
+         *
+         * Returns x, y, width, height of overlay in SVG coordinates.
+         *
+         * @param {string} overlayId - Overlay ID
+         * @returns {Object|null} Bounding box {x, y, w, h}
+         *
+         * @example
+         * const bbox = window.cblcars.debug.msd.overlays.getBBox('button_1');
+         * console.log(`Position: (${bbox.x}, ${bbox.y})`);
+         * console.log(`Size: ${bbox.w} x ${bbox.h}`);
+         */
+        getBBox(overlayId) {
+          try {
+            const dbg = window.__msdDebug;
+            const renderer = dbg?.pipelineInstance?.systemsManager?.renderer;
+            const root = renderer?.mountEl;
+
+            if (!root) {
+              cblcarsLog.warn('[DebugAPI] Mount element not available');
+              return null;
+            }
+
+            const MsdIntrospection = window.MsdIntrospection;
+            if (!MsdIntrospection) {
+              cblcarsLog.warn('[DebugAPI] MsdIntrospection not available');
+              return null;
+            }
+
+            return MsdIntrospection.getOverlayBBox(overlayId, root);
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting bbox:', error);
+            return null;
+          }
+        },
+
+        /**
+         * Get overlay transform
+         *
+         * Returns transform attribute if present (e.g., translate values).
+         *
+         * @param {string} overlayId - Overlay ID
+         * @returns {Object|null} Transform data
+         *
+         * @example
+         * const transform = window.cblcars.debug.msd.overlays.getTransform('status_grid_1');
+         * if (transform.translate) {
+         *   console.log(`Translate: (${transform.translate.x}, ${transform.translate.y})`);
+         * }
+         */
+        getTransform(overlayId) {
+          try {
+            const dbg = window.__msdDebug;
+            const renderer = dbg?.pipelineInstance?.systemsManager?.renderer;
+            const root = renderer?.mountEl;
+
+            if (!root) return null;
+
+            const MsdIntrospection = window.MsdIntrospection;
+            const svg = MsdIntrospection?.getOverlaysSvg(root);
+            if (!svg) return null;
+
+            const el = svg.getElementById?.(overlayId) || svg.querySelector(`#${CSS.escape(overlayId)}`);
+            if (!el) return null;
+
+            const transform = el.getAttribute('transform');
+            if (!transform) return null;
+
+            // Parse transform string
+            const result = { raw: transform };
+
+            // Parse translate
+            const translateMatch = transform.match(/translate\s*\(\s*([^,\s]+)[\s,]+([^)]+)\)/);
+            if (translateMatch) {
+              result.translate = {
+                x: parseFloat(translateMatch[1]),
+                y: parseFloat(translateMatch[2])
+              };
+            }
+
+            // Parse scale
+            const scaleMatch = transform.match(/scale\s*\(\s*([^)]+)\)/);
+            if (scaleMatch) {
+              const values = scaleMatch[1].split(/[\s,]+/).map(parseFloat);
+              result.scale = values.length === 1
+                ? { x: values[0], y: values[0] }
+                : { x: values[0], y: values[1] };
+            }
+
+            // Parse rotate
+            const rotateMatch = transform.match(/rotate\s*\(\s*([^)]+)\)/);
+            if (rotateMatch) {
+              const values = rotateMatch[1].split(/[\s,]+/).map(parseFloat);
+              result.rotate = values[0];
+              if (values.length === 3) {
+                result.rotateCenter = { x: values[1], y: values[2] };
+              }
+            }
+
+            return result;
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting transform:', error);
+            return null;
+          }
+        },
+
+        /**
+         * Get overlay state (from data source)
+         *
+         * Returns current data/state for an overlay.
+         *
+         * @param {string} overlayId - Overlay ID
+         * @returns {*} Overlay state/data
+         *
+         * @example
+         * const state = window.cblcars.debug.msd.overlays.getState('temp_display');
+         */
+        getState(overlayId) {
+          try {
+            const dbg = window.__msdDebug;
+            const pipelineInstance = dbg?.pipelineInstance;
+            const model = pipelineInstance?.getResolvedModel?.();
+
+            if (!model) return null;
+
+            const overlay = model.overlays.find(o => o.id === overlayId);
+            if (!overlay) return null;
+
+            // Return the resolved data if available
+            return overlay.data || overlay.state || null;
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting overlay state:', error);
+            return null;
+          }
+        },
+
+        /**
+         * Find overlays by type
+         *
+         * Returns all overlays matching the specified type.
+         *
+         * @param {string} type - Overlay type (e.g., 'button', 'text', 'status_grid')
+         * @returns {Array} Matching overlays
+         *
+         * @example
+         * const buttons = window.cblcars.debug.msd.overlays.findByType('button');
+         * console.log('Found buttons:', buttons.length);
+         * buttons.forEach(btn => console.log(btn.id));
+         */
+        findByType(type) {
+          try {
+            const dbg = window.__msdDebug;
+            const model = dbg?.pipelineInstance?.getResolvedModel?.();
+
+            if (!model) return [];
+
+            return model.overlays
+              .filter(o => o.type === type)
+              .map(o => ({
+                id: o.id,
+                type: o.type,
+                position: o.position,
+                size: o.size
+              }));
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error finding overlays by type:', error);
+            return [];
+          }
+        },
+
+        /**
+         * Find overlays using entity
+         *
+         * Returns all overlays that reference a specific entity ID.
+         *
+         * @param {string} entityId - Entity ID
+         * @returns {Array} Overlays using this entity
+         *
+         * @example
+         * const overlays = window.cblcars.debug.msd.overlays.findByEntity('sensor.temperature');
+         */
+        findByEntity(entityId) {
+          try {
+            const dbg = window.__msdDebug;
+            const model = dbg?.pipelineInstance?.getResolvedModel?.();
+
+            if (!model) return [];
+
+            return model.overlays
+              .filter(o => {
+                const route = o.route || o._raw?.route;
+                return route && JSON.stringify(route).includes(entityId);
+              })
+              .map(o => ({
+                id: o.id,
+                type: o.type,
+                route: o.route
+              }));
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error finding overlays by entity:', error);
+            return [];
+          }
+        },
+
+        /**
+         * Get overlay tree (hierarchy)
+         *
+         * Returns overlay structure as hierarchical tree.
+         *
+         * @returns {Array} Overlay tree
+         *
+         * @example
+         * const tree = window.cblcars.debug.msd.overlays.tree();
+         */
+        tree() {
+          try {
+            const dbg = window.__msdDebug;
+            const model = dbg?.pipelineInstance?.getResolvedModel?.();
+
+            if (!model) return [];
+
+            // Group by type for simple tree
+            const byType = {};
+            model.overlays.forEach(o => {
+              if (!byType[o.type]) byType[o.type] = [];
+              byType[o.type].push({ id: o.id, type: o.type });
+            });
+
+            return Object.entries(byType).map(([type, overlays]) => ({
+              type,
+              count: overlays.length,
+              overlays
+            }));
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting overlay tree:', error);
+            return [];
+          }
+        },
+
+        /**
+         * List all overlays
+         *
+         * Returns array of all overlays with basic info.
+         *
+         * @returns {Array} All overlays
+         *
+         * @example
+         * const all = window.cblcars.debug.msd.overlays.list();
+         * console.log('Total overlays:', all.length);
+         */
+        list() {
+          try {
+            const dbg = window.__msdDebug;
+            const model = dbg?.pipelineInstance?.getResolvedModel?.();
+
+            if (!model) return [];
+
+            return model.overlays.map(o => ({
+              id: o.id,
+              type: o.type,
+              visible: o.visible !== false
+            }));
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error listing overlays:', error);
+            return [];
+          }
+        }
+      },
+
+      // ==========================================
+      // PIPELINE INTROSPECTION (Phase 2)
+      // ==========================================
+
+      pipeline: {
+        /**
+         * Get pipeline stages
+         *
+         * Returns list of pipeline stages with their status.
+         *
+         * @returns {Array} Pipeline stages
+         *
+         * @example
+         * const stages = window.cblcars.debug.msd.pipeline.stages();
+         * stages.forEach(stage => {
+         *   console.log(`${stage.name}: ${stage.status}`);
+         * });
+         */
+        stages() {
+          try {
+            const dbg = window.__msdDebug;
+            const pipelineInstance = dbg?.pipelineInstance;
+
+            if (!pipelineInstance) return [];
+
+            // Define known pipeline stages
+            const stages = [
+              { name: 'PipelineCore', status: 'complete', component: pipelineInstance },
+              { name: 'SystemsManager', status: 'complete', component: pipelineInstance.systemsManager },
+              { name: 'ModelBuilder', status: 'complete', component: pipelineInstance.systemsManager?.modelBuilder },
+              { name: 'AdvancedRenderer', status: 'complete', component: pipelineInstance.systemsManager?.renderer }
+            ];
+
+            return stages.map(stage => ({
+              name: stage.name,
+              status: stage.component ? 'initialized' : 'not_initialized',
+              hasErrors: false,
+              timing: null // Could extract from provenance
+            }));
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting pipeline stages:', error);
+            return [];
+          }
+        },
+
+        /**
+         * Get pipeline timing
+         *
+         * Returns timing information for pipeline execution.
+         *
+         * @returns {Object|null} Pipeline timing
+         *
+         * @example
+         * const timing = window.cblcars.debug.msd.pipeline.timing();
+         * console.log('Total time:', timing.total_ms, 'ms');
+         */
+        timing() {
+          try {
+            const dbg = window.__msdDebug;
+            const config = dbg?.pipelineInstance?.config;
+
+            if (!config?.__provenance) return null;
+
+            const provenance = config.__provenance;
+            const timing = {
+              pipeline_core: provenance.pipeline_core,
+              systems_manager: provenance.systems_manager,
+              model_builder: provenance.model_builder,
+              advanced_renderer: provenance.advanced_renderer,
+              total_ms: null
+            };
+
+            // Calculate total if individual timings exist
+            const times = Object.values(timing).filter(t => t?.duration_ms);
+            if (times.length > 0) {
+              timing.total_ms = times.reduce((sum, t) => sum + (t.duration_ms || 0), 0);
+            }
+
+            return timing;
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting pipeline timing:', error);
+            return null;
+          }
+        },
+
+        /**
+         * Get pipeline configuration
+         *
+         * Returns merged pipeline configuration.
+         *
+         * @returns {Object|null} Pipeline config
+         *
+         * @example
+         * const config = window.cblcars.debug.msd.pipeline.config();
+         * console.log('Anchors:', config.anchors);
+         * console.log('ViewBox:', config.viewBox);
+         */
+        config() {
+          try {
+            const dbg = window.__msdDebug;
+            return dbg?.pipelineInstance?.config || null;
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting pipeline config:', error);
+            return null;
+          }
+        },
+
+        /**
+         * Get pipeline errors
+         *
+         * Returns any errors encountered during pipeline execution.
+         *
+         * @returns {Array} Pipeline errors
+         *
+         * @example
+         * const errors = window.cblcars.debug.msd.pipeline.errors();
+         * if (errors.length > 0) {
+         *   errors.forEach(err => console.error(err.message));
+         * }
+         */
+        errors() {
+          try {
+            const dbg = window.__msdDebug;
+            const config = dbg?.pipelineInstance?.config;
+
+            // Check validation errors
+            const validation = config?.__validation || {};
+            const errors = [];
+
+            if (validation.errors?.length > 0) {
+              errors.push(...validation.errors.map(e => ({
+                stage: 'validation',
+                type: 'validation_error',
+                message: e.message || e,
+                overlayId: e.overlayId
+              })));
+            }
+
+            // Check config issues
+            const issues = config?.__issues || [];
+            if (issues.length > 0) {
+              errors.push(...issues.map(i => ({
+                stage: 'config',
+                type: 'config_issue',
+                message: i.message || i
+              })));
+            }
+
+            return errors;
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting pipeline errors:', error);
+            return [];
+          }
+        },
+
+        /**
+         * Re-run pipeline (trigger re-render)
+         *
+         * Forces pipeline to re-execute from current config.
+         *
+         * @returns {boolean} Success status
+         *
+         * @example
+         * window.cblcars.debug.msd.pipeline.rerun();
+         */
+        rerun() {
+          try {
+            const dbg = window.__msdDebug;
+            const pipelineInstance = dbg?.pipelineInstance;
+
+            if (!pipelineInstance?.reRender) {
+              cblcarsLog.warn('[DebugAPI] Pipeline rerun not available');
+              return false;
+            }
+
+            pipelineInstance.reRender();
+            cblcarsLog.debug('[DebugAPI] Pipeline re-run triggered');
+            return true;
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error re-running pipeline:', error);
+            return false;
+          }
+        },
+
+        /**
+         * Get pipeline instance
+         *
+         * Returns raw pipeline instance for advanced debugging.
+         *
+         * @returns {Object|null} Pipeline instance
+         *
+         * @example
+         * const pipeline = window.cblcars.debug.msd.pipeline.getInstance();
+         */
+        getInstance() {
+          try {
+            const dbg = window.__msdDebug;
+            return dbg?.pipelineInstance || null;
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting pipeline instance:', error);
+            return null;
+          }
+        }
       }
     };
   }
