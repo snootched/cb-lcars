@@ -744,7 +744,7 @@ expression: "Number(inputs[0]) + Number(inputs[1])"
 
 ```javascript
 // Access DataSourceManager
-const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+const dsm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 
 // Get computed source
 const source = dsm.getSource('my_computed_source');

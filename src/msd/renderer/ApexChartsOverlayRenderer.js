@@ -60,7 +60,7 @@ export class ApexChartsOverlayRenderer {
       cblcarsLog.warn('[ApexChartsOverlayRenderer] ⚠️ StyleResolverService not available - using fallback resolution');
       cblcarsLog.debug('[ApexChartsOverlayRenderer] Checked:', {
         hasGlobal: !!(typeof window !== 'undefined' && window.cblcars?.styleResolver),
-        hasPipeline: !!(typeof window !== 'undefined' && window.__msdDebug?.pipelineInstance?.systemsManager?.styleResolver)
+        hasPipeline: !!(typeof window !== 'undefined' && window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.styleResolver)
       });
     }
   }
@@ -79,7 +79,7 @@ export class ApexChartsOverlayRenderer {
 
     // 2. Pipeline instance via systemsManager
     if (typeof window !== 'undefined') {
-      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
       if (pipelineInstance?.systemsManager?.themeManager) {
         return pipelineInstance.systemsManager.themeManager;
       }
@@ -90,7 +90,7 @@ export class ApexChartsOverlayRenderer {
       }
 
       // 4. Systems manager global reference
-      const systemsManager = window.__msdDebug?.systemsManager;
+      const systemsManager = window.cblcars.debug.msd?.systemsManager;
       if (systemsManager?.themeManager) {
         return systemsManager.themeManager;
       }
@@ -114,7 +114,7 @@ export class ApexChartsOverlayRenderer {
 
     // Priority 2: Pipeline instance
     if (typeof window !== 'undefined') {
-      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
       if (pipelineInstance?.systemsManager?.styleResolver) {
         return pipelineInstance.systemsManager.styleResolver;
       }
@@ -250,7 +250,7 @@ export class ApexChartsOverlayRenderer {
 
       // CRITICAL: Get shadowRoot and mountElement from pipeline
       const pipelineInstance = cardInstance?._config?.__msdDebug?.pipelineInstance ||
-                               window.__msdDebug?.pipelineInstance;
+                               window.cblcars.debug.msd?.pipelineInstance;
 
       const shadowRoot = pipelineInstance?.shadowRoot ||
                         cardInstance?.shadowRoot ||
@@ -283,7 +283,7 @@ export class ApexChartsOverlayRenderer {
       cblcarsLog.debug(`[ApexChartsOverlayRenderer] 🔄 Chart ${overlay.id} already exists - updating instead of creating`);
 
       const dataSourceManager = cardInstance?._config?.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager ||
-                                window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+                                window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (dataSourceManager) {
         ApexChartsOverlayRenderer.updateChartStyle(overlay.id, overlay, dataSourceManager);
@@ -740,7 +740,7 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
 
     // Get DataSourceManager
     const dataSourceManager = cardInstance?._config?.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager ||
-                              window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+                              window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 
     if (!dataSourceManager) {
       cblcarsLog.error(`[ApexChartsOverlayRenderer] DataSourceManager not available`);
@@ -1467,12 +1467,14 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
   _registerChartForDebugging(overlayId, chart, div, svg) {
     if (typeof window === 'undefined') return;
 
-    window.__msdDebug = window.__msdDebug || {};
-    window.__msdDebug.apexCharts = window.__msdDebug.apexCharts || {};
+    window.cblcars = window.cblcars || {};
+    window.cblcars.debug = window.cblcars.debug || {};
+    window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+    window.cblcars.debug.msd.apexCharts = window.cblcars.debug.msd.apexCharts || {};
 
     const instance = this;
 
-    window.__msdDebug.apexCharts[overlayId] = {
+    window.cblcars.debug.msd.apexCharts[overlayId] = {
       chart: chart,
       overlayDiv: div,
       svg: svg,
@@ -1602,8 +1604,8 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
     ApexChartsOverlayRenderer._getInstance().overlayConfigs.delete(overlayId);
 
     // Cleanup debug registry
-    if (window.__msdDebug?.apexCharts?.[overlayId]) {
-      delete window.__msdDebug.apexCharts[overlayId];
+    if (window.cblcars.debug.msd?.apexCharts?.[overlayId]) {
+      delete window.cblcars.debug.msd.apexCharts[overlayId];
     }
   }
 
@@ -1872,7 +1874,7 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
     window.msdCharts = window.msdCharts || {};
 
     window.msdCharts.dimensions = (overlayId) => {
-      const chartDebug = window.__msdDebug?.apexCharts?.[overlayId];
+      const chartDebug = window.cblcars.debug.msd?.apexCharts?.[overlayId];
       if (!chartDebug) {
         console.error(`❌ Chart not found: ${overlayId}`);
         return null;
@@ -1884,7 +1886,7 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
     };
 
     window.msdCharts.list = () => {
-      const charts = window.__msdDebug?.apexCharts || {};
+      const charts = window.cblcars.debug.msd?.apexCharts || {};
       const chartIds = Object.keys(charts);
       console.log('📊 Available ApexCharts overlays:', chartIds);
       return chartIds;

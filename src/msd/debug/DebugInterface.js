@@ -7,9 +7,13 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   if (typeof window === 'undefined') return;
 
   // ✅ PHASE 3: Updated to use window.cblcars.debug.msd namespace
+  // CRITICAL: Do NOT reassign window.cblcars.debug.msd, just ensure it exists
   window.cblcars = window.cblcars || {};
   window.cblcars.debug = window.cblcars.debug || {};
-  const dbg = window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+  window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+
+  // Reference the existing namespace (do NOT reassign it)
+  const dbg = window.cblcars.debug.msd;
 
   // ✅ PHASE 3: Add backward compatibility shim for window.__msdDebug
   if (!window.__msdDebug) {

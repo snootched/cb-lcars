@@ -13,7 +13,7 @@ export class ChannelTrendPanel {
   }
 
   captureData() {
-    const routing = window.__msdDebug?.routing;
+    const routing = window.cblcars.debug.msd?.routing;
     const current = routing?.channels?._occupancy || {};
     const conflicts = [];
     const trends = {};

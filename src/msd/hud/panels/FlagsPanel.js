@@ -16,14 +16,14 @@ export class FlagsPanel {
   toggleFeature(feature) {
     cblcarsLog.info('[FlagsPanel] 🔄 Toggle feature called:', feature);
 
-    if (!window.__msdDebug?.debug) {
+    if (!window.cblcars.debug.msd?.debug) {
       cblcarsLog.warn('[FlagsPanel] ⚠️ Debug interface not available');
       return;
     }
 
     // FIXED: Use silent status access instead of status() which dumps to console
-    const debugManager = window.__msdDebug?.debugManager ||
-                         window.__msdDebug?.pipelineInstance?.systemsManager?.debugManager;
+    const debugManager = window.cblcars.debug.msd?.debugManager ||
+                         window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.debugManager;
 
     if (!debugManager) {
       cblcarsLog.warn('[FlagsPanel] ⚠️ DebugManager not available');
@@ -34,15 +34,15 @@ export class FlagsPanel {
     const currentlyEnabled = currentStatus[feature];
 
     if (currentlyEnabled) {
-      window.__msdDebug.debug.disable(feature);
+      window.cblcars.debug.msd.debug.disable(feature);
     } else {
-      window.__msdDebug.debug.enable(feature);
+      window.cblcars.debug.msd.debug.enable(feature);
     }
 
     // FIXED: Force immediate re-render after state change
     setTimeout(() => {
       try {
-        const pipelineInstance = window.__msdDebug?.pipelineInstance;
+        const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
         if (pipelineInstance?.reRender) {
           cblcarsLog.debug('[FlagsPanel] 🔄 Triggering re-render after', feature, currentlyEnabled ? 'disable' : 'enable');
           pipelineInstance.reRender();
@@ -56,26 +56,26 @@ export class FlagsPanel {
 
     // Refresh HUD after a delay to show updated state
     setTimeout(() => {
-      if (window.__msdDebug?.hud?.refresh) {
-        window.__msdDebug.hud.refresh();
+      if (window.cblcars.debug.msd?.hud?.refresh) {
+        window.cblcars.debug.msd.hud.refresh();
       }
     }, 100);
   }
 
   adjustScale(direction) {
-    if (!window.__msdDebug?.debug?.status) {
+    if (!window.cblcars.debug.msd?.debug?.status) {
       cblcarsLog.warn('[FlagsPanel] ⚠️ Debug status not available for scale adjustment');
       return;
     }
 
-    const currentScale = window.__msdDebug.debug.status().scale || 1.0;
+    const currentScale = window.cblcars.debug.msd.debug.status().scale || 1.0;
     const step = 0.1;
     const newScale = direction > 0 ? currentScale + step : currentScale - step;
     const clampedScale = Math.max(0.5, Math.min(3.0, newScale));
 
-    if (window.__msdDebug.debug.setScale) {
+    if (window.cblcars.debug.msd.debug.setScale) {
       cblcarsLog.debug(`[FlagsPanel] 🔧 Adjusting scale from ${currentScale.toFixed(1)} to ${clampedScale.toFixed(1)}`);
-      window.__msdDebug.debug.setScale(clampedScale);
+      window.cblcars.debug.msd.debug.setScale(clampedScale);
     } else {
       cblcarsLog.warn('[FlagsPanel] ⚠️ setScale method not available');
     }
@@ -89,9 +89,9 @@ export class FlagsPanel {
     }
     const clampedScale = Math.max(0.5, Math.min(3.0, numScale));
 
-    if (window.__msdDebug?.debug?.setScale) {
+    if (window.cblcars.debug.msd?.debug?.setScale) {
       cblcarsLog.debug(`[FlagsPanel] 📏 Setting scale to ${clampedScale.toFixed(1)}`);
-      window.__msdDebug.debug.setScale(clampedScale);
+      window.cblcars.debug.msd.debug.setScale(clampedScale);
     } else {
       cblcarsLog.warn('[FlagsPanel] ⚠️ setScale method not available');
     }
@@ -99,7 +99,7 @@ export class FlagsPanel {
 
   refreshDebug() {
     cblcarsLog.debug('[FlagsPanel] ♻️ Refreshing debug interface');
-    window.__msdDebug?.debug?.refresh?.();
+    window.cblcars.debug.msd?.debug?.refresh?.();
   }
 
   captureData() {
@@ -108,13 +108,13 @@ export class FlagsPanel {
 
     try {
       // FIXED: Use centralized silent debug status access
-      const debugStatus = window.__msdDebug?.getDebugStatusSilent?.() || {};
+      const debugStatus = window.cblcars.debug.msd?.getDebugStatusSilent?.() || {};
 
       // FIXED: Properly capture debug features and readiness
       Object.assign(debugFeatures, debugStatus);
 
       // Get current debug flags (legacy support)
-      Object.assign(flags, window.__msdDebug?._debugFlags || {});
+      Object.assign(flags, window.cblcars.debug.msd?._debugFlags || {});
     } catch (e) {
       cblcarsLog.warn('[FlagsPanel] ⚠️ Data capture failed:', e);
     }

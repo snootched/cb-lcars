@@ -758,7 +758,7 @@ graph TD
 
 ```mermaid
 graph TD
-    Debug[Debug System] --> Expose[window.__msdDebug]
+    Debug[Debug System] --> Expose[window.cblcars.debug.msd]
 
     Expose --> Pipeline[Pipeline Access]
     Expose --> Systems[Systems Access]
@@ -801,19 +801,19 @@ graph TD
 **Console Access:**
 ```javascript
 // Access debug interface
-window.__msdDebug
+window.cblcars.debug.msd
 
 // View configuration
-window.__msdDebug.config
+window.cblcars.debug.msd.config
 
 // Inspect datasources
-window.__msdDebug.systems.dataSourceManager.dataSources
+window.cblcars.debug.msd.systems.dataSourceManager.dataSources
 
 // View resolved model
-window.__msdDebug.model.computeResolvedModel()
+window.cblcars.debug.msd.model.computeResolvedModel()
 
 // Dump full state
-window.__msdDebug.dumpState()
+window.cblcars.debug.msd.dumpState()
 ```
 
 **Debug Methods:**

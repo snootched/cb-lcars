@@ -233,15 +233,17 @@ export const chartTemplateRegistry = new ChartTemplateRegistry();
 
 // NEW: Make registry globally accessible for debugging
 if (typeof window !== 'undefined') {
-  window.__msdDebug = window.__msdDebug || {};
-  window.__msdDebug.chartTemplateRegistry = chartTemplateRegistry;
+  // Safely create nested namespace structure
+  window.cblcars = window.cblcars || {};
+  window.cblcars.debug = window.cblcars.debug || {};
+  window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+
+  window.cblcars.debug.msd.chartTemplateRegistry = chartTemplateRegistry;
 
   // Add helper methods to window for easier console access
-  window.__msdDebug.templates = {
+  window.cblcars.debug.msd.templates = {
     list: (packId) => chartTemplateRegistry.listTemplates(packId),
     get: (id) => chartTemplateRegistry.get(id),
     apply: (overlay) => chartTemplateRegistry.applyTemplate(overlay)
   };
-
-  console.log('✅ ChartTemplateRegistry available at window.__msdDebug.chartTemplateRegistry');
 }

@@ -409,7 +409,7 @@ if (allOverlays.length === 0) {
 
 ### Performance Counters
 
-Accessible via `window.__msdDebug.perf`:
+Accessible via `window.cblcars.debug.msd.perf`:
 
 ```javascript
 {

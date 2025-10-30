@@ -68,7 +68,7 @@ export class DataSourceMixin {
    */
   static resolveDataSourceContent(dataSourceRef, style, rendererName = 'Renderer') {
     try {
-      const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+      const dataSourceManager = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
       if (!dataSourceManager) {
         // DataSourceManager not available - this is normal during initial rendering
         return null;
@@ -257,7 +257,7 @@ export class DataSourceMixin {
    */
   static processEnhancedTemplateStringsWithFallback(content, rendererName = 'Renderer', fallbackToOriginal = true) {
     try {
-      const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+      const dataSourceManager = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
       if (!dataSourceManager) {
         return fallbackToOriginal ? content : null;
       }
@@ -541,7 +541,7 @@ export class DataSourceMixin {
    * @returns {Object|null} DataSourceManager instance or null
    */
   static getDataSourceManager() {
-    return window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager || null;
+    return window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager || null;
   }
 
   /**

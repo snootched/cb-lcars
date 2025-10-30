@@ -10,8 +10,10 @@ export async function processAndValidateConfig(userMsdConfig) {
 
   // Store original user config in debug namespace
   if (typeof window !== 'undefined') {
-    window.__msdDebug = window.__msdDebug || {};
-    window.__msdDebug._originalUserConfig = userMsdConfig;
+    window.cblcars = window.cblcars || {};
+    window.cblcars.debug = window.cblcars.debug || {};
+    window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+    window.cblcars.debug.msd._originalUserConfig = userMsdConfig;
   }
 
   // Validation pass
@@ -19,7 +21,7 @@ export async function processAndValidateConfig(userMsdConfig) {
   const issues = validateMerged(mergedConfig);
   mergedConfig.__issues = issues;
   const t1 = performance.now();
-  try { window.__msdDebug && (window.__msdDebug._validationMs = (t1 - t0)); } catch {}
+  try { window.cblcars.debug.msd && (window.cblcars.debug.msd._validationMs = (t1 - t0)); } catch {}
 
   // Anchor validation - UPDATED to accept overlay IDs as virtual anchors
   try {

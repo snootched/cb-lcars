@@ -19,9 +19,9 @@ export class DataSourcePanel {
     window.__msdInspectDataEntity = (entityId) => {
       cblcarsLog.info('[DataSourcePanel] 🔍 Inspecting entity:', entityId);
 
-      const dsManager = window.__msdDebug?.dataSourceManager ||
-                       window.__msdDebug?.pipelineInstance?.dataSourceManager ||
-                       window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+      const dsManager = window.cblcars.debug.msd?.dataSourceManager ||
+                       window.cblcars.debug.msd?.pipelineInstance?.dataSourceManager ||
+                       window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (!dsManager?.getEntity) {
         cblcarsLog.warn('[DataSourcePanel] ❌ DataSourceManager not available');
@@ -51,9 +51,9 @@ export class DataSourcePanel {
     window.__msdInspectDataSubscription = (sourceName) => {
       cblcarsLog.info('[DataSourcePanel] 🔗 Inspecting subscription:', sourceName);
 
-      const dsManager = window.__msdDebug?.dataSourceManager ||
-                       window.__msdDebug?.pipelineInstance?.dataSourceManager ||
-                       window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+      const dsManager = window.cblcars.debug.msd?.dataSourceManager ||
+                       window.cblcars.debug.msd?.pipelineInstance?.dataSourceManager ||
+                       window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (!dsManager?.getStats) {
         cblcarsLog.warn('[DataSourcePanel] ❌ DataSourceManager not available');
@@ -83,9 +83,9 @@ export class DataSourcePanel {
       this._showSubscriptionPopup(sourceName, sourceData, subscribers);
     };    // Simple refresh function
     window.__msdRefreshDataSources = () => {
-      const dsManager = window.__msdDebug?.dataSourceManager ||
-                       window.__msdDebug?.pipelineInstance?.dataSourceManager ||
-                       window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+      const dsManager = window.cblcars.debug.msd?.dataSourceManager ||
+                       window.cblcars.debug.msd?.pipelineInstance?.dataSourceManager ||
+                       window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (dsManager?.refreshSubscriptions) {
         dsManager.refreshSubscriptions();
@@ -95,8 +95,8 @@ export class DataSourcePanel {
       }
 
       // Trigger HUD refresh
-      if (window.__msdDebug?.hud?.refresh) {
-        window.__msdDebug.hud.refresh();
+      if (window.cblcars.debug.msd?.hud?.refresh) {
+        window.cblcars.debug.msd.hud.refresh();
       }
     };
   }
@@ -608,10 +608,10 @@ export class DataSourcePanel {
     const recentChanges = [];
 
     try {
-      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
       const dsManager = pipelineInstance?.dataSourceManager ||
                        pipelineInstance?.systemsManager?.dataSourceManager ||
-                       window.__msdDebug?.dataSourceManager;
+                       window.cblcars.debug.msd?.dataSourceManager;
 
       if (dsManager) {
         // Get comprehensive stats

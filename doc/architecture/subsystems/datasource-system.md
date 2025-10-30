@@ -701,7 +701,7 @@ overlays:
 {temperature.aggregations.avg}                     // Aggregated value
 
 // In console
-const source = window.__msdDebug.systems.dataSourceManager.getSource('temperature');
+const source = window.cblcars.debug.msd.systems.dataSourceManager.getSource('temperature');
 console.log(source.getCurrentData());
 // {
 //   t: 1698355200000,

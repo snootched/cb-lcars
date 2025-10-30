@@ -5,7 +5,7 @@ import { initMsdPipeline } from './PipelineCore.js';
  * MSD Instance Manager - Provides single-instance protection for MSD system
  *
  * The MSD system is designed for single-instance operation due to:
- * - Global window references (window.__msdDebug, window.cblcars.msd.api)
+ * - Global window references (window.cblcars.debug.msd, window.cblcars.msd.api)
  * - Singleton HUD Manager attached to document.body
  * - Shared resource managers with no namespace isolation
  * - Global card instance storage
@@ -47,7 +47,7 @@ export class MsdInstanceManager {
       // Method 1: Check global references (most reliable)
       const globalCard = window.cb_lcars_card_instance ||
                         window._currentCardInstance ||
-                        window.__msdDebug?.cardInstance;
+                        window.cblcars.debug.msd?.cardInstance;
 
       if (globalCard && globalCard._msdInstanceGuid) {
         cblcarsLog.debug('[MsdInstanceManager] Found card instance via globals:',
@@ -473,7 +473,7 @@ export class MsdInstanceManager {
    */
   static _findCardElement(mountEl) {
     // Try to get the card instance from global references
-    const cardInstance = window.cb_lcars_card_instance || window._currentCardInstance || window.__msdDebug?.cardInstance;
+    const cardInstance = window.cb_lcars_card_instance || window._currentCardInstance || window.cblcars.debug.msd?.cardInstance;
 
     if (cardInstance) {
       return cardInstance; // This should be the cb-lcars-msd-card element
@@ -596,10 +596,10 @@ export class MsdInstanceManager {
 
       // Clear global references
       if (typeof window !== 'undefined') {
-        delete window.__msdDebug?.pipelineInstance;
-        delete window.__msdDebug?.systemsManager;
-        delete window.__msdDebug?.routing;
-        delete window.__msdDebug?.hud;
+        delete window.cblcars.debug.msd?.pipelineInstance;
+        delete window.cblcars.debug.msd?.systemsManager;
+        delete window.cblcars.debug.msd?.routing;
+        delete window.cblcars.debug.msd?.hud;
 
         // Clear card instance references
         delete window.cb_lcars_card_instance;
@@ -611,8 +611,8 @@ export class MsdInstanceManager {
         delete window.__msdHudPanelControls;
 
         // Clear debug references
-        delete window.__msdDebug?.cardInstance;
-        delete window.__msdDebug?.debugManager;
+        delete window.cblcars.debug.msd?.cardInstance;
+        delete window.cblcars.debug.msd?.debugManager;
       }
 
       // Clear instance references

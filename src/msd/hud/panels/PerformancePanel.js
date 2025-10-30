@@ -23,7 +23,7 @@ export class PerformancePanel {
   }
   resetTimer(timerId) {
     try {
-      window.__msdDebug?.getPerf?.()?.resetTimer?.(timerId);
+      window.cblcars.debug.msd?.getPerf?.()?.resetTimer?.(timerId);
       cblcarsLog.info(`[PerformancePanel] 🔄 Reset timer: ${timerId}`);
     } catch (e) {
       cblcarsLog.warn(`[PerformancePanel] ⚠️ Failed to reset timer ${timerId}:`, e);
@@ -31,7 +31,7 @@ export class PerformancePanel {
   }
   clearAllTimers() {
     try {
-      window.__msdDebug?.getPerf?.()?.clear?.();
+      window.cblcars.debug.msd?.getPerf?.()?.clear?.();
       this.thresholds.clear();
       cblcarsLog.info('[PerformancePanel] 🧹 Cleared all timers and thresholds');
     } catch (e) {
@@ -39,7 +39,7 @@ export class PerformancePanel {
     }
   }
   exportData() {
-    const perfData = window.__msdDebug?.getPerf?.() || {};
+    const perfData = window.cblcars.debug.msd?.getPerf?.() || {};
     const data = {
       timestamp: Date.now(),
       timers: perfData.timers || {},
@@ -70,10 +70,10 @@ export class PerformancePanel {
 
     try {
       // FIXED: Use centralized debug status access for performance state
-      const debugStatus = window.__msdDebug?.getDebugStatusSilent?.() || {};
+      const debugStatus = window.cblcars.debug.msd?.getDebugStatusSilent?.() || {};
 
       // Get performance data using consistent approach
-      const perfData = window.__msdDebug?.getPerf?.() || {};
+      const perfData = window.cblcars.debug.msd?.getPerf?.() || {};
 
       // Process timers
       if (perfData.timers) {

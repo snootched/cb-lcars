@@ -574,7 +574,7 @@ export class AdvancedRenderer {
     });
 
     // ✅ NEW: Store provenance in config (Phase 5.3)
-    const config = window.__msdDebug?.pipelineInstance?.config;
+    const config = window.cblcars.debug.msd?.pipelineInstance?.config;
     if (config && config.__provenance) {
       config.__provenance.advanced_renderer = provenance;
     }
@@ -1446,7 +1446,7 @@ export class AdvancedRenderer {
    */
   _storeRendererProvenance(overlayId, provenance) {
     // Get config from pipeline
-    const config = window.__msdDebug?.pipelineInstance?.config;
+    const config = window.cblcars.debug.msd?.pipelineInstance?.config;
     if (!config || !config.__provenance) {
       return;
     }
@@ -1472,7 +1472,7 @@ export class AdvancedRenderer {
    * @param {string} overlayType - Overlay type
    */
   _storeBasicRendererProvenance(overlayId, overlayType) {
-    const config = window.__msdDebug?.pipelineInstance?.config;
+    const config = window.cblcars.debug.msd?.pipelineInstance?.config;
     if (!config || !config.__provenance) {
       return;
     }
@@ -1507,7 +1507,7 @@ export class AdvancedRenderer {
    * @param {Error} error - Error that occurred
    */
   _storeFailedRendererProvenance(overlayId, overlayType, error) {
-    const config = window.__msdDebug?.pipelineInstance?.config;
+    const config = window.cblcars.debug.msd?.pipelineInstance?.config;
     if (!config || !config.__provenance) {
       return;
     }
@@ -1694,7 +1694,7 @@ export class AdvancedRenderer {
     }
 
     // Get DataSourceManager
-    const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+    const dataSourceManager = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
     if (!dataSourceManager) {
       cblcarsLog.debug(`[AdvancedRenderer] DataSourceManager not available`);
       return template;
@@ -2320,8 +2320,8 @@ export class AdvancedRenderer {
     }
 
     // Try pipeline instance
-    if (window.__msdDebug?.pipelineInstance?.cardInstance) {
-      return window.__msdDebug.pipelineInstance.cardInstance;
+    if (window.cblcars.debug.msd?.pipelineInstance?.cardInstance) {
+      return window.cblcars.debug.msd.pipelineInstance.cardInstance;
     }
 
     // Try global references

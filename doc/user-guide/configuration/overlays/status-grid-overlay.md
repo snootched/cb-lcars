@@ -1964,13 +1964,13 @@ console.log('Grid position:', grid?.getAttribute('transform'));
 
 **Solutions:**
 1. ✅ Verify DataSource names in `source` properties
-2. ✅ Check DataSources are started: `window.__msdDebug.pipelineInstance.systemsManager.dataSourceManager.listSources()`
+2. ✅ Check DataSources are started: `window.cblcars.debug.msd.pipelineInstance.systemsManager.dataSourceManager.listSources()`
 3. ✅ Ensure cell `position` syntax is correct: `[row, col]`
 4. ✅ Test template strings in console
 
 ```javascript
 // Debug cell data
-const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+const dsm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 const source = dsm.getSource('temperature');
 console.log('Source data:', source?.getCurrentData());
 ```
@@ -2104,7 +2104,7 @@ cells.forEach(cell => {
 #### Test DataSource Updates
 ```javascript
 // Manual update test
-const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+const dsm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 const source = dsm.getSource('temperature');
 
 // Update data manually

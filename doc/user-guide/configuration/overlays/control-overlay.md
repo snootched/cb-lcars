@@ -750,13 +750,13 @@ graph TD
 3. **Inspect Control Element**
    ```javascript
    // In browser console
-   window.__msdDebug.systems.controlsRenderer.controlElements
+   window.cblcars.debug.msd.systems.controlsRenderer.controlElements
    ```
 
 4. **Check HASS Context**
    ```javascript
    // In browser console
-   window.__msdDebug.systems.controlsRenderer.hass
+   window.cblcars.debug.msd.systems.controlsRenderer.hass
    ```
 
 5. **View Attachment Points**

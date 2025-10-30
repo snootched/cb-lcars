@@ -287,7 +287,7 @@ const renderer = systemsManager.advancedRenderer;
 
 ```javascript
 // From browser console
-const sm = window.__msdDebug.pipelineInstance.systemsManager;
+const sm = window.cblcars.debug.msd.pipelineInstance.systemsManager;
 const dsm = sm.dataSourceManager;
 const renderer = sm.advancedRenderer;
 ```

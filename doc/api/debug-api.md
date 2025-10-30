@@ -715,11 +715,11 @@ if (trace.found) {
 ## Architecture Notes
 
 ### Delegation Pattern
-All Debug API methods delegate to existing `window.__msdDebug` methods:
+All Debug API methods delegate to existing `window.cblcars.debug.msd` methods:
 
 ```javascript
 summary() {
-  const dbg = window.__msdDebug;
+  const dbg = window.cblcars.debug.msd;
   if (!dbg?.getPerformanceSummary) return null;
   return dbg.getPerformanceSummary();
 }
@@ -732,7 +732,7 @@ This ensures:
 
 ### Availability
 Debug API availability depends on:
-1. MSD instance rendered (creates `window.__msdDebug`)
+1. MSD instance rendered (creates `window.cblcars.debug.msd`)
 2. Specific subsystems initialized (performance, routing, data, etc.)
 3. Feature enabled (some features require debug mode)
 

@@ -12,15 +12,15 @@ export class ValidationPanel {
     try {
       cblcarsLog.debug('[ValidationPanel] 📋 Capturing validation data');
       // FIXED: Use centralized silent debug status access
-      const debugStatus = window.__msdDebug?.getDebugStatusSilent?.() || {};
+      const debugStatus = window.cblcars.debug.msd?.getDebugStatusSilent?.() || {};
       let validationData = {};
 
-      if (debugStatus.enabled && window.__msdDebug?.validation?.issues) {
-        validationData = window.__msdDebug.validation.issues() || {};
+      if (debugStatus.enabled && window.cblcars.debug.msd?.validation?.issues) {
+        validationData = window.cblcars.debug.msd.validation.issues() || {};
         cblcarsLog.debug('[ValidationPanel] 🔍 Retrieved validation data from debug interface');
       } else {
         // Fallback: try direct access without debug interface
-        validationData = window.__msdDebug?.pipelineInstance?.getValidationIssues?.() || {};
+        validationData = window.cblcars.debug.msd?.pipelineInstance?.getValidationIssues?.() || {};
         cblcarsLog.debug('[ValidationPanel] 🔄 Using fallback validation data access');
       }
 

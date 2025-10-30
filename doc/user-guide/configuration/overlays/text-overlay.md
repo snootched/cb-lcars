@@ -1237,7 +1237,7 @@ overlays:
 4. ✅ Test datasource access in console:
 
 ```javascript
-const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+const dsm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 console.log('Source data:', dsm.getSource('temperature')?.getCurrentData());
 ```
 
@@ -1318,7 +1318,7 @@ textOverlays.forEach(el => {
 
 ```javascript
 // Access DataSource Manager
-const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+const dsm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 
 // List all sources
 console.log('Available sources:', dsm.listSources());
@@ -1340,7 +1340,7 @@ const testContent = "Temp: {temperature.transformations.celsius:.1f}°C";
 console.log('Template:', testContent);
 
 // Check if DataSource exists
-const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+const dsm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 console.log('DataSource exists:', dsm.getSource('temperature') !== null);
 ```
 

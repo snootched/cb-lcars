@@ -685,7 +685,7 @@ export class ApexChartsAdapter {
   static _getAnimationPreset(presetName) {
     try {
       // Access pack registry via global debug object
-      const packRegistry = window.__msdDebug?.pipelineInstance?.systemsManager?.packRegistry;
+      const packRegistry = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.packRegistry;
 
       if (!packRegistry) {
         cblcarsLog.warn('[ApexChartsAdapter] PackRegistry not available for animation presets');

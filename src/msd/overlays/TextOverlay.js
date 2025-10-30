@@ -566,7 +566,7 @@ ${renderResult.markup}
     let effectiveFallbackViewBox = fallbackViewBox;
     if (!this.viewBox && !fallbackViewBox) {
       try {
-        const pipeline = window.__msdDebug?.pipelineInstance;
+        const pipeline = window.cblcars.debug.msd?.pipelineInstance;
         const resolvedModel = pipeline?.getResolvedModel?.();
         if (resolvedModel?.viewBox && Array.isArray(resolvedModel.viewBox)) {
           effectiveFallbackViewBox = resolvedModel.viewBox;

@@ -688,7 +688,7 @@ styleResolver.config.debug = true;
 
 ```javascript
 // Access StyleResolver
-const sr = window.__msdDebug.pipelineInstance.systemsManager.styleResolver;
+const sr = window.cblcars.debug.msd.pipelineInstance.systemsManager.styleResolver;
 
 // Check cache stats
 console.log(sr.getCacheStats());

@@ -1409,7 +1409,7 @@ points:
 
 ```javascript
 // Debug attachment points
-const apm = window.__msdDebug?.pipelineInstance?.systemsManager?.attachmentPointManager;
+const apm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.attachmentPointManager;
 console.log('Attachment points:', apm?.getAllAttachmentPoints());
 ```
 
@@ -1454,7 +1454,7 @@ console.log('Line details:', {
 
 ```javascript
 // Access attachment point manager
-const apm = window.__msdDebug?.pipelineInstance?.systemsManager?.attachmentPointManager;
+const apm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.attachmentPointManager;
 
 // List all attachment points
 console.log('All points:', apm?.getAllAttachmentPoints());

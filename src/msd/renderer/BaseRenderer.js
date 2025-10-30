@@ -89,7 +89,7 @@ export class BaseRenderer {
 
     // 2. Pipeline instance via systemsManager
     if (typeof window !== 'undefined') {
-      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
       if (pipelineInstance?.systemsManager?.themeManager) {
         return pipelineInstance.systemsManager.themeManager;
       }
@@ -100,7 +100,7 @@ export class BaseRenderer {
       }
 
       // 4. Systems manager global reference
-      const systemsManager = window.__msdDebug?.systemsManager;
+      const systemsManager = window.cblcars.debug.msd?.systemsManager;
       if (systemsManager?.themeManager) {
         return systemsManager.themeManager;
       }
@@ -330,7 +330,7 @@ export class BaseRenderer {
         return 'window.cblcars.theme';
       }
 
-      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
       if (pipelineInstance?.systemsManager?.themeManager === this.themeManager) {
         return 'pipelineInstance.systemsManager.themeManager';
       }
@@ -339,7 +339,7 @@ export class BaseRenderer {
         return 'pipelineInstance.themeManager';
       }
 
-      const systemsManager = window.__msdDebug?.systemsManager;
+      const systemsManager = window.cblcars.debug.msd?.systemsManager;
       if (systemsManager?.themeManager === this.themeManager) {
         return 'systemsManager.themeManager';
       }
@@ -390,7 +390,7 @@ export class BaseRenderer {
 
     // Priority 2: Pipeline instance via systemsManager
     if (typeof window !== 'undefined') {
-      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
       if (pipelineInstance?.systemsManager?.styleResolver) {
         return pipelineInstance.systemsManager.styleResolver;
       }
@@ -401,7 +401,7 @@ export class BaseRenderer {
       }
 
       // Priority 4: SystemsManager global reference
-      const systemsManager = window.__msdSystemsManager || window.__msdDebug?.systemsManager;
+      const systemsManager = window.__msdSystemsManager || window.cblcars.debug.msd?.systemsManager;
       if (systemsManager?.styleResolver) {
         return systemsManager.styleResolver;
       }
@@ -725,14 +725,14 @@ export class BaseRenderer {
   _resolveContainerElement() {
     // Method 1: From pipeline renderer (most reliable)
     if (typeof window !== 'undefined') {
-      const renderer = window.__msdDebug?.pipelineInstance?.systemsManager?.renderer;
+      const renderer = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.renderer;
       if (renderer?.mountEl) {
         this._logDebug('Resolved container from pipeline renderer');
         return renderer.mountEl;
       }
 
       // Method 2: From card instance shadow root
-      const cardInstance = window.__msdDebug?.pipelineInstance?.cardInstance ||
+      const cardInstance = window.cblcars.debug.msd?.pipelineInstance?.cardInstance ||
                            window._msdCardInstance ||
                            window.cb_lcars_card_instance;
 

@@ -11,7 +11,7 @@ export class RulesPanel {
     const stats = {};
 
     try {
-      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
       const rulesEngine = pipelineInstance?.systemsManager?.rulesEngine ||
                          pipelineInstance?.rulesEngine;
 

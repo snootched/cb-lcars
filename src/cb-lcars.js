@@ -962,7 +962,7 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         // ENHANCED: Initialize MSD v1 pipeline for this card instance
         // This ensures the pipeline is ready when the card renders
         try {
-            if (msdConfig && window.__msdDebug?.initMsdPipeline) {
+            if (msdConfig && window.cblcars.debug.msd?.initMsdPipeline) {
                 // Store the MSD config for later pipeline initialization in the template
                 this._msdConfig = msdConfig;
                 cblcarsLog.debug('[CBLCARSMSDCard.setConfig()] MSD config prepared for pipeline initialization');
@@ -1125,8 +1125,8 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
      */
     _isControlTriggeredUpdate() {
         // Access the MSD system's entity change analysis
-        if (window.__msdDebug?.systemsManager) {
-            const lastAnalysis = window.__msdDebug.systemsManager._lastEntityAnalysis;
+        if (window.cblcars.debug.msd?.systemsManager) {
+            const lastAnalysis = window.cblcars.debug.msd.systemsManager._lastEntityAnalysis;
             if (lastAnalysis && lastAnalysis.isControlTriggered) {
                 const timeSinceAnalysis = Date.now() - lastAnalysis.timestamp;
                 // If analysis was recent (within 100ms), consider this a control-triggered update

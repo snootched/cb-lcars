@@ -567,7 +567,7 @@ class RouterCore {
 
 ```javascript
 // Global debug access
-window.__msdDebug = {
+window.cblcars.debug.msd = {
   pipelineInstance: {
     systemsManager: {
       advancedRenderer: {
@@ -578,7 +578,7 @@ window.__msdDebug = {
 };
 
 // Console usage
-const apm = window.__msdDebug.pipelineInstance.systemsManager.advancedRenderer.attachmentPointManager;
+const apm = window.cblcars.debug.msd.pipelineInstance.systemsManager.advancedRenderer.attachmentPointManager;
 console.log(apm.getAttachmentPoints("title"));
 console.log(apm.getAllAnchors());
 ```
@@ -591,7 +591,7 @@ console.log(apm.getAllAnchors());
 
 ```javascript
 // Get manager instance
-const apm = window.__msdDebug.pipelineInstance.systemsManager.advancedRenderer.attachmentPointManager;
+const apm = window.cblcars.debug.msd.pipelineInstance.systemsManager.advancedRenderer.attachmentPointManager;
 
 // Check if overlay has attachment points
 console.log(apm.hasAttachmentPoints("title"));  // true

@@ -683,7 +683,7 @@ DataSources provide a convenience method for getting the friendly name:
 
 ```javascript
 // In browser console or custom expressions
-const source = window.__msdDebug.systems.dataSourceManager.getSource('temperature');
+const source = window.cblcars.debug.msd.systems.dataSourceManager.getSource('temperature');
 console.log(source.getDisplayName());
 // Output: "Living Room Temperature" or entity_id if no friendly_name
 ```
@@ -770,7 +770,7 @@ overlays:
 **Metadata is null or missing:**
 ```javascript
 // Check if datasource is connected
-const source = window.__msdDebug.systems.dataSourceManager.getSource('my_source');
+const source = window.cblcars.debug.msd.systems.dataSourceManager.getSource('my_source');
 console.log('Metadata:', source.metadata);
 console.log('Entity:', source.cfg.entity);
 ```

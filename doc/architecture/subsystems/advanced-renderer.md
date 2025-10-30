@@ -1023,7 +1023,7 @@ renderer.dispose();
 
 ```javascript
 // Access renderer
-const renderer = window.__msdDebug.pipelineInstance.systemsManager.advancedRenderer;
+const renderer = window.cblcars.debug.msd.pipelineInstance.systemsManager.advancedRenderer;
 
 // Check overlay instances
 console.log('Cached instances:', renderer.overlayRenderers.size);

@@ -635,8 +635,8 @@ export class ButtonOverlay extends OverlayBase {
    * @returns {Object|null} Card instance
    */
   _resolveCardInstance() {
-    if (window.__msdDebug?.pipelineInstance?.cardInstance) {
-      return window.__msdDebug.pipelineInstance.cardInstance;
+    if (window.cblcars.debug.msd?.pipelineInstance?.cardInstance) {
+      return window.cblcars.debug.msd.pipelineInstance.cardInstance;
     }
 
     if (window._msdCardInstance) {

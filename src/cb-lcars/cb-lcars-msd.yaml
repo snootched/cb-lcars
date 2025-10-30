@@ -252,8 +252,8 @@ cb-lcars-msd:
         console.log('[MSD DEBUG] 🏗️ Custom field ENTRY:', {
           timestamp: new Date().toISOString(),
           hasBootFlag: !!this._msdV1ComprehensiveBoot,
-          hasMsdDebug: !!window.__msdDebug,
-          hasInitPipeline: !!window.__msdDebug?.initMsdPipeline,
+          hasMsdDebug: !!window.cblcars?.debug?.msd,
+          hasInitPipeline: !!window.cblcars?.debug?.msd?.initMsdPipeline,
           cardId: this.id || 'no-id',
           stackTrace: new Error().stack.split('\n').slice(1, 3).join('\n')
         });
@@ -263,31 +263,50 @@ cb-lcars-msd:
           if (!this._msdV1ComprehensiveBoot) {
             console.log('[MSD DEBUG] 🚀 First boot - initializing MSD system');
 
+            // ✅ CRITICAL: Check if MSD system is fully loaded with MsdInstanceManager
+            if (!window.cblcars?.debug?.msd?.MsdInstanceManager) {
+              console.error('[MSD DEBUG] ❌ FATAL: MsdInstanceManager not available');
+              console.error('[MSD DEBUG] ❌ window.cblcars:', window.cblcars);
+              console.error('[MSD DEBUG] ❌ window.cblcars.debug:', window.cblcars?.debug);
+              console.error('[MSD DEBUG] ❌ window.cblcars.debug.msd:', window.cblcars?.debug?.msd);
+              console.error('[MSD DEBUG] ❌ Keys in window.cblcars.debug.msd:',
+                window.cblcars?.debug?.msd ? Object.keys(window.cblcars.debug.msd) : 'N/A');
+
+              return `
+                <div style="
+                  color: #ff6666;
+                  padding: 20px;
+                  text-align: center;
+                  border: 2px solid #ff6666;
+                  border-radius: 8px;
+                  background: rgba(255, 102, 102, 0.1);
+                  font-family: monospace;
+                ">
+                  <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                    ❌ MSD System Not Loaded
+                  </div>
+                  <div style="font-size: 14px; margin-bottom: 8px;">
+                    MsdInstanceManager is not available. Check browser console for details.
+                  </div>
+                  <div style="font-size: 12px; opacity: 0.7;">
+                    This usually means the cb-lcars.js bundle did not load correctly.
+                  </div>
+                </div>
+              `;
+            }
+
+            console.log('[MSD DEBUG] ✅ MsdInstanceManager is available');
+
             // ✅ NEW: Assign GUID to card instance FIRST (before any other initialization)
             if (!this._msdInstanceGuid) {
-              if (!window.__msdDebug?.MsdInstanceManager) {
-                console.error('[MSD DEBUG] ❌ MsdInstanceManager not available for GUID generation');
-              } else {
-                this._msdInstanceGuid = window.__msdDebug.MsdInstanceManager._generateGuid();
-                console.log('[MSD DEBUG] 🔑 Generated instance GUID:', {
-                  guid: this._msdInstanceGuid,
-                  cardId: this.id,
-                  timestamp: new Date().toISOString()
-                });
-              }
+              this._msdInstanceGuid = window.cblcars.debug.msd.MsdInstanceManager._generateGuid();
+              console.log('[MSD DEBUG] 🔑 Generated instance GUID:', {
+                guid: this._msdInstanceGuid,
+                cardId: this.id,
+                timestamp: new Date().toISOString()
+              });
             } else {
               console.log('[MSD DEBUG] 🔑 Using existing instance GUID:', this._msdInstanceGuid);
-            }
-
-            // Check if MSD v1 system is loaded
-            if (typeof window.__msdDebug === 'undefined') {
-              console.error('[MSD DEBUG] ❌ window.__msdDebug not found');
-              return `<div style="color:red;padding:10px;">MSD v1 system not loaded</div>`;
-            }
-
-            if (!window.__msdDebug.MsdInstanceManager) {
-              console.error('[MSD DEBUG] ❌ MsdInstanceManager not found');
-              return `<div style="color:red;padding:10px;">MsdInstanceManager not available</div>`;
             }
 
             this._msdV1ComprehensiveBoot = true;
@@ -300,17 +319,20 @@ cb-lcars-msd:
             // Set card instance BEFORE any processing
             window.cb_lcars_card_instance = this;
             window._currentCardInstance = this;
-            if (!window.__msdDebug) window.__msdDebug = {};
-            window.__msdDebug.cardInstance = this;
+            if (!window.cblcars.debug.msd) {
+              console.error('[MSD DEBUG] ❌ window.cblcars.debug.msd not initialized');
+            } else {
+              window.cblcars.debug.msd.cardInstance = this;
+            }
 
             // Check for preview mode early
             const mount = this.shadowRoot || this;
-            const isPreview = window.__msdDebug.MsdInstanceManager.detectPreviewMode(mount);
+            const isPreview = window.cblcars.debug.msd.MsdInstanceManager.detectPreviewMode(mount);
 
             if (isPreview) {
               console.log('[MSD DEBUG] 🔍 Preview mode detected - showing preview content');
               // Use MsdInstanceManager to create preview content
-              const previewResult = window.__msdDebug.MsdInstanceManager._createPreviewContent(msdConfig || {}, mount);
+              const previewResult = window.cblcars.debug.msd.MsdInstanceManager._createPreviewContent(msdConfig || {}, mount);
               return previewResult.html;
             }
 
@@ -506,15 +528,18 @@ cb-lcars-msd:
               // CRITICAL: Set card instance BEFORE pipeline initialization (with GUID already assigned)
               window.cb_lcars_card_instance = this;
               window._currentCardInstance = this;
-              if (!window.__msdDebug) window.__msdDebug = {};
-              window.__msdDebug.cardInstance = this;
+              if (!window.cblcars.debug.msd) {
+                console.error('[MSD DEBUG] ❌ window.cblcars.debug.msd not initialized');
+              } else {
+                window.cblcars.debug.msd.cardInstance = this;
+              }
               console.log('[MSD DEBUG] 🎯 Card instance stored with GUID:', this._msdInstanceGuid);
 
               // Detect preview mode
-              const isPreview = window.__msdDebug.MsdInstanceManager.detectPreviewMode(mount);
+              const isPreview = window.cblcars.debug.msd.MsdInstanceManager.detectPreviewMode(mount);
 
               // Use MsdInstanceManager instead of direct initMsdPipeline
-              window.__msdDebug.MsdInstanceManager.requestInstance(enhancedConfig, mount, realHass, isPreview).then(pipelineResult => {
+              window.cblcars.debug.msd.MsdInstanceManager.requestInstance(enhancedConfig, mount, realHass, isPreview).then(pipelineResult => {
 
                 if (pipelineResult.preview) {
                   console.log('[MSD DEBUG] 📋 Preview mode detected - updating wrapper with preview content');

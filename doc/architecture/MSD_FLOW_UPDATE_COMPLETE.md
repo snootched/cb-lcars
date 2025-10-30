@@ -137,7 +137,7 @@
 ### 14. **Debug System Architecture**
 **Diagram Type:** Graph with 3 subgroups
 **Shows:**
-- window.__msdDebug and API exposure
+- window.cblcars.debug.msd and API exposure
 - Introspection tools (PipelineInstance, Systems)
 - Debug renderers (MsdDebugRenderer, MsdControlsRenderer)
 
@@ -174,7 +174,7 @@
 
 ### Added New Sections
 
-✅ **Debug & Introspection** - Complete window.__msdDebug guide
+✅ **Debug & Introspection** - Complete window.cblcars.debug.msd guide
 ✅ **Runtime Updates** - All update trigger types
 ✅ **Key Architectural Strengths** - 6 core principles
 ✅ **Model Structure** - Code examples of base vs resolved models
@@ -229,7 +229,7 @@ Step-by-step system initialization from Card element to ready pipeline.
 Clear visualization of the central orchestrator and all managed subsystems.
 
 ### Most Practical: Debug System Architecture
-Shows how developers access introspection tools via window.__msdDebug.
+Shows how developers access introspection tools via window.cblcars.debug.msd.
 
 ---
 

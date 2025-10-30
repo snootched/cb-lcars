@@ -199,7 +199,7 @@ export class ApexChartsOverlay extends OverlayBase {
     // Try various sources in priority order
 
     // 1. Pipeline instance
-    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
     if (pipelineInstance?.cardInstance) {
       return pipelineInstance.cardInstance;
     }

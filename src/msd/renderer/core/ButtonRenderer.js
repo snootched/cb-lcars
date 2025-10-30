@@ -32,13 +32,13 @@ export class ButtonRenderer extends BaseRenderer {
    */
   _resolveStylePresetManager() {
     // 1. Pipeline instance (preferred)
-    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
     if (pipelineInstance?.systemsManager?.stylePresetManager) {
       return pipelineInstance.systemsManager.stylePresetManager;
     }
 
     // 2. Systems manager global reference
-    const systemsManager = window.__msdDebug?.systemsManager;
+    const systemsManager = window.cblcars.debug.msd?.systemsManager;
     if (systemsManager?.stylePresetManager) {
       return systemsManager.stylePresetManager;
     }

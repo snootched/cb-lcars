@@ -295,7 +295,7 @@ export class DebugManager {
         // FIXED: Trigger immediate re-render when feature state changes
         setTimeout(() => {
           try {
-            const pipelineInstance = window.__msdDebug?.pipelineInstance;
+            const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
             if (pipelineInstance?.reRender) {
               cblcarsLog.debug(`[DebugManager] 🔄 Auto re-render after ${feature} ${enabled ? 'enable' : 'disable'}`);
               pipelineInstance.reRender();

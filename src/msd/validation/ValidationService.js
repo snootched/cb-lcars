@@ -134,7 +134,7 @@ export class ValidationService {
     const enhancedContext = {
       ...context,
       dataSourceManager: context.dataSourceManager ||
-                        window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager
+                        window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager
     };
 
     // 1. Structural validation (schema-based)
@@ -373,8 +373,10 @@ export class ValidationService {
 
 // Make globally accessible for debugging
 if (typeof window !== 'undefined') {
-  window.__msdDebug = window.__msdDebug || {};
-  window.__msdDebug.ValidationService = ValidationService;
+  window.cblcars = window.cblcars || {};
+  window.cblcars.debug = window.cblcars.debug || {};
+  window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+  window.cblcars.debug.msd.ValidationService = ValidationService;
 }
 
 export default ValidationService;

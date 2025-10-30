@@ -1523,7 +1523,7 @@ Migrating from deprecated Sparkline and HistoryBar overlays.
 **Solutions:**
 1. ✅ Verify `type: apexchart` is correct
 2. ✅ Check `source` DataSource exists
-3. ✅ Ensure DataSource has data: `window.__msdDebug.pipelineInstance.systemsManager.dataSourceManager.getSource('name').getCurrentData()`
+3. ✅ Ensure DataSource has data: `window.cblcars.debug.msd.pipelineInstance.systemsManager.dataSourceManager.getSource('name').getCurrentData()`
 4. ✅ Check browser console for errors
 5. ✅ Verify ApexCharts library is loaded
 
@@ -1545,7 +1545,7 @@ console.log('Chart element:', chart);
 
 ```javascript
 // Check DataSource data
-const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+const dsm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 const source = dsm.getSource('temperature');
 console.log('Source data:', source?.getCurrentData());
 console.log('Buffer:', source?.buffer);
@@ -1641,7 +1641,7 @@ console.log('Chart details:', {
 });
 
 // Check DataSource
-const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+const dsm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 const source = dsm.getSource('temperature');
 console.log('Source:', {
   hasData: !!source,

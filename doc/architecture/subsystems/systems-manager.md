@@ -265,15 +265,15 @@ For debugging, systems are exposed globally:
 
 ```javascript
 // Access from browser console
-window.__msdDebug = {
+window.cblcars.debug.msd = {
   pipelineInstance: {
     systemsManager: systemsManager
   }
 };
 
 // Access subsystems
-const dsm = window.__msdDebug.pipelineInstance.systemsManager.dataSourceManager;
-const renderer = window.__msdDebug.pipelineInstance.systemsManager.advancedRenderer;
+const dsm = window.cblcars.debug.msd.pipelineInstance.systemsManager.dataSourceManager;
+const renderer = window.cblcars.debug.msd.pipelineInstance.systemsManager.advancedRenderer;
 ```
 
 ### System State
@@ -474,7 +474,7 @@ const health = systemsManager.getHealth();
 
 ```javascript
 // Access SystemsManager
-const sm = window.__msdDebug.pipelineInstance.systemsManager;
+const sm = window.cblcars.debug.msd.pipelineInstance.systemsManager;
 
 // Check initialization status
 console.log('Initialized:', sm.isInitialized);

@@ -108,7 +108,7 @@ export class IssuesPanel {
 
     try {
       // Validation issues
-      const validationData = window.__msdDebug?.validation?.issues?.() || {};
+      const validationData = window.cblcars.debug.msd?.validation?.issues?.() || {};
       if (validationData.errors) {
         validationData.errors.forEach(error => {
           issues.validation.push({
@@ -140,10 +140,10 @@ export class IssuesPanel {
 
       // Routing issues from debug features
       // FIXED: Use centralized silent debug status access
-      const debugStatus = window.__msdDebug?.getDebugStatusSilent?.() || {};
+      const debugStatus = window.cblcars.debug.msd?.getDebugStatusSilent?.() || {};
       if (debugStatus.enabled) {
         // Check for routing problems (this would need actual routing diagnostics)
-        const routing = window.__msdDebug?.routing;
+        const routing = window.cblcars.debug.msd?.routing;
         if (routing?.stats) {
           const stats = routing.stats();
           if (stats.errors && stats.errors > 0) {
@@ -163,7 +163,7 @@ export class IssuesPanel {
       if (debugStatus.performance) {
         // Could check for performance thresholds here
         // This is a placeholder for actual performance monitoring
-        const perfData = window.__msdDebug?.getPerf?.() || {};
+        const perfData = window.cblcars.debug.msd?.getPerf?.() || {};
         if (perfData.timers) {
           Object.entries(perfData.timers).forEach(([key, timer]) => {
             if (timer.avg > 50) { // Example threshold

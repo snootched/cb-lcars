@@ -738,8 +738,8 @@ export class ActionHelpers {
     // Try various methods to get the card instance
 
     // Method 1: From MSD pipeline if available
-    if (window.__msdDebug?.pipelineInstance?.cardInstance) {
-      return window.__msdDebug.pipelineInstance.cardInstance;
+    if (window.cblcars.debug.msd?.pipelineInstance?.cardInstance) {
+      return window.cblcars.debug.msd.pipelineInstance.cardInstance;
     }
 
     // Method 2: From global MSD context

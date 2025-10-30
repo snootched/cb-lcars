@@ -32,14 +32,14 @@ export class StatusGridRenderer extends BaseRenderer {
    */
   _resolveStylePresetManager() {
     // 1. Pipeline instance (preferred)
-    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
     if (pipelineInstance?.systemsManager?.stylePresetManager) {
       cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to theme manager via pipeline systemsManager');
       return pipelineInstance.systemsManager.stylePresetManager;
     }
 
     // 2. Systems manager global reference
-    const systemsManager = window.__msdDebug?.systemsManager;
+    const systemsManager = window.cblcars.debug.msd?.systemsManager;
     if (systemsManager?.stylePresetManager) {
       cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to theme manager via global systemsManager');
       return systemsManager.stylePresetManager;
@@ -756,7 +756,7 @@ export class StatusGridRenderer extends BaseRenderer {
     let gridElement = null;
 
     // Method 1: Use renderer mount element (same as ButtonOverlay)
-    const renderer = window.__msdDebug?.pipelineInstance?.systemsManager?.renderer;
+    const renderer = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.renderer;
     if (renderer && renderer.mountEl) {
       const overlayGroup = renderer.mountEl.querySelector('#msd-overlay-container');
       if (overlayGroup) {
@@ -2061,8 +2061,8 @@ export class StatusGridRenderer extends BaseRenderer {
    */
   _resolveCardInstance() {
     // Try various methods to get the card instance
-    if (window.__msdDebug?.pipelineInstance?.cardInstance) {
-      return window.__msdDebug.pipelineInstance.cardInstance;
+    if (window.cblcars.debug.msd?.pipelineInstance?.cardInstance) {
+      return window.cblcars.debug.msd.pipelineInstance.cardInstance;
     }
 
     if (window._msdCardInstance) {
@@ -2085,8 +2085,8 @@ export class StatusGridRenderer extends BaseRenderer {
     // Try various methods to get the card instance
 
     // Method 1: From MSD pipeline if available
-    if (window.__msdDebug?.pipelineInstance?.cardInstance) {
-      return window.__msdDebug.pipelineInstance.cardInstance;
+    if (window.cblcars.debug.msd?.pipelineInstance?.cardInstance) {
+      return window.cblcars.debug.msd.pipelineInstance.cardInstance;
     }
 
     // Method 2: From global MSD context
@@ -2620,7 +2620,7 @@ export class StatusGridRenderer extends BaseRenderer {
     let gridElement = null;
 
     // Method 1: Use the known renderer mount element
-    const renderer = window.__msdDebug?.pipelineInstance?.systemsManager?.renderer;
+    const renderer = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.renderer;
     if (renderer && renderer.mountEl) {
       const overlayGroup = renderer.mountEl.querySelector('#msd-overlay-container');
       if (overlayGroup) {

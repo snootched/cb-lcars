@@ -587,7 +587,7 @@ Clean, minimal design for modern aesthetics:
 **Solution:**
 ```javascript
 // Check if theme pack loaded
-console.log('Loaded packs:', window.__msdDebug?.pipelineInstance?.config?.__provenance?.merge_order);
+console.log('Loaded packs:', window.cblcars.debug.msd?.pipelineInstance?.config?.__provenance?.merge_order);
 
 // Check theme availability
 console.log('Available themes:', window.cblcars.theme.listThemes());

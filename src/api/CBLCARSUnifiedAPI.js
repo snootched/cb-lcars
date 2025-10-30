@@ -49,7 +49,10 @@ export class CBLCARSUnifiedAPI {
       // PHASE 1: Debug API
       // ==========================================
       window.cblcars.debug = window.cblcars.debug || {};
-      window.cblcars.debug.msd = MsdDebugAPI.create();
+      // CRITICAL: Preserve existing debug.msd properties (e.g., MsdInstanceManager from index.js)
+      // by merging DebugAPI instead of replacing
+      window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+      Object.assign(window.cblcars.debug.msd, MsdDebugAPI.create());
       cblcarsLog.debug('[UnifiedAPI] Debug API attached');
 
       // ==========================================

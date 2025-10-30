@@ -12,24 +12,32 @@ export { initMsdPipeline, processMsdConfig };
 // Utility exports
 export { mergePacks, validateMerged };
 
-// Debug exposure
+// Debug exposure - IMMEDIATE execution at module load time
 (function attachDebug() {
   if (typeof window === 'undefined') return;
 
-  window.__msdDebug = window.__msdDebug || {};
-  Object.assign(window.__msdDebug, {
+  // Safely create nested namespace structure
+  window.cblcars = window.cblcars || {};
+  window.cblcars.debug = window.cblcars.debug || {};
+  window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+
+  // CRITICAL: Attach MsdInstanceManager FIRST before anything else
+  window.cblcars.debug.msd.MsdInstanceManager = MsdInstanceManager;
+
+  console.log('[MSD index.js] ✅ MsdInstanceManager attached to window.cblcars.debug.msd:', !!window.cblcars.debug.msd.MsdInstanceManager);
+
+  // CRITICAL FIX: Single Object.assign to preserve MsdInstanceManager
+  // Previous bug: Two Object.assign calls caused the second to overwrite the first
+  Object.assign(window.cblcars.debug.msd, {
+    // Core functions (preserve from first Object.assign)
     mergePacks,
     buildCardModel,
     initMsdPipeline,
-    MsdInstanceManager
-  });
 
-  // Enhanced debug interface
-  Object.assign(window.__msdDebug, {
     // Authoritative pipeline instance
     pipelineInstance: null,
 
-    // Initialize MSD pipeline
+    // Initialize MSD pipeline (overrides imported function with enhanced version)
     async initMsdPipeline(mergedConfig, mount, hass) {
       try {
         const pipelineApi = await initMsdPipeline(mergedConfig, mount, hass);
@@ -250,11 +258,11 @@ export { mergePacks, validateMerged };
   });
 
   // DataSourceManager property with getter
-  Object.defineProperty(window.__msdDebug, 'dataSourceManager', {
+  Object.defineProperty(window.cblcars.debug.msd, 'dataSourceManager', {
     get() {
       // Simplified: Use pipelineInstance as single source of truth
-      return window.__msdDebug.pipelineInstance?.dataSourceManager ||
-             window.__msdDebug.pipelineInstance?.systemsManager?.dataSourceManager;
+      return window.cblcars.debug.msd.pipelineInstance?.dataSourceManager ||
+             window.cblcars.debug.msd.pipelineInstance?.systemsManager?.dataSourceManager;
     },
     configurable: true  // Allow it to be redefined if needed
   });

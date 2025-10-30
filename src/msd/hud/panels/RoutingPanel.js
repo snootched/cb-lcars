@@ -30,7 +30,7 @@ export class RoutingPanel {
     window.__msdAnalyzeRoute = (routeId) => {
       cblcarsLog.info('[RoutingPanel] 🔍 Global analyze for:', routeId);
 
-      const routing = window.__msdDebug?.routing;
+      const routing = window.cblcars.debug.msd?.routing;
       if (!routing?.inspect) {
         cblcarsLog.warn('[RoutingPanel] ⚠️ No routing inspector available');
         return;
@@ -272,8 +272,8 @@ export class RoutingPanel {
 
     try {
       // Get the mount element from the pipeline/debug interface
-      const mountElement = window.__msdDebug?.pipelineInstance?.mountElement ||
-                          window.__msdDebug?.mountElement ||
+      const mountElement = window.cblcars.debug.msd?.pipelineInstance?.mountElement ||
+                          window.cblcars.debug.msd?.mountElement ||
                           document.querySelector('cb-lcars-msd-card')?.shadowRoot ||
                           document;
 
@@ -342,8 +342,8 @@ export class RoutingPanel {
     }
 
     // Emit routing focus event for other panels
-    if (window.__msdDebug?.hud?.emit) {
-      window.__msdDebug.hud.emit('routing:focus', { id: routeId });
+    if (window.cblcars.debug.msd?.hud?.emit) {
+      window.cblcars.debug.msd.hud.emit('routing:focus', { id: routeId });
     }
   }  analyzeRoute(routeId) {
     cblcarsLog.info('[RoutingPanel] 🔍 analyzeRoute called with:', routeId);
@@ -353,7 +353,7 @@ export class RoutingPanel {
       return;
     }
 
-    const routing = window.__msdDebug?.routing;
+    const routing = window.cblcars.debug.msd?.routing;
     if (routing?.inspect) {
       const analysis = routing.inspect(routeId);
 
@@ -515,7 +515,7 @@ export class RoutingPanel {
     const performance = {};
 
     try {
-      const routing = window.__msdDebug?.routing;
+      const routing = window.cblcars.debug.msd?.routing;
       if (routing) {
         // Get routing statistics
         const routingStats = routing.stats?.() || {};
@@ -527,7 +527,7 @@ export class RoutingPanel {
         }
 
         // Get route inspections for line overlays
-        const pipeline = window.__msdDebug?.pipelineInstance;
+        const pipeline = window.cblcars.debug.msd?.pipelineInstance;
         if (pipeline) {
           const model = pipeline.getResolvedModel?.();
           if (model?.overlays) {

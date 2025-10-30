@@ -178,7 +178,7 @@ export class SystemsManager {
     if (typeof window !== 'undefined') {
       window.cblcars = window.cblcars || {};
       window.cblcars.theme = this.themeManager;
-      window.__msdDebug.themeProvenance = mergedConfig.__provenance?.theme;
+      window.cblcars.debug.msd.themeProvenance = mergedConfig.__provenance?.theme;
       cblcarsLog.debug('[SystemsManager] 🔧 ThemeManager globally accessible via window.cblcars.theme');
     }
 
@@ -671,9 +671,9 @@ export class SystemsManager {
     //*** clean up other systems */
 
     // Remove global references
-    if (typeof window !== 'undefined' && window.__msdDebug) {
-      delete window.__msdDebug.pipelineInstance;
-      delete window.__msdDebug.systemsManager;
+    if (typeof window !== 'undefined' && window.cblcars.debug.msd) {
+      delete window.cblcars.debug.msd.pipelineInstance;
+      delete window.cblcars.debug.msd.systemsManager;
     }
   }
 

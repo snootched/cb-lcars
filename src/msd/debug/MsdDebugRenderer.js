@@ -150,8 +150,8 @@ export class MsdDebugRenderer {
     this.routingOverlays.forEach(o => o.remove());
     this.routingOverlays.clear();
 
-    // Get routing system from window.__msdDebug (set by pipeline)
-    const routing = opts.router || window.__msdDebug?.routing;
+    // Get routing system from window.cblcars.debug.msd (set by pipeline)
+    const routing = opts.router || window.cblcars.debug.msd?.routing;
 
     if (!routing || typeof routing.inspect !== 'function') {
       cblcarsLog.debug('[MsdDebugRenderer] Routing system not available for debug rendering');
@@ -381,7 +381,7 @@ export class MsdDebugRenderer {
     this.performanceOverlays.forEach(o => o.remove());
     this.performanceOverlays.clear();
 
-    const perf = window.__msdDebug?.getPerf?.() || {};
+    const perf = window.cblcars.debug.msd?.getPerf?.() || {};
     const perfEntries = [];
 
     if (perf.timers) {

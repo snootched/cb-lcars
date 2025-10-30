@@ -1499,7 +1499,7 @@ console.log('Button action status:', {
 
 ```javascript
 // Check datasource
-const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+const dsm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 const source = dsm.getSource('temperature');
 console.log('Source data:', source?.getCurrentData());
 ```
@@ -1562,7 +1562,7 @@ console.log('Button details:', {
 
 ```javascript
 // Get button's datasource
-const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+const dsm = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 const source = dsm.getSource('temperature');
 console.log('DataSource:', {
   exists: source !== null,

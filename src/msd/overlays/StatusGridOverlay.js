@@ -197,7 +197,7 @@ export class StatusGridOverlay extends OverlayBase {
     }
 
     // 2. Pipeline instance
-    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
     if (pipelineInstance?.cardInstance) {
       return pipelineInstance.cardInstance;
     }

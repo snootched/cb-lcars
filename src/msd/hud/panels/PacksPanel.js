@@ -11,7 +11,7 @@ export class PacksPanel {
     const summary = {};
 
     try {
-      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const pipelineInstance = window.cblcars.debug.msd?.pipelineInstance;
       if (pipelineInstance) {
         cblcarsLog.debug('[PacksPanel] 📋 Capturing pack collections and provenance data');
         const resolvedModel = pipelineInstance.getResolvedModel?.();

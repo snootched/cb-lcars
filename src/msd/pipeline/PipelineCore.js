@@ -260,12 +260,14 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   // PHASE 5: Early debug and routing setup
   cblcarsLog.debug('[PipelineCore] 🔍 Phase 5: Setting up debug infrastructure');
   if (typeof window !== 'undefined') {
-    window.__msdDebug = window.__msdDebug || {};
-    window.__msdDebug.debugManager = systemsManager.debugManager;
-    window.__msdDebug.routing = systemsManager.router;
+    window.cblcars = window.cblcars || {};
+    window.cblcars.debug = window.cblcars.debug || {};
+    window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+    window.cblcars.debug.msd.debugManager = systemsManager.debugManager;
+    window.cblcars.debug.msd.routing = systemsManager.router;
 
     // Make core systems available BEFORE any overlay rendering
-    window.__msdDebug.pipelineInstance = {
+    window.cblcars.debug.msd.pipelineInstance = {
       systemsManager: systemsManager,
       dataSourceManager: systemsManager.dataSourceManager,
       config: mergedConfig,
@@ -413,8 +415,8 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   setupDebugInterface(pipelineApi, mergedConfig, provenance, systemsManager, modelBuilder);
 
   // Initialize HUD service with mount element
-  if (typeof window !== 'undefined' && window.__msdDebug?.hud?.setMountElement) {
-    window.__msdDebug.hud.setMountElement(mountEl);
+  if (typeof window !== 'undefined' && window.cblcars.debug.msd?.hud?.setMountElement) {
+    window.cblcars.debug.msd.hud.setMountElement(mountEl);
   }
 
   // Attach unified API
@@ -423,14 +425,16 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
 
   // Augment debug tracking (now that pipelineApi exists)
   if (typeof window !== 'undefined') {
-    window.__msdDebug = window.__msdDebug || {};
-    window.__msdDebug.validation = { issues: () => mergedConfig.__issues };
-    window.__msdDebug.pipelineInstance = pipelineApi;
-    window.__msdDebug._provenance = provenance;
+    window.cblcars = window.cblcars || {};
+    window.cblcars.debug = window.cblcars.debug || {};
+    window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+    window.cblcars.debug.msd.validation = { issues: () => mergedConfig.__issues };
+    window.cblcars.debug.msd.pipelineInstance = pipelineApi;
+    window.cblcars.debug.msd._provenance = provenance;
 
     // Ensure routing reference is consistent (in case late changes happened)
-    if (!window.__msdDebug.routing) {
-      window.__msdDebug.routing = systemsManager.router;
+    if (!window.cblcars.debug.msd.routing) {
+      window.cblcars.debug.msd.routing = systemsManager.router;
       try {
         window.dispatchEvent(new CustomEvent('msd-routing-ready'));
       } catch(_) {}
@@ -467,10 +471,12 @@ function createDisabledPipeline(mergedConfig, issues, provenance) {
   };
 
   if (typeof window !== 'undefined') {
-    window.__msdDebug = window.__msdDebug || {};
-    window.__msdDebug.validation = { issues: () => mergedConfig.__issues };
-    window.__msdDebug.pipelineInstance = disabledPipeline;
-    window.__msdDebug._provenance = provenance;
+    window.cblcars = window.cblcars || {};
+    window.cblcars.debug = window.cblcars.debug || {};
+    window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+    window.cblcars.debug.msd.validation = { issues: () => mergedConfig.__issues };
+    window.cblcars.debug.msd.pipelineInstance = disabledPipeline;
+    window.cblcars.debug.msd._provenance = provenance;
   }
   return disabledPipeline;
 }

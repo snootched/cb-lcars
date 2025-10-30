@@ -198,7 +198,7 @@ async function processSinglePass(layers) {
 async function loadBuiltinPack(packName) {
   // Try debug packs first (for development)
   try {
-    const dbgPacks = window.__msdDebug?.packs;
+    const dbgPacks = window.cblcars.debug.msd?.packs;
     if (dbgPacks) {
       const dbgSource = packName === 'core'
         ? dbgPacks.core
@@ -708,10 +708,12 @@ export function exportCollapsed(userMsd) {
 // Attach debug helpers
 try {
   if (typeof window !== 'undefined') {
-    window.__msdDebug = window.__msdDebug || {};
-    window.__msdDebug.packs = window.__msdDebug.packs || {};
-    window.__msdDebug.packs.mergePacks = mergePacks;
-    window.__msdDebug.exportCollapsed = () => exportCollapsed(window.__msdDebug._hudUserMsdConfig || {});
+    window.cblcars = window.cblcars || {};
+    window.cblcars.debug = window.cblcars.debug || {};
+    window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+    window.cblcars.debug.msd.packs = window.cblcars.debug.msd.packs || {};
+    window.cblcars.debug.msd.packs.mergePacks = mergePacks;
+    window.cblcars.debug.msd.exportCollapsed = () => exportCollapsed(window.cblcars.debug.msd._hudUserMsdConfig || {});
   }
 } catch (e) {
   // Ignore in Node.js environments

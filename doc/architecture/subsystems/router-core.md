@@ -665,7 +665,7 @@ console.log('Total routes:', metrics.count);
 
 ```javascript
 // Get router instance
-const router = window.__msdDebug.pipelineInstance.systemsManager.routerCore;
+const router = window.cblcars.debug.msd.pipelineInstance.systemsManager.routerCore;
 
 // Check router stats
 console.log(router.stats());

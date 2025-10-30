@@ -9,7 +9,7 @@ export class OverlaysPanel {
     const stats = { total: 0, byType: {} };
 
     try {
-      const pipeline = window.__msdDebug?.pipelineInstance;
+      const pipeline = window.cblcars.debug.msd?.pipelineInstance;
       const model = pipeline?.getResolvedModel?.();
       if (model?.overlays) {
         model.overlays.forEach(o => {
@@ -44,8 +44,8 @@ export class OverlaysPanel {
   highlightOverlay(id) {
     try {
       if (!id) return;
-      const mount = window.__msdDebug?.pipelineInstance?.mountElement ||
-                    window.__msdDebug?.mountElement;
+      const mount = window.cblcars.debug.msd?.pipelineInstance?.mountElement ||
+                    window.cblcars.debug.msd?.mountElement;
       if (!mount) {
         cblcarsLog.warn('[OverlaysPanel] ⚠️ No mountElement available for highlight');
         return;
@@ -297,7 +297,7 @@ export class OverlaysPanel {
 
   analyzeOverlay(id) {
     try {
-      const pipeline = window.__msdDebug?.pipelineInstance;
+      const pipeline = window.cblcars.debug.msd?.pipelineInstance;
       const model = pipeline?.getResolvedModel?.();
       const overlay = model?.overlays?.find(o => o.id === id);
       if (!overlay) {
@@ -351,7 +351,7 @@ export class OverlaysPanel {
     if (existing) existing.remove();
 
     // ADDED: Get proportional font sizes for popup
-    const baseFontSize = window.__msdDebug?.hud?.manager?.state?.fontSize || 14;
+    const baseFontSize = window.cblcars.debug.msd?.hud?.manager?.state?.fontSize || 14;
     const sectionFontSize = Math.round(baseFontSize * 1.0); // 12px when base is 12px
     const metricFontSize = Math.round(baseFontSize * 0.92); // 11px when base is 12px
     const controlsFontSize = Math.round(baseFontSize * 0.83); // 10px when base is 12px
@@ -484,7 +484,7 @@ export class OverlaysPanel {
   // NEW helper: locate overlay model object
   _findOverlayModel(id) {
     try {
-      const model = window.__msdDebug?.pipelineInstance?.getResolvedModel?.();
+      const model = window.cblcars.debug.msd?.pipelineInstance?.getResolvedModel?.();
       return model?.overlays?.find(o => o.id === id);
     } catch {
       return null;
@@ -497,8 +497,8 @@ export class OverlaysPanel {
       const anchorId = overlay.anchor;
       const attachId = overlay.attach_to;
       const mount =
-        window.__msdDebug?.pipelineInstance?.mountElement ||
-        window.__msdDebug?.mountElement ||
+        window.cblcars.debug.msd?.pipelineInstance?.mountElement ||
+        window.cblcars.debug.msd?.mountElement ||
         document;
 
       const anchorEl = anchorId ? mount.querySelector(`[data-anchor-id="${CSS.escape(anchorId)}"],#${CSS.escape(anchorId)}`) : null;
@@ -548,7 +548,7 @@ export class OverlaysPanel {
 
   _toast(msg, color = '#ff66ff') {
     // ADDED: Get proportional font size for toast
-    const baseFontSize = window.__msdDebug?.hud?.manager?.state?.fontSize || 14;
+    const baseFontSize = window.cblcars.debug.msd?.hud?.manager?.state?.fontSize || 14;
     const controlsFontSize = Math.round(baseFontSize * 0.83); // 10px when base is 12px
 
     const el = document.createElement('div');
@@ -576,7 +576,7 @@ export class OverlaysPanel {
     const { overlays = [], stats = {} } = data;
 
     // ADDED: Get font size from HUD manager context for proportional scaling
-    const baseFontSize = window.__msdDebug?.hud?.manager?.state?.fontSize || 14;
+    const baseFontSize = window.cblcars.debug.msd?.hud?.manager?.state?.fontSize || 14;
     const metricFontSize = Math.round(baseFontSize * 0.92); // 11px when base is 12px
     const controlsFontSize = Math.round(baseFontSize * 0.83); // 10px when base is 12px
     const smallFontSize = Math.round(baseFontSize * 0.75); // 9px when base is 12px

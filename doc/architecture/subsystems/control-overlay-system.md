@@ -574,19 +574,19 @@ graph TB
 
 ```javascript
 // Access controls renderer
-window.__msdDebug.systems.controlsRenderer
+window.cblcars.debug.msd.systems.controlsRenderer
 
 // View all control elements
-window.__msdDebug.systems.controlsRenderer.controlElements
+window.cblcars.debug.msd.systems.controlsRenderer.controlElements
 
 // Check if HASS is set
-window.__msdDebug.systems.controlsRenderer.hass
+window.cblcars.debug.msd.systems.controlsRenderer.hass
 
 // View last render arguments
-window.__msdDebug.systems.controlsRenderer.lastRenderArgs
+window.cblcars.debug.msd.systems.controlsRenderer.lastRenderArgs
 
 // Get control element by ID
-const element = window.__msdDebug.systems.controlsRenderer
+const element = window.cblcars.debug.msd.systems.controlsRenderer
   .controlElements.get('control1')
 
 // Inspect card configuration

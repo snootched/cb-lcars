@@ -507,7 +507,7 @@ rules:
 **Check browser console:**
 ```javascript
 // View all overlays with tags
-window.__msdDebug.resolvedModel.overlays
+window.cblcars.debug.msd.resolvedModel.overlays
 
 // View selector resolution
 // (Look for "[RulesEngine] Selector resolution complete")
