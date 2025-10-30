@@ -1470,11 +1470,24 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
     window.cblcars = window.cblcars || {};
     window.cblcars.debug = window.cblcars.debug || {};
     window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+
+    // ✅ PHASE 4: Move to _internal namespace
+    if (!window.cblcars.debug.msd.pipelineInstance) {
+      window.cblcars.debug.msd.pipelineInstance = {};
+    }
+    if (!window.cblcars.debug.msd.pipelineInstance._internal) {
+      window.cblcars.debug.msd.pipelineInstance._internal = {};
+    }
+    if (!window.cblcars.debug.msd.pipelineInstance._internal.apexCharts) {
+      window.cblcars.debug.msd.pipelineInstance._internal.apexCharts = {};
+    }
+
+    // ✅ PHASE 4: Deprecated - use pipelineInstance._internal.apexCharts
     window.cblcars.debug.msd.apexCharts = window.cblcars.debug.msd.apexCharts || {};
 
     const instance = this;
 
-    window.cblcars.debug.msd.apexCharts[overlayId] = {
+    const chartDebugInfo = {
       chart: chart,
       overlayDiv: div,
       svg: svg,
@@ -1504,6 +1517,10 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
         };
       }
     };
+
+    // ✅ PHASE 4: Assign to both old (deprecated) and new (_internal) locations
+    window.cblcars.debug.msd.pipelineInstance._internal.apexCharts[overlayId] = chartDebugInfo;
+    window.cblcars.debug.msd.apexCharts[overlayId] = chartDebugInfo;
   }
 
   /**
@@ -1603,7 +1620,10 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
     // Cleanup overlay config
     ApexChartsOverlayRenderer._getInstance().overlayConfigs.delete(overlayId);
 
-    // Cleanup debug registry
+    // Cleanup debug registry (both old and new locations)
+    if (window.cblcars.debug.msd?.pipelineInstance?._internal?.apexCharts?.[overlayId]) {
+      delete window.cblcars.debug.msd.pipelineInstance._internal.apexCharts[overlayId];
+    }
     if (window.cblcars.debug.msd?.apexCharts?.[overlayId]) {
       delete window.cblcars.debug.msd.apexCharts[overlayId];
     }

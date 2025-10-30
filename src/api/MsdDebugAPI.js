@@ -909,20 +909,52 @@ export class MsdDebugAPI {
         },
 
         /**
-         * List active rules (future enhancement)
+         * List active rules
          *
-         * Returns currently active/enabled rules.
+         * Returns currently active/enabled rules with detailed information.
+         * Filters out disabled rules and provides rule metadata.
          *
+         * @param {Object} options - Filter options
+         * @param {boolean} options.includeDisabled - Include disabled rules (default: false)
+         * @param {boolean} options.verbose - Include full rule details (default: false)
          * @returns {Array} Active rules
          *
          * @example
+         * // Get only enabled rules
          * const active = window.cblcars.debug.msd.rules.listActive();
+         *
+         * // Get all rules including disabled
+         * const all = window.cblcars.debug.msd.rules.listActive({ includeDisabled: true });
+         *
+         * // Get detailed rule information
+         * const detailed = window.cblcars.debug.msd.rules.listActive({ verbose: true });
          */
-        listActive() {
+        listActive(options = {}) {
           try {
+            const { includeDisabled = false, verbose = false } = options;
             const dbg = window.__msdDebug;
             const config = dbg?.pipelineInstance?.config;
-            return config?.rules || [];
+            const rules = config?.rules || [];
+
+            // Filter based on enabled state
+            let filteredRules = rules;
+            if (!includeDisabled) {
+              filteredRules = rules.filter(rule => rule.enabled !== false);
+            }
+
+            // Return full details if verbose, otherwise just summaries
+            if (verbose) {
+              return filteredRules;
+            }
+
+            // Return compact summary
+            return filteredRules.map(rule => ({
+              id: rule.id,
+              enabled: rule.enabled !== false,
+              conditions: rule.conditions?.length || 0,
+              actions: rule.actions?.length || 0,
+              description: rule.description || rule.id
+            }));
           } catch (error) {
             cblcarsLog.error('[DebugAPI] Error listing active rules:', error);
             return [];

@@ -52,8 +52,35 @@ export class CBLCARSUnifiedAPI {
       // CRITICAL: Preserve existing debug.msd properties (e.g., MsdInstanceManager from index.js)
       // by merging DebugAPI instead of replacing
       window.cblcars.debug.msd = window.cblcars.debug.msd || {};
-      Object.assign(window.cblcars.debug.msd, MsdDebugAPI.create());
+
+      // Debug logging to trace API attachment
+      const debugAPIMethods = MsdDebugAPI.create();
+      cblcarsLog.debug('[UnifiedAPI] Debug API methods to merge:', Object.keys(debugAPIMethods));
+      cblcarsLog.debug('[UnifiedAPI] Existing debug.msd keys before merge:', Object.keys(window.cblcars.debug.msd));
+
+      // CRITICAL: Delete deprecated properties that would block Object.assign()
+
+      // Delete 'pipeline' getter (read-only property can't be overwritten)
+      if ('pipeline' in window.cblcars.debug.msd) {
+        const descriptor = Object.getOwnPropertyDescriptor(window.cblcars.debug.msd, 'pipeline');
+        if (descriptor && descriptor.get && !descriptor.set) {
+          delete window.cblcars.debug.msd.pipeline;
+          cblcarsLog.debug('[UnifiedAPI] Deleted read-only pipeline getter to allow merge');
+        }
+      }
+
+      // Delete legacy 'perf' function (needs to become an object namespace)
+      if ('perf' in window.cblcars.debug.msd && typeof window.cblcars.debug.msd.perf === 'function') {
+        delete window.cblcars.debug.msd.perf;
+        cblcarsLog.debug('[UnifiedAPI] Deleted legacy perf function to allow namespace merge');
+      }
+
+      Object.assign(window.cblcars.debug.msd, debugAPIMethods);
+
+      cblcarsLog.debug('[UnifiedAPI] Existing debug.msd keys after merge:', Object.keys(window.cblcars.debug.msd));
       cblcarsLog.debug('[UnifiedAPI] Debug API attached');
+
+
 
       // ==========================================
       // PHASE 0: Dev API (placeholder stub)
@@ -163,11 +190,12 @@ export class CBLCARSUnifiedAPI {
   }
 }
 
-// Auto-attach when module loads
-// This ensures the API structure is available as soon as this module is imported
+// ALWAYS attach when module loads - no conditionals
 if (typeof window !== 'undefined') {
-  CBLCARSUnifiedAPI.attach();
-
-  // Expose CBLCARSUnifiedAPI class to window for console access
+  // Expose class first so DebugInterface can call attach() again if needed
   window.CBLCARSUnifiedAPI = CBLCARSUnifiedAPI;
+
+  // Force attach immediately
+  CBLCARSUnifiedAPI.attach();
+  cblcarsLog.info('[UnifiedAPI] ✅ Auto-attached at module load');
 }

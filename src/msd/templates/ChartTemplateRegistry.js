@@ -238,6 +238,17 @@ if (typeof window !== 'undefined') {
   window.cblcars.debug = window.cblcars.debug || {};
   window.cblcars.debug.msd = window.cblcars.debug.msd || {};
 
+  // ✅ PHASE 4: Move to _internal namespace
+  if (!window.cblcars.debug.msd.pipelineInstance) {
+    window.cblcars.debug.msd.pipelineInstance = {};
+  }
+  if (!window.cblcars.debug.msd.pipelineInstance._internal) {
+    window.cblcars.debug.msd.pipelineInstance._internal = {};
+  }
+
+  window.cblcars.debug.msd.pipelineInstance._internal.chartTemplateRegistry = chartTemplateRegistry;
+
+  // ✅ PHASE 4: Deprecated - use pipelineInstance._internal.chartTemplateRegistry
   window.cblcars.debug.msd.chartTemplateRegistry = chartTemplateRegistry;
 
   // Add helper methods to window for easier console access
@@ -247,3 +258,4 @@ if (typeof window !== 'undefined') {
     apply: (overlay) => chartTemplateRegistry.applyTemplate(overlay)
   };
 }
+

@@ -3,7 +3,7 @@ import { SystemsManager } from './SystemsManager.js';
 import { ModelBuilder } from './ModelBuilder.js';
 import { setupDebugInterface } from '../debug/DebugInterface.js';
 import { buildCardModel } from '../model/CardModel.js';
-import { MsdApi } from '../api/MsdApi.js';
+import { CBLCARSUnifiedAPI } from '../../api/CBLCARSUnifiedAPI.js';
 import { StatusGridRenderer } from '../renderer/StatusGridRenderer.js';
 import { exportCollapsed, exportCollapsedJson } from '../export/exportCollapsed.js';
 import { exportFullSnapshot, exportFullSnapshotJson } from '../export/exportFullSnapshot.js';
@@ -263,6 +263,8 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     window.cblcars = window.cblcars || {};
     window.cblcars.debug = window.cblcars.debug || {};
     window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+
+    // ✅ PHASE 4: Deprecated - use pipelineInstance._internal.debugManager
     window.cblcars.debug.msd.debugManager = systemsManager.debugManager;
     window.cblcars.debug.msd.routing = systemsManager.router;
 
@@ -273,7 +275,13 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       config: mergedConfig,
       themeManager: systemsManager.themeManager,
       styleResolver: styleResolver,  // ✅ NEW: Phase 6 - Add StyleResolver to debug
-      validationService: systemsManager.validationService
+      validationService: systemsManager.validationService,
+
+      // ✅ PHASE 4: Internal subsystems namespace (non-public API)
+      _internal: {
+        debugManager: systemsManager.debugManager,
+        router: systemsManager.router
+      }
     };
 
     cblcarsLog.debug('[PipelineCore] Essential subsystems ready for overlay rendering:', {
@@ -419,9 +427,10 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     window.cblcars.debug.msd.hud.setMountElement(mountEl);
   }
 
-  // Attach unified API
-  cblcarsLog.debug('[PipelineCore] Attaching unified API');
-  MsdApi.attach();
+  // ✅ PHASE 4: Attach unified API AFTER DebugInterface setup
+  // This ensures modern namespaces overwrite legacy properties
+  cblcarsLog.debug('[PipelineCore] Attaching unified API after DebugInterface setup');
+  CBLCARSUnifiedAPI.attach();
 
   // Augment debug tracking (now that pipelineApi exists)
   if (typeof window !== 'undefined') {

@@ -376,6 +376,18 @@ if (typeof window !== 'undefined') {
   window.cblcars = window.cblcars || {};
   window.cblcars.debug = window.cblcars.debug || {};
   window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+
+  // ✅ PHASE 4: Move to _internal namespace
+  if (!window.cblcars.debug.msd.pipelineInstance) {
+    window.cblcars.debug.msd.pipelineInstance = {};
+  }
+  if (!window.cblcars.debug.msd.pipelineInstance._internal) {
+    window.cblcars.debug.msd.pipelineInstance._internal = {};
+  }
+
+  window.cblcars.debug.msd.pipelineInstance._internal.ValidationService = ValidationService;
+
+  // ✅ PHASE 4: Deprecated - use pipelineInstance._internal.ValidationService
   window.cblcars.debug.msd.ValidationService = ValidationService;
 }
 

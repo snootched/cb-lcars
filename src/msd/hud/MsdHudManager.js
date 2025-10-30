@@ -416,8 +416,14 @@ export class MsdHudManager {
     this.mountElement = mountElement;
 
     // ENHANCED: Store mount element in debug interface for panels to access
-    // ✅ PHASE 3: Updated to use window.cblcars.debug.msd
-    if (window.cblcars?.debug?.msd) {
+    // ✅ PHASE 4: Move to _internal namespace
+    if (window.cblcars?.debug?.msd?.pipelineInstance) {
+      if (!window.cblcars.debug.msd.pipelineInstance._internal) {
+        window.cblcars.debug.msd.pipelineInstance._internal = {};
+      }
+      window.cblcars.debug.msd.pipelineInstance._internal.mountElement = mountElement;
+
+      // ✅ PHASE 4: Deprecated - use pipelineInstance._internal.mountElement
       window.cblcars.debug.msd.mountElement = mountElement;
     }
 
