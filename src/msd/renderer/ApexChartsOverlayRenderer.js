@@ -305,7 +305,8 @@ export class ApexChartsOverlayRenderer {
       const [width, height] = size;
 
       return {
-        markup: `<g data-overlay-id="${overlay.id}"
+        markup: `<g id="${overlay.id}"
+                   data-overlay-id="${overlay.id}"
                    data-overlay-type="apexchart"
                    data-overlay-layer="html"
                    class="msd-apexchart-placeholder">
@@ -341,7 +342,8 @@ export class ApexChartsOverlayRenderer {
     const [width, height] = size;
 
     return {
-      markup: `<g data-overlay-id="${overlay.id}"
+      markup: `<g id="${overlay.id}"
+                 data-overlay-id="${overlay.id}"
                  data-overlay-type="apexchart"
                  data-overlay-layer="html"
                  class="msd-apexchart-placeholder">

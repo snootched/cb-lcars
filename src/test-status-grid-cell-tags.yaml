@@ -1,0 +1,309 @@
+################################################################################
+# CB-LCARS Status Grid Cell-Level Tags Test Configuration
+################################################################################
+#
+# PURPOSE: Demonstrate cell-level tag targeting in rules
+#
+# FEATURES TESTED:
+# ✅ Cell-level tags for semantic grouping
+# ✅ Single tag matching: {tag: "critical"}
+# ✅ Multiple tag matching (OR): {tags: ["critical", "propulsion"]}
+# ✅ Multiple tag matching (AND): {tags: ["critical", "propulsion"], match_all: true}
+# ✅ Department-based targeting
+# ✅ Red Alert scenario with critical systems
+#
+# SETUP INSTRUCTIONS:
+# 1. Create input helper in Home Assistant:
+#    Developer Tools → Helpers → Create Helper → Dropdown
+#    Name: "Alert Status"
+#    Entity ID: input_select.alert_status
+#    Options: normal, yellow_alert, red_alert, engineering_alert, tactical_alert
+#
+# 2. Add this card to your dashboard
+# 3. Use dropdown to switch between alert states
+# 4. Watch different cells update based on their tags
+#
+################################################################################
+
+type: custom:cb-lcars
+view_box: [0, 0, 800, 600]
+
+overlays:
+  # ============================================================================
+  # STATUS GRID: Ship Systems with Cell-Level Tags
+  # ============================================================================
+  - id: ship_systems_grid
+    type: status_grid
+    position: [50, 50]
+    size: [700, 500]
+
+    # Grid of 12 cells (3 rows × 4 columns)
+    rows: 3
+    columns: 4
+
+    cells:
+      # ========================================================================
+      # ROW 1: Critical Propulsion Systems
+      # ========================================================================
+      - position: [0, 0]
+        label: "Warp Core"
+        value: "Online"
+        tags: ["critical", "propulsion", "engineering"]  # ✨ Triple-tagged
+
+      - position: [0, 1]
+        label: "Impulse"
+        value: "Ready"
+        tags: ["critical", "propulsion", "engineering"]  # ✨ Triple-tagged
+
+      - position: [0, 2]
+        label: "Life Support"
+        value: "Active"
+        tags: ["critical", "environment"]  # ✨ Critical but not propulsion
+
+      - position: [0, 3]
+        label: "Shields"
+        value: "100%"
+        tags: ["critical", "defense", "tactical"]  # ✨ Critical defense
+
+      # ========================================================================
+      # ROW 2: Secondary Systems
+      # ========================================================================
+      - position: [1, 0]
+        label: "Sensors"
+        value: "Scanning"
+        tags: ["secondary", "tactical"]  # ✨ Not critical
+
+      - position: [1, 1]
+        label: "Comms"
+        value: "Open"
+        tags: ["secondary", "communications"]  # ✨ Not critical
+
+      - position: [1, 2]
+        label: "Transporters"
+        value: "Ready"
+        tags: ["secondary", "engineering"]  # ✨ Engineering but not critical
+
+      - position: [1, 3]
+        label: "Phasers"
+        value: "Charged"
+        tags: ["secondary", "tactical", "weapons"]  # ✨ Tactical weapons
+
+      # ========================================================================
+      # ROW 3: Informational
+      # ========================================================================
+      - position: [2, 0]
+        label: "Crew Status"
+        value: "All Present"
+        tags: ["informational"]  # ✨ Just info
+
+      - position: [2, 1]
+        label: "Mission Log"
+        value: "Updated"
+        tags: ["informational"]  # ✨ Just info
+
+      - position: [2, 2]
+        label: "Branding"
+        value: "NCC-1701"
+        tags: ["branding"]  # ✨ Ship identification
+
+      - position: [2, 3]
+        label: "Stardate"
+        value: "41254.7"
+        tags: ["informational", "branding"]  # ✨ Double-tagged
+
+    style:
+      cell_gap: 4
+      cell_color: var(--lcars-blue)
+      cell_radius: 3
+      font_size: 14
+      label_color: var(--lcars-white)
+      value_color: var(--lcars-orange)
+      text_layout: stacked
+
+rules:
+  # ============================================================================
+  # RULE 1: Normal Operation (Baseline)
+  # ============================================================================
+  - when:
+      entity: input_select.alert_status
+      state: "normal"
+    apply:
+      overlays:
+        - id: ship_systems_grid
+          cell_target:
+            tags: ["critical", "secondary", "informational", "branding"]  # All cells
+          style:
+            color: var(--lcars-blue)
+            label_color: var(--lcars-white)
+            value_color: var(--lcars-orange)
+
+  # ============================================================================
+  # RULE 2: Yellow Alert - Critical Systems Only
+  # ============================================================================
+  # TARGET: Only cells tagged "critical"
+  # EXPECTED: Warp Core, Impulse, Life Support, Shields → Yellow
+  # ============================================================================
+  - when:
+      entity: input_select.alert_status
+      state: "yellow_alert"
+    apply:
+      overlays:
+        - id: ship_systems_grid
+          cell_target:
+            tag: "critical"  # ✨ Single tag: Match ANY cell with "critical"
+          style:
+            color: var(--lcars-yellow)
+            label_color: var(--lcars-black)
+
+  # ============================================================================
+  # RULE 3: Red Alert - ALL Systems Red
+  # ============================================================================
+  # TARGET: All cells (any tag)
+  # EXPECTED: All 12 cells → Red
+  # ============================================================================
+  - when:
+      entity: input_select.alert_status
+      state: "red_alert"
+    apply:
+      overlays:
+        - id: ship_systems_grid
+          cell_target:
+            tags: ["critical", "secondary", "informational", "branding"]  # ✨ OR logic
+          style:
+            color: var(--lcars-red)
+            label_color: var(--lcars-white)
+            bracket_color: var(--lcars-red)
+
+  # ============================================================================
+  # RULE 4: Engineering Alert - Engineering Department Only
+  # ============================================================================
+  # TARGET: Cells tagged "engineering"
+  # EXPECTED: Warp Core, Impulse, Transporters → Orange (3 cells)
+  # ============================================================================
+  - when:
+      entity: input_select.alert_status
+      state: "engineering_alert"
+    apply:
+      overlays:
+        - id: ship_systems_grid
+          cell_target:
+            tag: "engineering"  # ✨ Single tag: Department-based targeting
+          style:
+            color: var(--lcars-orange)
+            label_color: var(--lcars-black)
+
+  # ============================================================================
+  # RULE 5: Tactical Alert - Tactical Systems Only
+  # ============================================================================
+  # TARGET: Cells tagged "tactical"
+  # EXPECTED: Shields, Sensors, Phasers → Purple (3 cells)
+  # ============================================================================
+  - when:
+      entity: input_select.alert_status
+      state: "tactical_alert"
+    apply:
+      overlays:
+        - id: ship_systems_grid
+          cell_target:
+            tag: "tactical"  # ✨ Single tag: Department-based targeting
+          style:
+            color: var(--lcars-purple)
+            label_color: var(--lcars-white)
+
+  # ============================================================================
+  # RULE 6: Propulsion Emergency - Critical Propulsion Systems
+  # ============================================================================
+  # TARGET: Cells with BOTH "critical" AND "propulsion" tags
+  # EXPECTED: Warp Core, Impulse → Red (2 cells only)
+  # ============================================================================
+  - when:
+      entity: input_select.alert_status
+      state: "propulsion_emergency"
+    apply:
+      overlays:
+        - id: ship_systems_grid
+          cell_target:
+            tags: ["critical", "propulsion"]  # ✨ AND logic: Must have BOTH tags
+            match_all: true
+          style:
+            color: var(--lcars-red)
+            label_color: var(--lcars-white)
+
+################################################################################
+# TESTING INSTRUCTIONS
+################################################################################
+#
+# 1. Open Home Assistant Developer Tools → States
+# 2. Find "input_select.alert_status"
+# 3. Change state to test different scenarios:
+#
+# TEST 1: Normal Operation
+#   Set: normal
+#   Expected: All cells blue with orange text
+#
+# TEST 2: Yellow Alert (Critical Only)
+#   Set: yellow_alert
+#   Expected: 4 cells turn yellow (Warp, Impulse, Life Support, Shields)
+#   Verify: Secondary and info cells stay blue
+#
+# TEST 3: Red Alert (Everything)
+#   Set: red_alert
+#   Expected: All 12 cells turn red
+#
+# TEST 4: Engineering Department
+#   Set: engineering_alert
+#   Expected: 3 cells turn orange (Warp Core, Impulse, Transporters)
+#   Verify: Other cells stay blue
+#
+# TEST 5: Tactical Department
+#   Set: tactical_alert
+#   Expected: 3 cells turn purple (Shields, Sensors, Phasers)
+#   Verify: Other cells stay blue
+#
+# TEST 6: Propulsion Emergency (AND Logic)
+#   Set: propulsion_emergency
+#   Expected: ONLY 2 cells turn red (Warp Core, Impulse)
+#   Verify: Life Support stays blue (critical but not propulsion)
+#   Verify: Transporters stay blue (engineering but not critical)
+#
+################################################################################
+# BROWSER CONSOLE DEBUG COMMANDS
+################################################################################
+#
+# // Check cell tags
+# const grid = document.querySelector('[data-overlay-id="ship_systems_grid"]');
+# const cells = grid.querySelectorAll('[data-feature="cell"]');
+# cells.forEach(cell => {
+#   console.log(`${cell.querySelector('text')?.textContent}: tags=${cell.getAttribute('data-cell-tags')}`);
+# });
+#
+# // Test tag matching
+# window.cblcars.rulesEngine.evaluateRules();
+# console.log('Rules evaluated - check cell colors');
+#
+# // Check specific cell
+# const warpCell = Array.from(cells).find(c => c.querySelector('text')?.textContent?.includes('Warp'));
+# console.log('Warp Core cell:', {
+#   tags: warpCell.getAttribute('data-cell-tags'),
+#   color: warpCell.querySelector('rect')?.style.fill
+# });
+#
+################################################################################
+# EXPECTED BEHAVIORS
+################################################################################
+#
+# Single Tag ({tag: "X"}):
+# - Matches ANY cell that has tag "X"
+# - OR logic if cell has multiple tags
+#
+# Multiple Tags ({tags: ["X", "Y"]}):
+# - Default: OR logic - matches cells with "X" OR "Y"
+# - With match_all: true - AND logic - matches cells with "X" AND "Y"
+#
+# Real-World Use Cases:
+# 1. Department-based alerts (engineering, tactical, medical)
+# 2. Critical system failures (critical + department)
+# 3. Multi-tag filtering (critical + propulsion for warp failures)
+# 4. Semantic grouping (environment, communications, weapons)
+#
+################################################################################

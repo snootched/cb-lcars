@@ -1068,9 +1068,9 @@ export class MsdControlsRenderer {
       foreignObject.setAttribute('width', size[0]);
       foreignObject.setAttribute('height', size[1]);
 
-      // Add identification attributes
+      // Add identification attributes - use overlay ID directly for easier lookup
       foreignObject.setAttribute('data-msd-control-id', overlayId);
-      foreignObject.setAttribute('id', `msd-control-foreign-${overlayId}`);
+      foreignObject.setAttribute('id', overlayId);  // Use overlay ID directly
 
       // Ensure proper event handling
       foreignObject.style.pointerEvents = 'auto';

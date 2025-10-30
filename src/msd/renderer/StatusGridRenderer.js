@@ -1915,7 +1915,8 @@ export class StatusGridRenderer extends BaseRenderer {
     const gridPointerEvents = hasCellActions ? 'visiblePainted' : 'all';
     const gridCursor = hasCellActions ? 'pointer' : 'default';
 
-    let gridMarkup = `<g data-overlay-id="${overlay.id}"
+    let gridMarkup = `<g id="${overlay.id}"
+                data-overlay-id="${overlay.id}"
                 data-overlay-type="status_grid"
                 data-grid-rows="${gridStyle.rows}"
                 data-grid-columns="${gridStyle.columns}"
@@ -2445,7 +2446,7 @@ export class StatusGridRenderer extends BaseRenderer {
 
     cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Using fallback rendering for status grid ${overlay.id}`);
 
-    return `<g data-overlay-id="${overlay.id}" data-overlay-type="status_grid" data-fallback="true">
+    return `<g id="${overlay.id}" data-overlay-id="${overlay.id}" data-overlay-type="status_grid" data-fallback="true">
               <g transform="translate(${x}, ${y})">
                 <rect width="${width}" height="${height}"
                       fill="none" stroke="${color}" stroke-width="2"/>

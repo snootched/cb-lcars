@@ -192,7 +192,8 @@ export class LineOverlay extends OverlayBase {
 
       cblcarsLog.debug(`[LineOverlay] Rendered line ${overlay.id} with ${lineStyle.features.length} features`);
 
-      const markup = `<g data-overlay-id="${overlay.id}"
+      const markup = `<g id="${overlay.id}"
+                data-overlay-id="${overlay.id}"
                   data-overlay-type="line"
                   data-routing-strategy="${pathResult.meta?.strategy || 'unknown'}"
                   data-animation-ready="${!!animationAttributes.hasAnimations}">
@@ -696,7 +697,7 @@ export class LineOverlay extends OverlayBase {
 
     cblcarsLog.warn(`[LineOverlay] Using fallback rendering for overlay ${overlay.id}`);
 
-    return `<g data-overlay-id="${overlay.id}" data-overlay-type="line" data-fallback="true">
+    return `<g id="${overlay.id}" data-overlay-id="${overlay.id}" data-overlay-type="line" data-fallback="true">
               <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
                     stroke="${color}" stroke-width="2" />
             </g>`;

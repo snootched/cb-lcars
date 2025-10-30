@@ -26,6 +26,9 @@ import * as anchorHelpers from './utils/cb-lcars-anchor-helpers.js';
 // MSD system import
 import './msd/index.js';
 
+// Unified API system import
+import { CBLCARSUnifiedAPI } from './api/CBLCARSUnifiedAPI.js';
+
 // Display banner after log level is set
 cblcarsLogBanner();
 

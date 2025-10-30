@@ -202,7 +202,8 @@ export class TextOverlay extends OverlayBase {
         position: overlay.position
       };
 
-      const overlayMarkup = `<g data-overlay-id="${overlay.id}"
+      const overlayMarkup = `<g id="${overlay.id}"
+                data-overlay-id="${overlay.id}"
                 data-overlay-type="text"
                 data-text-features="${textFeaturesStr}"
                 data-text-style='${JSON.stringify(styleData)}'

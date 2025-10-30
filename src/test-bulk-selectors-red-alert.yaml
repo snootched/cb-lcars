@@ -1,0 +1,396 @@
+# ============================================================================
+# BULK OVERLAY SELECTORS - RED ALERT TEST CONFIGURATION
+# ============================================================================
+# Demonstrates the Global Alert System with bulk overlay targeting
+#
+# Test Scenarios:
+# 1. Normal Operation - All overlays use standard LCARS colors
+# 2. Yellow Alert - Critical systems turn yellow (warning state)
+# 3. Red Alert - All overlays turn red (maximum danger)
+# 4. Blue Alert - Atmospheric operations (blue highlight)
+# 5. Intruder Alert - Security systems flash red, others get border
+#
+# Setup Required:
+# 1. Create Home Assistant helper entity:
+#    input_select:
+#      ship_alert_status:
+#        name: "Ship Alert Status"
+#        options: ["normal", "yellow_alert", "red_alert", "blue_alert", "intruder_alert"]
+#        initial: "normal"
+#
+# Test Commands (Browser Console):
+# 1. window.__msdDebug.rulesEngine.rules  // View all rules
+# 2. window.__msdDebug.resolvedModel.overlays  // View overlays with tags
+# 3. // Change alert status in HA dashboard and watch overlays update
+# ============================================================================
+
+version: 1
+
+# Design tokens for alert colors
+design_tokens:
+  colors:
+    alert:
+      critical: "#FF3333"      # Bright red
+      warning: "#FFAA00"       # Orange/yellow
+      info: "#3399FF"          # Blue
+      normal: "#9999FF"        # Standard LCARS blue
+
+    status:
+      danger: "#FF3333"
+      warning: "#FFAA00"
+      success: "#33FF33"
+
+    accent:
+      primary: "#9999FF"       # LCARS blue
+      secondary: "#FFAA00"     # LCARS orange
+
+  borders:
+    width:
+      thin: 1
+      base: 2
+      thick: 4
+
+# Data sources for demo sensors
+data_sources:
+  warp_core_temp:
+    type: entity
+    entity: sensor.cpu_temperature
+
+  shield_power:
+    type: entity
+    entity: sensor.battery_level
+
+  navigation_status:
+    type: entity
+    entity: sensor.uptime
+
+  security_door_1:
+    type: entity
+    entity: binary_sensor.front_door
+
+  alert_status:
+    type: entity
+    entity: input_select.ship_alert_status
+
+# MSD Configuration
+msd:
+  # =========================================================================
+  # OVERLAYS - Tagged for bulk rule targeting
+  # =========================================================================
+  overlays:
+    # -------------------------------------------------------------------
+    # CRITICAL ENGINEERING SYSTEMS
+    # -------------------------------------------------------------------
+    - id: warp_core_temperature
+      type: apexchart
+      source: warp_core_temp
+      tags: ["critical", "engineering", "alert-sensitive", "real-time"]
+      position: [50, 100]
+      size: [300, 150]
+      style:
+        chart_type: line
+        color: colors.accent.primary
+        stroke_width: 2
+        time_window: "1h"
+
+    - id: warp_core_label
+      type: text
+      content: "WARP CORE TEMP"
+      tags: ["critical", "engineering", "alert-sensitive"]
+      position: [50, 80]
+      style:
+        color: colors.accent.primary
+        font_size: 14
+        font_weight: bold
+
+    # -------------------------------------------------------------------
+    # CRITICAL TACTICAL SYSTEMS
+    # -------------------------------------------------------------------
+    - id: shield_power_chart
+      type: apexchart
+      source: shield_power
+      tags: ["critical", "tactical", "alert-sensitive"]
+      position: [50, 270]
+      size: [300, 150]
+      style:
+        chart_type: line
+        color: colors.accent.primary
+        stroke_width: 2
+        time_window: "1h"
+
+    - id: shield_status_label
+      type: text
+      content: "SHIELD POWER"
+      tags: ["critical", "tactical", "alert-sensitive"]
+      position: [50, 250]
+      style:
+        color: colors.accent.primary
+        font_size: 14
+        font_weight: bold
+
+    # -------------------------------------------------------------------
+    # SECURITY SYSTEMS
+    # -------------------------------------------------------------------
+    - id: security_door_status
+      type: status_grid
+      tags: ["security", "access-control", "alert-sensitive"]
+      position: [370, 100]
+      size: [200, 100]
+      cells:
+        - position: [0, 0]
+          source: security_door_1
+          label: "DOOR 1"
+          content: "{security_door_1 == 'on' ? 'OPEN' : 'CLOSED'}"
+
+    - id: security_label
+      type: text
+      content: "SECURITY STATUS"
+      tags: ["security", "alert-sensitive"]
+      position: [370, 80]
+      style:
+        color: colors.accent.primary
+        font_size: 14
+        font_weight: bold
+
+    # -------------------------------------------------------------------
+    # NAVIGATION & INFORMATIONAL (NOT CRITICAL)
+    # -------------------------------------------------------------------
+    - id: navigation_display
+      type: text
+      source: navigation_status
+      content: "NAV: {navigation_status}"
+      tags: ["informational", "navigation"]
+      position: [370, 270]
+      style:
+        color: colors.accent.primary
+        font_size: 16
+
+    - id: ship_logo
+      type: text
+      content: "USS ENTERPRISE"
+      tags: ["branding", "static"]
+      position: [50, 30]
+      style:
+        color: colors.accent.secondary
+        font_size: 24
+        font_weight: bold
+
+    - id: stardate
+      type: text
+      content: "STARDATE 2410.27"
+      tags: ["branding", "static"]
+      position: [370, 30]
+      style:
+        color: colors.accent.secondary
+        font_size: 14
+
+    # -------------------------------------------------------------------
+    # CURRENT ALERT STATUS INDICATOR
+    # -------------------------------------------------------------------
+    - id: current_alert_display
+      type: text
+      source: alert_status
+      content: "ALERT: {alert_status}"
+      tags: ["status-display"]
+      position: [200, 450]
+      style:
+        color: colors.accent.primary
+        font_size: 20
+        font_weight: bold
+        text_align: center
+
+  # =========================================================================
+  # RULES - Bulk overlay targeting with selectors
+  # =========================================================================
+  rules:
+    # -----------------------------------------------------------------------
+    # RULE 1: NORMAL OPERATION (Baseline)
+    # -----------------------------------------------------------------------
+    - id: alert_normal
+      priority: 10
+      when:
+        all:
+          - entity: input_select.ship_alert_status
+            state: "normal"
+      apply:
+        overlays:
+          all:  # All overlays return to normal colors
+            style:
+              color: colors.accent.primary
+              border_color: null
+              border_width: null
+
+    # -----------------------------------------------------------------------
+    # RULE 2: YELLOW ALERT (Critical systems only)
+    # -----------------------------------------------------------------------
+    - id: alert_yellow
+      priority: 20
+      when:
+        all:
+          - entity: input_select.ship_alert_status
+            state: "yellow_alert"
+      apply:
+        overlays:
+          tag:critical:  # Only critical-tagged overlays change
+            style:
+              color: colors.status.warning
+              border_color: colors.status.warning
+              border_width: borders.width.base
+
+          # Update status indicator
+          current_alert_display:
+            style:
+              color: colors.status.warning
+
+    # -----------------------------------------------------------------------
+    # RULE 3: RED ALERT (Maximum danger - everything turns red)
+    # -----------------------------------------------------------------------
+    - id: alert_red
+      priority: 30
+      when:
+        all:
+          - entity: input_select.ship_alert_status
+            state: "red_alert"
+      apply:
+        overlays:
+          all:  # ✨ ONE SELECTOR UPDATES ALL OVERLAYS
+            style:
+              color: colors.alert.critical
+              border_color: colors.alert.critical
+              border_width: borders.width.thick
+
+          # Except branding elements (use exclude)
+          exclude: ["ship_logo", "stardate"]
+
+    # -----------------------------------------------------------------------
+    # RULE 4: BLUE ALERT (Atmospheric operations)
+    # -----------------------------------------------------------------------
+    - id: alert_blue
+      priority: 25
+      when:
+        all:
+          - entity: input_select.ship_alert_status
+            state: "blue_alert"
+      apply:
+        overlays:
+          # Charts turn blue
+          type:apexchart:
+            style:
+              color: colors.alert.info
+
+          # Text gets blue border
+          type:text:
+            style:
+              border_color: colors.alert.info
+              border_width: borders.width.base
+
+          # Status grids get subtle highlight
+          type:status_grid:
+            style:
+              border_color: colors.alert.info
+
+          # Update status indicator
+          current_alert_display:
+            style:
+              color: colors.alert.info
+
+    # -----------------------------------------------------------------------
+    # RULE 5: INTRUDER ALERT (Layered - security systems flash red)
+    # -----------------------------------------------------------------------
+    - id: alert_intruder
+      priority: 40
+      when:
+        all:
+          - entity: input_select.ship_alert_status
+            state: "intruder_alert"
+      apply:
+        overlays:
+          # Base layer: All systems get warning border
+          all:
+            style:
+              border_color: colors.status.warning
+              border_width: borders.width.thin
+
+          # Security systems turn fully red
+          tag:security:
+            style:
+              color: colors.alert.critical
+              border_color: colors.alert.critical
+              border_width: borders.width.thick
+
+          # Access control enhanced
+          tag:access-control:
+            style:
+              border_width: borders.width.thick
+
+          # Exclude branding
+          exclude: ["ship_logo", "stardate"]
+
+    # -----------------------------------------------------------------------
+    # RULE 6: DEMO - Pattern matching (all temp-related overlays)
+    # -----------------------------------------------------------------------
+    - id: demo_pattern_selector
+      priority: 5
+      enabled: false  # Disabled by default (demo only)
+      when:
+        all:
+          - entity: sensor.cpu_temperature
+            above: 80
+      apply:
+        overlays:
+          pattern:^warp_.*:  # All overlays starting with "warp_"
+            style:
+              color: colors.status.danger
+
+# ============================================================================
+# TESTING INSTRUCTIONS
+# ============================================================================
+#
+# 1. Load this config in Home Assistant
+# 2. Create the input_select helper entity
+# 3. Open browser console and run:
+#    - window.__msdDebug.rulesEngine.rules
+#    - window.__msdDebug.resolvedModel.overlays
+# 4. Change alert status:
+#    - Set to "normal" → Everything blue
+#    - Set to "yellow_alert" → Critical systems turn yellow
+#    - Set to "red_alert" → Everything turns red
+#    - Set to "blue_alert" → Charts blue, text has borders
+#    - Set to "intruder_alert" → Security systems red, others bordered
+# 5. Watch console logs:
+#    - [RulesEngine] Selector resolution complete
+#    - Should show selector counts and patches generated
+# 6. Verify performance:
+#    - Resolution time should be < 5ms for ~10 overlays
+#    - Check: window.__msdDebug.perf
+#
+# ============================================================================
+# EXPECTED BEHAVIOR
+# ============================================================================
+#
+# Normal Alert:
+# - All overlays: Standard LCARS blue (#9999FF)
+# - No borders
+#
+# Yellow Alert:
+# - Tagged "critical": Orange/yellow (#FFAA00)
+# - Critical overlays get 2px border
+# - Non-critical overlays: Unchanged
+#
+# Red Alert:
+# - ALL overlays (except branding): Bright red (#FF3333)
+# - Thick borders (4px)
+# - ship_logo and stardate: Unchanged (excluded)
+#
+# Blue Alert:
+# - ApexChart overlays: Blue (#3399FF)
+# - Text overlays: Blue 2px border
+# - StatusGrid overlays: Blue border
+#
+# Intruder Alert:
+# - All overlays: Yellow 1px border (base layer)
+# - Security-tagged: Full red with thick border (override)
+# - Access-control-tagged: Thick border (enhanced)
+# - Branding: Excluded
+#
+# ============================================================================

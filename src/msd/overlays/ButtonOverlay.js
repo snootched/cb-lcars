@@ -182,7 +182,8 @@ export class ButtonOverlay extends OverlayBase {
       }
 
       // Wrap in overlay group with proper data attributes
-      const overlayMarkup = `<g data-overlay-id="${overlay.id}"
+      const overlayMarkup = `<g id="${overlay.id}"
+                data-overlay-id="${overlay.id}"
                 data-overlay-type="button"
                 ${hasActions ? 'data-has-actions="true"' : ''}
                 data-animation-ready="${!!buttonStyle.animatable}"
@@ -666,7 +667,7 @@ export class ButtonOverlay extends OverlayBase {
 
     cblcarsLog.warn(`[ButtonOverlay] ⚠️ Using fallback rendering for overlay ${overlay.id}`);
 
-    return `<g data-overlay-id="${overlay.id}" data-overlay-type="button" data-fallback="true">
+    return `<g id="${overlay.id}" data-overlay-id="${overlay.id}" data-overlay-type="button" data-fallback="true">
               <g transform="translate(${x}, ${y})">
                 <rect width="${width}" height="${height}"
                       fill="none" stroke="${color}" stroke-width="2" rx="4"/>
