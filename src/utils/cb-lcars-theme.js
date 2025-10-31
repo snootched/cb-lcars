@@ -46,7 +46,7 @@ export function loadFont(fontInput) {
       link.href = href;
       document.head.appendChild(link);
       window.cblcars._loadedFonts.add(href);
-      cblcarsLog.info(`[loadFont] Loaded remote font from: ${href}`);
+      cblcarsLog.debug(`[loadFont] Loaded remote font from: ${href}`);
       return;
     }
 
@@ -67,7 +67,7 @@ export function loadFont(fontInput) {
     link.href = href;
     document.head.appendChild(link);
     window.cblcars._loadedFonts.add(fontKey);
-    cblcarsLog.info(`[loadFont] Loaded local font: ${fontName}`);
+    cblcarsLog.debug(`[loadFont] Loaded local font: ${fontName}`);
   });
 }
 

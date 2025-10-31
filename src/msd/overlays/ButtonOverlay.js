@@ -243,7 +243,7 @@ export class ButtonOverlay extends OverlayBase {
    */
   update(overlayElement, overlay, sourceData) {
     try {
-      cblcarsLog.debug(`[ButtonOverlay] Updating overlay ${overlay.id} with data:`, sourceData);
+      cblcarsLog.trace(`[ButtonOverlay] Updating overlay ${overlay.id} with data:`, sourceData);
 
       // Update cached overlay reference
       this.overlay = overlay;
@@ -736,7 +736,7 @@ export class ButtonOverlay extends OverlayBase {
    * @returns {boolean} True if update succeeded
    */
   static updateIncremental(overlay, overlayElement, context) {
-    cblcarsLog.info(`[ButtonOverlay] 🎨 INCREMENTAL UPDATE: ${overlay.id}`);
+    cblcarsLog.debug(`[ButtonOverlay] 🎨 INCREMENTAL UPDATE: ${overlay.id}`);
 
     try {
       // Get updated style (already patched by SystemsManager)

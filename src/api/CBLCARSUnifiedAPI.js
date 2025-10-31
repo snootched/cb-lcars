@@ -37,7 +37,7 @@ export class CBLCARSUnifiedAPI {
       // Ensure namespace exists
       window.cblcars = window.cblcars || {};
 
-      cblcarsLog.info('[UnifiedAPI] 🚀 Attaching unified API structure...');
+      cblcarsLog.debug('[UnifiedAPI] 🚀 Attaching unified API structure...');
 
       // ==========================================
       // PHASE 0: Runtime API
@@ -100,7 +100,7 @@ export class CBLCARSUnifiedAPI {
         cblcarsLog.debug('[UnifiedAPI] Animation API already initialized');
       }
 
-      cblcarsLog.info('[UnifiedAPI] ✅ Unified API structure attached successfully');
+      cblcarsLog.debug('[UnifiedAPI] ✅ Unified API structure attached successfully');
       cblcarsLog.debug('[UnifiedAPI] Available namespaces:', {
         runtime: !!window.cblcars.msd,
         debug: !!window.cblcars.debug?.msd,
@@ -197,5 +197,5 @@ if (typeof window !== 'undefined') {
 
   // Force attach immediately
   CBLCARSUnifiedAPI.attach();
-  cblcarsLog.info('[UnifiedAPI] ✅ Auto-attached at module load');
+  cblcarsLog.debug('[UnifiedAPI] ✅ Auto-attached at module load');
 }

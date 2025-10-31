@@ -212,14 +212,14 @@ export class RulesEngine {
         const originalGetEntity = getEntity;
 
         getEntity = (entityId) => {
-          cblcarsLog.debug(`[RulesEngine] getEntity called for: ${entityId}`);
+          cblcarsLog.trace(`[RulesEngine] getEntity called for: ${entityId}`);
 
           // PRIORITY 1: Try to get HASS state from SystemsManager
           if (this.systemsManager) {
             const hass = this.systemsManager.getHass();
             if (hass && hass.states && hass.states[entityId]) {
               const state = hass.states[entityId].state;
-              cblcarsLog.debug(`[RulesEngine] Found HASS state for ${entityId}: ${state}`);
+              cblcarsLog.trace(`[RulesEngine] Found HASS state for ${entityId}: ${state}`);
 
               return {
                 entity_id: entityId,
@@ -235,7 +235,7 @@ export class RulesEngine {
           if (entityId.includes('.') && this.dataSourceManager) {
             const value = this.resolveDataSourceValue(entityId);
             if (value !== null) {
-              cblcarsLog.debug(`[RulesEngine] Found DataSource reference value for ${entityId}: ${value}`);
+              cblcarsLog.trace(`[RulesEngine] Found DataSource reference value for ${entityId}: ${value}`);
               return {
                 entity_id: entityId,
                 state: String(value),
@@ -252,7 +252,7 @@ export class RulesEngine {
               const currentData = templateDataSource.getCurrentData();
               if (currentData && currentData.entity && currentData.entity.state !== undefined) {
                 const originalState = currentData.entity.state;
-                cblcarsLog.debug(`[RulesEngine] Found auto-DataSource original state for ${entityId}: ${originalState}`);
+                cblcarsLog.trace(`[RulesEngine] Found auto-DataSource original state for ${entityId}: ${originalState}`);
 
                 return {
                   entity_id: entityId,
@@ -599,7 +599,7 @@ export class RulesEngine {
         if (entity) {
           entityData = entity;
           entityValue = entity.state;
-          cblcarsLog.debug(`[RulesEngine] Found direct entity data for ${condition.entity}:`, entityValue);
+          cblcarsLog.trace(`[RulesEngine] Found direct entity data for ${condition.entity}:`, entityValue);
         } else {
           // If not found as direct entity, check if there's an auto-created DataSource
           const templateDataSourceName = `template_${condition.entity.replace(/\./g, '_')}`;
@@ -615,7 +615,7 @@ export class RulesEngine {
                 const originalState = currentData.entity.state;
                 entityValue = originalState;
 
-                cblcarsLog.debug(`[RulesEngine] Found auto-created DataSource ${templateDataSourceName} for ${condition.entity}:`, {
+                cblcarsLog.trace(`[RulesEngine] Found auto-created DataSource ${templateDataSourceName} for ${condition.entity}:`, {
                   dataSourceConvertedValue: currentData.v,
                   originalEntityState: originalState,
                   usingForRules: originalState,
@@ -640,14 +640,14 @@ export class RulesEngine {
               state: String(dataSourceValue),
               attributes: {}
             };
-            cblcarsLog.debug(`[RulesEngine] Found DataSource reference value for ${condition.entity}:`, entityValue);
+            cblcarsLog.trace(`[RulesEngine] Found DataSource reference value for ${condition.entity}:`, entityValue);
           }
         }
 
         // If we still have no data, return error
         if (!entityData && entityValue === null) {
           result.error = `Entity ${condition.entity} not found in HASS or DataSources`;
-          cblcarsLog.debug(`[RulesEngine] Entity ${condition.entity} not found anywhere`);
+          cblcarsLog.trace(`[RulesEngine] Entity.*not found anywhere`);
           return result;
         }
 
@@ -660,7 +660,7 @@ export class RulesEngine {
           const actualState = String(entityValue);
           result.matched = actualState === conditionState;
 
-          cblcarsLog.debug(`[RulesEngine] State comparison for ${condition.entity}:`, {
+          cblcarsLog.trace(`[RulesEngine] State comparison for ${condition.entity}:`, {
             actualState: actualState,
             conditionState: conditionState,
             matched: result.matched,
@@ -670,20 +670,20 @@ export class RulesEngine {
           // Numeric comparison - above
           const numValue = parseFloat(entityValue);
           result.matched = !isNaN(numValue) && numValue > condition.above;
-          cblcarsLog.debug(`[RulesEngine] Above comparison for ${condition.entity}: ${numValue} > ${condition.above} = ${result.matched}`);
+          cblcarsLog.trace(`[RulesEngine] Above comparison for ${condition.entity}: ${numValue} > ${condition.above} = ${result.matched}`);
         } else if (condition.below !== undefined) {
           // Numeric comparison - below
           const numValue = parseFloat(entityValue);
           result.matched = !isNaN(numValue) && numValue < condition.below;
-          cblcarsLog.debug(`[RulesEngine] Below comparison for ${condition.entity}: ${numValue} < ${condition.below} = ${result.matched}`);
+          cblcarsLog.trace(`[RulesEngine] Below comparison for ${condition.entity}: ${numValue} < ${condition.below} = ${result.matched}`);
         } else if (condition.equals !== undefined) {
           // Equals comparison
           result.matched = entityValue == condition.equals;
-          cblcarsLog.debug(`[RulesEngine] Equals comparison for ${condition.entity}: ${entityValue} == ${condition.equals} = ${result.matched}`);
+          cblcarsLog.trace(`[RulesEngine] Equals comparison for ${condition.entity}: ${entityValue} == ${condition.equals} = ${result.matched}`);
         } else {
           // Default: entity exists and has a value
           result.matched = true;
-          cblcarsLog.debug(`[RulesEngine] Default existence check for ${condition.entity}: ${result.matched}`);
+          cblcarsLog.trace(`[RulesEngine] Default existence check for ${condition.entity}: ${result.matched}`);
         }
       }
 

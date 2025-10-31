@@ -55,7 +55,7 @@ export class ApexChartsOverlayRenderer {
 
     // ✅ NEW: Phase 6 - Log StyleResolver availability
     if (this.styleResolver) {
-      cblcarsLog.info('[ApexChartsOverlayRenderer] ✅ StyleResolverService available');
+      cblcarsLog.debug('[ApexChartsOverlayRenderer] ✅ StyleResolverService available');
     } else {
       cblcarsLog.warn('[ApexChartsOverlayRenderer] ⚠️ StyleResolverService not available - using fallback resolution');
       cblcarsLog.debug('[ApexChartsOverlayRenderer] Checked:', {
@@ -1057,7 +1057,7 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
 
       parentElement.appendChild(overlayContainer);
 
-      cblcarsLog.info('[ApexChartsOverlayRenderer] Created overlay container', {
+      cblcarsLog.debug('[ApexChartsOverlayRenderer] Created overlay container', {
         svgOffset: { left: svgOffsetLeft, top: svgOffsetTop },
         svgSize: { width: svgRect.width, height: svgRect.height },
         svgRect: {
@@ -1678,7 +1678,7 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
 
     try {
         // DEBUG: Log the entire overlay object to see what we're receiving
-        cblcarsLog.info(`[ApexChartsOverlayRenderer] 📦 Full overlay object for ${overlayId}:`, {
+        cblcarsLog.debug(`[ApexChartsOverlayRenderer] 📦 Full overlay object for ${overlayId}:`, {
           hasFinalStyle: !!overlay.finalStyle,
           hasStyle: !!overlay.style,
           finalStyleKeys: overlay.finalStyle ? Object.keys(overlay.finalStyle) : [],
@@ -1690,7 +1690,7 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
         const sourceRef = overlay.source || overlay.data_source || overlay.sources;
 
         // DEBUG: Log the incoming style patch to see what colors are being applied
-        cblcarsLog.info(`[ApexChartsOverlayRenderer] 🎨 Style being used for ${overlayId}:`, {
+        cblcarsLog.debug(`[ApexChartsOverlayRenderer] 🎨 Style being used for ${overlayId}:`, {
           color: style.color,
           stroke_colors: style.stroke_colors,
           fill_colors: style.fill_colors,
@@ -1848,7 +1848,7 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
   static updateIncremental(overlay, overlayElement, context) {
     const { dataSourceManager, patch } = context;
 
-    cblcarsLog.info('[ApexChartsOverlayRenderer] 🔄 Incremental update requested:', {
+    cblcarsLog.debug('[ApexChartsOverlayRenderer] 🔄 Incremental update requested:', {
       overlayId: overlay.id,
       hasPatch: !!patch,
       patchStyleKeys: patch?.style ? Object.keys(patch.style) : [],
@@ -1864,7 +1864,7 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
       // Use the existing updateChartStyle method
       ApexChartsOverlayRenderer.updateChartStyle(overlay.id, overlay, dataSourceManager);
 
-      cblcarsLog.info('[ApexChartsOverlayRenderer] ✅ Incremental update succeeded:', overlay.id);
+      cblcarsLog.debug('[ApexChartsOverlayRenderer] ✅ Incremental update succeeded:', overlay.id);
       return true;
 
     } catch (error) {

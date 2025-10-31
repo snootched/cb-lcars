@@ -85,17 +85,17 @@ export class TextOverlay extends OverlayBase {
    */
   render(overlay, anchors, viewBox, svgContainer, cardInstance) {
     try {
-      cblcarsLog.debug(`[TextOverlay] 🎨 Rendering text overlay: ${overlay.id}`);
+      cblcarsLog.trace(`[TextOverlay] 🎨 Rendering text overlay: ${overlay.id}`);
 
       // Use passed overlay (with finalStyle if present) instead of this.overlay
       const style = overlay.finalStyle || overlay.style || {};
 
       // DEBUG: Check status_indicator on initial load
       if (style.status_indicator) {
-        cblcarsLog.debug(`[TextOverlay] 📍 Status indicator present: ${style.status_indicator}, position: ${style.status_indicator_position}, size: ${style.status_indicator_size}, padding: ${style.status_indicator_padding}`);
+        cblcarsLog.trace(`[TextOverlay] 📍 Status indicator present: ${style.status_indicator}, position: ${style.status_indicator_position}, size: ${style.status_indicator_size}, padding: ${style.status_indicator_padding}`);
       } else {
         // Not an issue - status indicators are optional decorations
-        cblcarsLog.debug(`[TextOverlay] 📍 No status_indicator configured for ${overlay.id}`);
+        cblcarsLog.trace(`[TextOverlay] 📍 No status_indicator configured for ${overlay.id}`);
       }
 
       this.container = svgContainer;
@@ -178,7 +178,7 @@ export class TextOverlay extends OverlayBase {
       const estimatedWidth = textBBox ? textBBox.width : 0;
       const estimatedHeight = textBBox ? textBBox.height : 0;
 
-      cblcarsLog.debug(`[TextOverlay] Text bbox from renderer:`, {
+      cblcarsLog.trace(`[TextOverlay] Text bbox from renderer:`, {
         overlayId: overlay.id,
         bbox: textBBox,
         hasMetadata: !!renderResult.metadata

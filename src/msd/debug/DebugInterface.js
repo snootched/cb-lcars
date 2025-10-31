@@ -173,8 +173,8 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   // ✅ PHASE 4: Add deprecation warnings for legacy duplicate methods
   setupDeprecationWarnings(dbg);
 
-  cblcarsLog.debug('[DebugInterface] Debug interface setup complete');
-  cblcarsLog.debug('[DebugInterface] Available methods:', Object.keys(dbg));
+ // cblcarsLog.debug('[DebugInterface] Debug interface setup complete');
+ // cblcarsLog.debug('[DebugInterface] Available methods:', Object.keys(dbg));
 
   // Log debug config state (REDUCED)
   if (debugConfig.enabled) {
@@ -774,7 +774,7 @@ For full help: __msdDebug.help()
 
   // Log debug config state (REDUCED)
   if (debugConfig.enabled) {
-    cblcarsLog.info('[DebugInterface] Debug mode enabled');
+    cblcarsLog.debug('[DebugInterface] Debug mode enabled');
   }
 }
 

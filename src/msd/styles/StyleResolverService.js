@@ -75,7 +75,7 @@ export class StyleResolverService {
     this.initialized = false;
     this._init();
 
-    cblcarsLog.info('[StyleResolverService] ✅ Initialized');
+    cblcarsLog.debug('[StyleResolverService] ✅ Initialized');
   }
 
   /**

@@ -39,12 +39,12 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   }
 
   // PHASE 2: Initialize SystemsManager with theme loading BEFORE any overlay processing
-  cblcarsLog.debug('[PipelineCore] 🔧 Phase 2: Initializing SystemsManager and loading pack defaults');
+  cblcarsLog.trace('[PipelineCore] 🔧 Phase 2: Initializing SystemsManager and loading pack defaults');
   const systemsManager = new SystemsManager();
 
   // ✅ MOVED: Phase 2.5 - Initialize StyleResolverService BEFORE SystemsManager initialization
   // This ensures StyleResolver is available when SystemsManager checks for it
-  cblcarsLog.debug('[PipelineCore] 🎨 Phase 2.5: Initializing StyleResolverService (before SystemsManager)');
+  cblcarsLog.trace('[PipelineCore] 🎨 Phase 2.5: Initializing StyleResolverService (before SystemsManager)');
 
   let styleResolver = null;
   try {
@@ -68,7 +68,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     // Store in SystemsManager
     systemsManager.styleResolver = styleResolver;
 
-    cblcarsLog.info('[PipelineCore] ✅ StyleResolverService initialized (before SystemsManager)');
+    cblcarsLog.debug('[PipelineCore] ✅ StyleResolverService initialized (before SystemsManager)');
   } catch (error) {
     cblcarsLog.warn('[PipelineCore] ⚠️ StyleResolverService initialization failed:', error);
     cblcarsLog.warn('[PipelineCore] ⚠️ Continuing without StyleResolverService - renderers will use fallback resolution');
@@ -87,7 +87,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       // Re-initialize token resolver with actual theme manager
       styleResolver.tokenResolver.themeManager = systemsManager.themeManager;
 
-      cblcarsLog.info('[PipelineCore] ✅ StyleResolver connected to ThemeManager');
+      cblcarsLog.debug('[PipelineCore] ✅ StyleResolver connected to ThemeManager');
     }
 
     // ✅ NEW: Phase 7 - Phase 2.2: Initialize ValidationService
@@ -131,7 +131,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       // Store in SystemsManager
       systemsManager.validationService = validationService;
 
-      cblcarsLog.info('[PipelineCore] ✅ ValidationService initialized and connected');
+      cblcarsLog.debug('[PipelineCore] ✅ ValidationService initialized and connected');
 
     } catch (validationInitError) {
       cblcarsLog.warn('[PipelineCore] ⚠️ ValidationService initialization failed:', validationInitError);

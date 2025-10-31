@@ -134,7 +134,7 @@ export class LineOverlay extends OverlayBase {
     let anchor = this._resolveAnchor(overlay, anchors);
     let anchor2 = this._resolveAttachTo(overlay, anchors);
 
-    cblcarsLog.debug(`[LineOverlay] 📍 Resolved anchors for ${overlay.id}: anchor=[${anchor}], anchor2=[${anchor2}], attach_gap=${overlay.attach_gap}, anchor_gap=${overlay.anchor_gap}`);
+    cblcarsLog.trace(`[LineOverlay] 📍 Resolved anchors for ${overlay.id}: anchor=[${anchor}], anchor2=[${anchor2}], attach_gap=${overlay.attach_gap}, anchor_gap=${overlay.anchor_gap}`);
 
     // Validate anchors
     if (!anchor || !Array.isArray(anchor) || anchor.length !== 2) {
@@ -417,7 +417,7 @@ export class LineOverlay extends OverlayBase {
    * @private
    */
   _resolveAnchor(overlay, anchors) {
-    cblcarsLog.debug(`[LineOverlay] 🎯 _resolveAnchor for ${overlay.id}:`, {
+    cblcarsLog.trace(`[LineOverlay] 🎯 _resolveAnchor for ${overlay.id}:`, {
       anchor: overlay.anchor,
       anchor_side: overlay.anchor_side,
       hasOverlayAttachmentPoints: this.overlayAttachmentPoints?.has(overlay.anchor)
@@ -433,7 +433,7 @@ export class LineOverlay extends OverlayBase {
         ? `${overlay.anchor}.${anchorSide}`
         : overlay.anchor;
 
-      cblcarsLog.debug(`[LineOverlay] 🔍 Trying virtual anchor:`, {
+      cblcarsLog.trace(`[LineOverlay] 🔍 Trying virtual anchor:`, {
         anchorSide,
         virtualAnchorId,
         hasInAnchors: !!anchors[virtualAnchorId]
@@ -442,7 +442,7 @@ export class LineOverlay extends OverlayBase {
       // Try to resolve the virtual anchor first (gap already applied by AdvancedRenderer)
       const virtualAnchor = OverlayUtils.resolvePosition(virtualAnchorId, anchors);
       if (virtualAnchor) {
-        cblcarsLog.debug(`[LineOverlay] ✅ Resolved virtual anchor (gap pre-applied):`, virtualAnchor);
+        cblcarsLog.trace(`[LineOverlay] ✅ Resolved virtual anchor (gap pre-applied):`, virtualAnchor);
         return virtualAnchor;
       }
     }
@@ -475,7 +475,7 @@ export class LineOverlay extends OverlayBase {
    * @private
    */
   _resolveAttachTo(overlay, anchors) {
-    cblcarsLog.debug(`[LineOverlay] 🎯 _resolveAttachTo for ${overlay.id}:`, {
+    cblcarsLog.trace(`[LineOverlay] 🎯 _resolveAttachTo for ${overlay.id}:`, {
       attach_to: overlay.attach_to,
       attach_side: overlay.attach_side,
       hasOverlayAttachmentPoints: this.overlayAttachmentPoints?.has(overlay.attach_to)
@@ -491,7 +491,7 @@ export class LineOverlay extends OverlayBase {
         ? `${overlay.attach_to}.${attachSide}`
         : overlay.attach_to;
 
-      cblcarsLog.debug(`[LineOverlay] 🔍 Trying virtual anchor:`, {
+      cblcarsLog.trace(`[LineOverlay] 🔍 Trying virtual anchor:`, {
         attachSide,
         virtualAnchorId,
         hasInAnchors: !!anchors[virtualAnchorId]
@@ -500,7 +500,7 @@ export class LineOverlay extends OverlayBase {
       // Try to resolve the virtual anchor first (gap already applied by AdvancedRenderer)
       const virtualAnchor = OverlayUtils.resolvePosition(virtualAnchorId, anchors);
       if (virtualAnchor) {
-        cblcarsLog.debug(`[LineOverlay] ✅ Resolved virtual anchor (gap pre-applied):`, virtualAnchor);
+        cblcarsLog.trace(`[LineOverlay] ✅ Resolved virtual anchor (gap pre-applied):`, virtualAnchor);
         return virtualAnchor;
       }
     }

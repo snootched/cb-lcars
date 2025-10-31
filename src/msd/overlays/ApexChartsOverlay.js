@@ -140,7 +140,7 @@ export class ApexChartsOverlay extends OverlayBase {
    */
   update(overlayElement, overlay, sourceData) {
     try {
-      cblcarsLog.debug(`[ApexChartsOverlay] Updating overlay ${overlay.id} with data:`, sourceData);
+      cblcarsLog.trace(`[ApexChartsOverlay] Updating overlay ${overlay.id} with data:`, sourceData);
 
       // Update cached overlay reference
       this.overlay = overlay;

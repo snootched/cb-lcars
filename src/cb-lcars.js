@@ -371,7 +371,7 @@ class CBLCARSBaseCard extends ButtonCard {
         this._resizeObserverTolerance = window.cblcars.resizeObserverTolerance || this._resizeObserverTolerance;
         this._debounceWait = window.cblcars.debounceWait || this._debounceWait;
         this._resizeObserver = new ResizeObserver(() => {
-            cblcarsLog.debug('[CBLCARSBaseCard.constructor()] Resize observer fired', this, this._logLevel);
+            cblcarsLog.trace('[CBLCARSBaseCard.constructor()] Resize observer fired', this, this._logLevel);
             this._debouncedResizeHandler();
         });
         this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), this._debounceWait);
@@ -379,7 +379,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
 
     setHass(hass) {
-        cblcarsLog.debug('[CBLCARSBaseCard.setHass()] 🎯 RECEIVED setHass call:', {
+        cblcarsLog.trace('[CBLCARSBaseCard.setHass()] 🎯 RECEIVED setHass call:', {
             cardType: this.constructor.cardType,
             entity: this._config?.entity,
             oldState: this.hass?.states?.[this._config?.entity]?.state,
@@ -396,7 +396,7 @@ class CBLCARSBaseCard extends ButtonCard {
         if (this._config?.entity && hass?.states?.[this._config.entity]) {
             const newStateObj = hass.states[this._config.entity];
             if (this._stateObj !== newStateObj) {
-                cblcarsLog.debug('[CBLCARSBaseCard.setHass()] Updating _stateObj for entity:', this._config.entity, {
+                cblcarsLog.trace('[CBLCARSBaseCard.setHass()] Updating _stateObj for entity:', this._config.entity, {
                     oldState: this._stateObj?.state,
                     newState: newStateObj?.state
                 });
@@ -419,7 +419,7 @@ class CBLCARSBaseCard extends ButtonCard {
             }
         }
 
-        cblcarsLog.debug('[CBLCARSBaseCard.setHass()] Completed with property assignment approach');
+        cblcarsLog.trace('[CBLCARSBaseCard.setHass()] Completed with property assignment approach');
     }
 
 
@@ -429,7 +429,7 @@ class CBLCARSBaseCard extends ButtonCard {
         }
 
         // DEBUGGING: Log the incoming config to see what MSD is passing
-        cblcarsLog.debug('[CBLCARSBaseCard.setConfig()] Called with config:', {
+        cblcarsLog.trace('[CBLCARSBaseCard.setConfig()] Called with config:', {
             type: config.type,
             entity: config.entity,
             triggersUpdate: config.triggers_update,
@@ -459,7 +459,7 @@ class CBLCARSBaseCard extends ButtonCard {
         if (isMSDCard) {
             // MSD cards: NO entity tracking at all
             triggersUpdate = [];
-            cblcarsLog.debug(`[CBLCARSBaseCard.setConfig()] MSD card detected: Completely disabling triggers_update`);
+            cblcarsLog.trace(`[CBLCARSBaseCard.setConfig()] MSD card detected: Completely disabling triggers_update`);
         } else {
             // Non-MSD cards: Normal entity collection
             const foundEntities = collectEntities(config);
@@ -469,7 +469,7 @@ class CBLCARSBaseCard extends ButtonCard {
                 triggersUpdate = 'all';
             } else if (foundEntities.length > 0) {
                 triggersUpdate = Array.from(new Set([...triggersUpdate, ...foundEntities]));
-                cblcarsLog.debug(`[CBLCARSBaseCard.setConfig()] Non-MSD card - found entities for triggers_update:`, foundEntities);
+                cblcarsLog.trace(`[CBLCARSBaseCard.setConfig()] Non-MSD card - found entities for triggers_update:`, foundEntities);
             }
         }
 
@@ -527,16 +527,16 @@ class CBLCARSBaseCard extends ButtonCard {
 
         // ADDED: Force state re-evaluation for CB-LCARS cards after config change
         if (this.hass && this._config.entity) {
-            cblcarsLog.debug('[CBLCARSBaseCard.setConfig()] Forcing state re-evaluation after setConfig');
+            cblcarsLog.trace('[CBLCARSBaseCard.setConfig()] Forcing state re-evaluation after setConfig');
 
             // Force the card to re-evaluate its state-based styling
             setTimeout(() => {
                 try {
-                    cblcarsLog.debug('[CBLCARSBaseCard.setConfig()] Skipping forced setHass - will rely on normal HA update cycle');
+                    cblcarsLog.trace('[CBLCARSBaseCard.setConfig()] Skipping forced setHass - will rely on normal HA update cycle');
 
                     // Method 2: Force render update (SAFE)
                     if (typeof this.requestUpdate === 'function') {
-                        cblcarsLog.debug('[CBLCARSBaseCard.setConfig()] Forcing requestUpdate');
+                        cblcarsLog.trace('[CBLCARSBaseCard.setConfig()] Forcing requestUpdate');
                         this.requestUpdate();
                     }
 
@@ -548,7 +548,7 @@ class CBLCARSBaseCard extends ButtonCard {
             }, 100);
         }
 
-        cblcarsLog.debug(`[CBLCARSBaseCard.setConfig()] called with:`, this._config, this._logLevel);
+        cblcarsLog.trace(`[CBLCARSBaseCard.setConfig()] called with:`, this._config, this._logLevel);
     }
 
     static get editorType() {
@@ -700,7 +700,7 @@ class CBLCARSBaseCard extends ButtonCard {
             this.style.setProperty('--button-card-height', `${parentHeight}px`);
 
             if (!this._config) {
-                cblcarsLog.debug('[CBLCARSBaseCard._updateCardSize()] Config is not defined. Skipping resize handling.', this, this._logLevel);
+                cblcarsLog.trace('[CBLCARSBaseCard._updateCardSize()] Config is not defined. Skipping resize handling.', this, this._logLevel);
                 return;
             }
 
@@ -729,7 +729,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
         if (targetElement && this.isConnected) {
             this._resizeObserver.observe(targetElement);
-            cblcarsLog.debug(`[CBLCARSBaseCard.enableResizeObserver()] Resize observer enabled on [${this._resizeObserverTarget}]`, this, this._logLevel);
+            cblcarsLog.trace(`[CBLCARSBaseCard.enableResizeObserver()] Resize observer enabled on [${this._resizeObserverTarget}]`, this, this._logLevel);
         }
     }
 
@@ -737,7 +737,7 @@ class CBLCARSBaseCard extends ButtonCard {
         if (this._resizeObserver) {
             this._resizeObserver.disconnect();
         }
-        cblcarsLog.debug(`[CBLCARSBaseCard.disableResizeObserver()] Resize observer disabled`, this._logLevel);
+        cblcarsLog.trace(`[CBLCARSBaseCard.disableResizeObserver()] Resize observer disabled`, this._logLevel);
     }
 
     toggleResizeObserver() {
@@ -928,7 +928,7 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
 
     setConfig(config) {
 
-        cblcarsLog.debug('[CBLCARSMSDCard.setConfig()] 🔧 CBLCARSMSDCard.setConfig() CALLED:', {
+        cblcarsLog.trace('[CBLCARSMSDCard.setConfig()] 🔧 CBLCARSMSDCard.setConfig() CALLED:', {
             timestamp: new Date().toISOString(),
             hasExistingConfig: !!this._config,
             configType: config.type,
@@ -972,16 +972,16 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             if (msdConfig && window.cblcars.debug.msd?.initMsdPipeline) {
                 // Store the MSD config for later pipeline initialization in the template
                 this._msdConfig = msdConfig;
-                cblcarsLog.debug('[CBLCARSMSDCard.setConfig()] MSD config prepared for pipeline initialization');
+                cblcarsLog.trace('[CBLCARSMSDCard.setConfig()] MSD config prepared for pipeline initialization');
             }
         } catch (e) {
             cblcarsLog.warn('[CBLCARSMSDCard.setConfig()] Failed to prepare MSD pipeline:', e);
         }
 
         // PRESERVED: SVG handling logic for proper MSD initialization
-        cblcarsLog.debug('[CBLCARSMSDCard.setConfig()] msdConfig:', msdConfig);
+        cblcarsLog.trace('[CBLCARSMSDCard.setConfig()] msdConfig:', msdConfig);
         if (msdConfig && msdConfig.base_svg?.source) {
-            cblcarsLog.debug('[CBLCARSMSDCard.setConfig()] Found base SVG:', msdConfig.base_svg.source);
+            cblcarsLog.trace('[CBLCARSMSDCard.setConfig()] Found base SVG:', msdConfig.base_svg.source);
             let svgKey = null, svgUrl = null;
 
             if (msdConfig.base_svg.source.startsWith('builtin:')) {
@@ -1028,7 +1028,7 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
      * MSD system manages its own HASS updates internally
      */
     setHass(hass) {
-        cblcarsLog.debug('[CBLCARSMSDCard.setHass()] 🏠 CBLCARSMSDCard.setHass() CALLED:', {
+        cblcarsLog.trace('[CBLCARSMSDCard.setHass()] 🏠 CBLCARSMSDCard.setHass() CALLED:', {
             timestamp: new Date().toISOString(),
             hasHass: !!hass,
             lightDeskState: hass?.states?.['light.desk']?.state,
@@ -1058,17 +1058,17 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
 
         // CRITICAL: Call parent setHass to ensure Home Assistant's normal HASS flow continues
         // This ensures the card gets updated when entities change outside of MSD system
-        cblcarsLog.debug('[CBLCARSMSDCard.setHass()] 📤 Calling super.setHass() to maintain HA compatibility');
+        cblcarsLog.trace('[CBLCARSMSDCard.setHass()] 📤 Calling super.setHass() to maintain HA compatibility');
         super.setHass(hass);
 
-        cblcarsLog.debug('[CBLCARSMSDCard.setHass()] ✅ CBLCARSMSDCard.setHass() COMPLETED - SystemsManager should now have fresh HASS');
+        cblcarsLog.trace('[CBLCARSMSDCard.setHass()] ✅ CBLCARSMSDCard.setHass() COMPLETED - SystemsManager should now have fresh HASS');
     }
 
     /**
      * Override updated to prevent re-renders
      */
     updated(changedProperties) {
-        cblcarsLog.debug('[CBLCARSMSDCard.updated()] 🔄 CBLCARSMSDCard.updated() CALLED:', {
+        cblcarsLog.trace('[CBLCARSMSDCard.updated()] 🔄 CBLCARSMSDCard.updated() CALLED:', {
             timestamp: new Date().toISOString(),
             changedProperties: Array.from(changedProperties.keys()),
             stackTrace: new Error().stack.split('\n').slice(1, 4).map(line => line.trim()).join(' → ')
@@ -1079,21 +1079,21 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             const isControlTriggered = this._isControlTriggeredUpdate();
 
             if (isControlTriggered) {
-                cblcarsLog.debug('[CBLCARSMSDCard.updated()] ⏭️ BLOCKED super.updated() for control-triggered HASS change');
+                cblcarsLog.trace('[CBLCARSMSDCard.updated()] ⏭️ BLOCKED super.updated() for control-triggered HASS change');
                 return;
             } else {
-                cblcarsLog.debug('[CBLCARSMSDCard.updated()] 🔄 Allowing super.updated() for non-control HASS change');
+                cblcarsLog.trace('[CBLCARSMSDCard.updated()] 🔄 Allowing super.updated() for non-control HASS change');
             }
         }
 
-        cblcarsLog.debug('[CBLCARSMSDCard.updated()] 🔄 Calling super.updated() for changes:', Array.from(changedProperties.keys()));
+        cblcarsLog.trace('[CBLCARSMSDCard.updated()] 🔄 Calling super.updated() for changes:', Array.from(changedProperties.keys()));
         super.updated(changedProperties);
     }
 
 
 
     requestUpdate(name, oldValue, options) {
-        cblcarsLog.debug('[CBLCARSMSDCard.requestUpdate()] 🔃 CBLCARSMSDCard.requestUpdate() CALLED:', {
+        cblcarsLog.trace('[CBLCARSMSDCard.requestUpdate()] 🔃 CBLCARSMSDCard.requestUpdate() CALLED:', {
             timestamp: new Date().toISOString(),
             name,
             hasOldValue: oldValue !== undefined,
@@ -1102,7 +1102,7 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
 
         // ENHANCED: Block ALL HASS-related updates for MSD cards to prevent re-renders
         if (name === 'hass' || name === '_hass') {
-            cblcarsLog.debug('[CBLCARSMSDCard.requestUpdate()] 🚫 BLOCKED requestUpdate() for HASS change:', name);
+            cblcarsLog.trace('[CBLCARSMSDCard.requestUpdate()] 🚫 BLOCKED requestUpdate() for HASS change:', name);
             return Promise.resolve(); // Block the MSD card from re-rendering
         }
 
@@ -1114,12 +1114,12 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
                                     stackTrace.includes('ActionHelpers');
 
             if (isActionTriggered) {
-                cblcarsLog.debug('[CBLCARSMSDCard.requestUpdate()] 🚫 BLOCKED requestUpdate() for action-triggered _config change');
+                cblcarsLog.trace('[CBLCARSMSDCard.requestUpdate()] 🚫 BLOCKED requestUpdate() for action-triggered _config change');
                 return Promise.resolve(); // Block action-triggered config changes
             }
         }
 
-        cblcarsLog.debug('[CBLCARSMSDCard.requestUpdate()] ✅ Allowing requestUpdate() for:', name);
+        cblcarsLog.trace('[CBLCARSMSDCard.requestUpdate()] ✅ Allowing requestUpdate() for:', name);
         return super.requestUpdate(name, oldValue, options);
     }
 
@@ -1144,12 +1144,12 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
     }
 
     connectedCallback() {
-        cblcarsLog.debug('[CBLCARSMSDCard.connectedCallback] MSD card connected to DOM');
+        cblcarsLog.trace('[CBLCARSMSDCard.connectedCallback] MSD card connected to DOM');
         super.connectedCallback();
     }
 
     disconnectedCallback() {
-        cblcarsLog.debug('[CBLCARSMSDCard.disconnectedCallback] MSD card disconnected from DOM');
+        cblcarsLog.trace('[CBLCARSMSDCard.disconnectedCallback] MSD card disconnected from DOM');
 
         // Don't automatically destroy the MSD instance on disconnect since it could be
         // a temporary disconnect during view changes. The MsdInstanceManager will handle

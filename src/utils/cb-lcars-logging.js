@@ -3,7 +3,7 @@ import * as CBLCARS from '../cb-lcars-vars.js';
 let cblcarsGlobalLogLevel = 'info';
 
 export function cblcarsSetGlobalLogLevel(level) {
-  const validLevels = ['error', 'warn', 'info', 'debug'];
+  const validLevels = ['error', 'warn', 'info', 'debug', 'trace'];
   if (!validLevels.includes(level)) {
     console.warn('🟡 CB-LCARS|WARN: Invalid log level:', level, 'Using "info" instead');
     level = 'info';
@@ -21,7 +21,7 @@ window.cblcars = window.cblcars || {};
 window.cblcars.setGlobalLogLevel = cblcarsSetGlobalLogLevel;
 window.cblcars.getGlobalLogLevel = cblcarsGetGlobalLogLevel;
 // Add shortcut properties for each log level
-['error', 'warn', 'info', 'debug'].forEach(level => {
+['error', 'warn', 'info', 'debug', 'trace'].forEach(level => {
   window.cblcars.setGlobalLogLevel[level] = () => cblcarsSetGlobalLogLevel(level);
 });
 
@@ -114,18 +114,20 @@ const styleConfig = {
     info: 'background: linear-gradient(45deg, #37a6d1, #4db8e8);',
     warn: 'background: linear-gradient(45deg, #ff6753, #ff8570);',
     error: 'background: linear-gradient(45deg, #ef1d10, #ff453a);',
-    debug: 'background: linear-gradient(45deg, #8e44ad, #a569bd);'
+    debug: 'background: linear-gradient(45deg, #8e44ad, #a569bd);',
+    trace: 'background: linear-gradient(45deg, #5a6c7d, #718a9e);'
   }
 };
 
 function shouldLog(level) {
-  // Correct logging hierarchy: error (most critical) -> warn -> info -> debug (least critical)
-  const levels = ['error', 'warn', 'info', 'debug'];
+  // Correct logging hierarchy: error (most critical) -> warn -> info -> debug -> trace (least critical)
+  const levels = ['error', 'warn', 'info', 'debug', 'trace'];
   const levelPriority = {
     'error': 0,  // Always shown (highest priority)
     'warn': 1,   // Shown at warn level and above
     'info': 2,   // Shown at info level and above
-    'debug': 3   // Only shown at debug level (lowest priority)
+    'debug': 3,  // Shown at debug level and above
+    'trace': 4   // Only shown at trace level (lowest priority, most verbose)
   };
 
   const currentPriority = levelPriority[cblcarsGlobalLogLevel] ?? 2; // Default to info
@@ -167,6 +169,12 @@ export function logDebug(message, ...args) {
   }
 }
 
+export function logTrace(message, ...args) {
+  if (shouldLog('trace')) {
+    console.debug(...createStyleArgs('trace', message, ...args));
+  }
+}
+
 // Alias
 export const logLog = logInfo;
 
@@ -182,6 +190,7 @@ export const cblcarsLog = {
   info: (...args) => logInfo(...args),
   warn: (...args) => logWarn(...args),
   error: (...args) => logError(...args),
-  debug: (...args) => logDebug(...args)
+  debug: (...args) => logDebug(...args),
+  trace: (...args) => logTrace(...args)
 };
 

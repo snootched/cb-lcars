@@ -230,7 +230,7 @@ export class ModelBuilder {
   }
 
   _applyOverlayPatches(baseOverlays, ruleResult) {
-    cblcarsLog.info('[ModelBuilder] 🎨 _applyOverlayPatches() ENTRY:', {
+    cblcarsLog.debug('[ModelBuilder] 🎨 _applyOverlayPatches() ENTRY:', {
       overlayCount: baseOverlays.length,
       patchCount: ruleResult.overlayPatches.length,
       patches: ruleResult.overlayPatches.map(p => ({
@@ -244,7 +244,7 @@ export class ModelBuilder {
       applyOverlayPatches(baseOverlays, ruleResult.overlayPatches)
     );
 
-    cblcarsLog.info('[ModelBuilder] 🎨 _applyOverlayPatches() COMPLETE - patches applied to overlays');
+    cblcarsLog.debug('[ModelBuilder] 🎨 _applyOverlayPatches() COMPLETE - patches applied to overlays');
 
     // Log specific statusgrid overlays if patches were for statusgrid
     const statusgridPatches = ruleResult.overlayPatches.filter(p =>

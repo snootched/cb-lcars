@@ -284,7 +284,7 @@ export class ButtonRenderer extends BaseRenderer {
         const finalDominantBaseline = textConfig.dominantBaseline || inferredDominantBaseline;
 
         // REMOVED DUPLICATE: Single consolidated debug log
-        cblcarsLog.debug(`[ButtonRenderer] ✅ Text ${index} for ${config.id}:`, {
+        cblcarsLog.trace(`[ButtonRenderer] ✅ Text for ${config.id}:`, {
           position: textConfig.position,
           textType: textConfig.textType,
           calculatedPosition: textPosition,
@@ -707,9 +707,9 @@ export class ButtonRenderer extends BaseRenderer {
       // Only set value if user didn't explicitly provide it
       if (originalStyle[property] === undefined) {
         buttonStyle[property] = value;
-        cblcarsLog.debug(`[ButtonRenderer] 📝 Preset set ${property}: ${value}`);
+        cblcarsLog.trace(`[ButtonRenderer] 📝 Preset set ${property}: ${value}`);
       } else {
-        cblcarsLog.debug(`[ButtonRenderer] 🚫 User explicit value for ${property}, skipping preset`);
+        cblcarsLog.trace(`[ButtonRenderer] 🚫 User explicit value for ${property}, skipping preset`);
       }
     });
   }
@@ -725,7 +725,7 @@ export class ButtonRenderer extends BaseRenderer {
     if (this.stylePresetManager) {
       const preset = this.stylePresetManager.getPreset(overlayType, presetName);
       if (preset) {
-        cblcarsLog.debug(`[ButtonRenderer] ✅ Found preset ${presetName} via StylePresetManager`);
+        cblcarsLog.trace(`[ButtonRenderer] ✅ Found preset via StylePresetManager`);
         return preset;
       }
     }
@@ -1295,7 +1295,7 @@ export class ButtonRenderer extends BaseRenderer {
 
         // Path-based rendering means geometry changes need full re-render
         if (hasIndividualCornerRadii || hasIndividualBorderSides || hasUniformRadius) {
-          cblcarsLog.info(`[ButtonRenderer] ⚠️ Button ${buttonId} has path-based geometry changes - triggering full re-render`, {
+          cblcarsLog.debug(`[ButtonRenderer] ⚠️ Button has path-based geometry changes - triggering full re-render`, {
             hasIndividualCornerRadii,
             hasIndividualBorderSides,
             hasUniformRadius,

@@ -77,10 +77,10 @@ export class AttachmentPointManager {
 
         // Only set if not already explicitly set (preserves gap-adjusted anchors)
         if (!this._anchors.has(virtualAnchorId)) {
-          cblcarsLog.debug(`[AttachmentPointManager] 📝 Setting base anchor ${virtualAnchorId}: [${point}]`);
+          cblcarsLog.trace(`[AttachmentPointManager] 📝 Setting base anchor ${virtualAnchorId}: [${point}]`);
           this._anchors.set(virtualAnchorId, point);
         } else {
-          cblcarsLog.debug(`[AttachmentPointManager] ⏭️  Skipping ${virtualAnchorId} (already exists with gap)`);
+          cblcarsLog.trace(`[AttachmentPointManager] ⏭️  Skipping ${virtualAnchorId} (already exists with gap)`);
         }
       });
 
@@ -139,9 +139,9 @@ export class AttachmentPointManager {
     const existing = this._anchors.get(anchorId);
     if (existing && anchorId.includes('title_overlay.right')) {
       // Log stack trace for title_overlay.right overwrites
-      cblcarsLog.debug(`[AttachmentPointManager] ⚠️  Overwriting anchor ${anchorId}: [${existing}] → [${coordinate}]`);
+      cblcarsLog.trace(`[AttachmentPointManager] ⚠️  Overwriting anchor ${anchorId}: [${existing}] → [${coordinate}]`);
     } else if (existing) {
-      cblcarsLog.debug(`[AttachmentPointManager] ⚠️  Overwriting anchor ${anchorId}: [${existing}] → [${coordinate}]`);
+      cblcarsLog.trace(`[AttachmentPointManager] ⚠️  Overwriting anchor ${anchorId}: [${existing}] → [${coordinate}]`);
     }
 
     this._anchors.set(anchorId, coordinate);
@@ -210,7 +210,7 @@ export class AttachmentPointManager {
     });
     toRemove.forEach(key => this._anchors.delete(key));
 
-    cblcarsLog.debug(`[AttachmentPointManager] Removed attachment points for ${overlayId}`);
+    cblcarsLog.trace(`[AttachmentPointManager] Removed attachment points for ${overlayId}`);
   }
 
   /**

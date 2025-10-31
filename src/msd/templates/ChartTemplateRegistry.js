@@ -71,7 +71,7 @@ export class ChartTemplateRegistry {
       count++;
     });
 
-    cblcarsLog.info(`[ChartTemplateRegistry] Registered ${count} templates from pack: ${packId}`);
+    cblcarsLog.debug(`[ChartTemplateRegistry] Registered templates from pack: ${packId}`);
   }
 
   /**

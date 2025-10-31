@@ -31,7 +31,7 @@ export class TemplateEntityExtractor {
       // Extract from HA templates: {{states('entity_id')}}
       this._extractEntitiesFromHATemplate(content).forEach(entity => entities.add(entity));
 
-      cblcarsLog.debug('[TemplateEntityExtractor] Extracted entities from content:', Array.from(entities));
+      cblcarsLog.trace('[TemplateEntityExtractor] Extracted entities from content:', Array.from(entities));
     } catch (error) {
       cblcarsLog.error('[TemplateEntityExtractor] Error extracting entities:', error);
     }
@@ -71,7 +71,7 @@ export class TemplateEntityExtractor {
         });
       }
 
-      cblcarsLog.debug(`[TemplateEntityExtractor] Extracted entities from overlay ${overlay.id}:`, Array.from(entities));
+      cblcarsLog.trace(`[TemplateEntityExtractor] Extracted entities from overlay ${overlay.id}:`, Array.from(entities));
     } catch (error) {
       cblcarsLog.error(`[TemplateEntityExtractor] Error extracting entities from overlay ${overlay.id}:`, error);
     }

@@ -185,7 +185,7 @@ export class SystemsManager {
     // Acquire StyleResolverService reference
     if (typeof window !== 'undefined' && window.cblcars?.styleResolver) {
       this.styleResolver = window.cblcars.styleResolver;
-      cblcarsLog.info('[SystemsManager] ✅ StyleResolverService reference acquired');
+      cblcarsLog.debug('[SystemsManager] ✅ StyleResolverService reference acquired');
     } else {
       cblcarsLog.warn('[SystemsManager] ⚠️ StyleResolverService not found - renderers will use fallback');
     }
@@ -247,14 +247,14 @@ export class SystemsManager {
         const ruleResults = this.rulesEngine.evaluateDirty(this._hass);
 
         if (ruleResults.overlayPatches && ruleResults.overlayPatches.length > 0) {
-          cblcarsLog.info(`[SystemsManager] 🎨 Rules produced ${ruleResults.overlayPatches.length} patch(es)`);
+          cblcarsLog.debug(`[SystemsManager] 🎨 Rules produced patch(es)`);
 
           // Apply incremental updates
           const updateResults = this._applyIncrementalUpdates(ruleResults.overlayPatches);
 
           // Selective re-render for overlays that failed incremental update
           if (updateResults.failedOverlays.length > 0) {
-            cblcarsLog.info(`[SystemsManager] 🔄 Triggering SELECTIVE RE-RENDER for ${updateResults.failedOverlays.length} overlay(s)`);
+            cblcarsLog.debug(`[SystemsManager] 🔄 Triggering SELECTIVE RE-RENDER for ${updateResults.failedOverlays.length} overlay(s)`);
             this._scheduleSelectiveReRender(updateResults.failedOverlays);
           }
         }
@@ -505,14 +505,14 @@ export class SystemsManager {
           });
 
           if (ruleResults.overlayPatches && ruleResults.overlayPatches.length > 0) {
-            cblcarsLog.info(`[SystemsManager] 🎨 Rules produced ${ruleResults.overlayPatches.length} patch(es)`);
+            cblcarsLog.debug(`[SystemsManager] 🎨 Rules produced patch(es)`);
 
             // TRY: Incremental updates first (Phase 1: StatusGrid, Phase 2: ApexCharts, etc.)
             const updateResults = this._applyIncrementalUpdates(ruleResults.overlayPatches);
 
             // SELECTIVE RE-RENDER: Only re-render overlays that failed incremental update
             if (updateResults.failedOverlays.length > 0) {
-              cblcarsLog.info(`[SystemsManager] 🔄 Triggering SELECTIVE RE-RENDER for ${updateResults.failedOverlays.length} overlay(s)`);
+              cblcarsLog.debug(`[SystemsManager] 🔄 Triggering SELECTIVE RE-RENDER for ${updateResults.failedOverlays.length} overlay(s)`);
               this._scheduleSelectiveReRender(updateResults.failedOverlays);
             } else {
               cblcarsLog.info('[SystemsManager] ✅ All updates completed INCREMENTALLY - NO full re-render needed');
@@ -591,7 +591,7 @@ export class SystemsManager {
     });
 
     if (autoCreatedCount > 0) {
-      cblcarsLog.info(`[SystemsManager] 📄 Auto-created ${autoCreatedCount} DataSources for template entities:`,
+      cblcarsLog.debug(`[SystemsManager] 📄 Auto-created DataSources for template entities:`,
         Array.from(templateEntities).join(', '));
     }
 
@@ -1104,7 +1104,7 @@ export class SystemsManager {
    * @returns {Object} Results with successfulOverlays and failedOverlays arrays
    */
   _applyIncrementalUpdates(overlayPatches) {
-    cblcarsLog.info(`[SystemsManager] 🎨 ATTEMPTING INCREMENTAL UPDATES for ${overlayPatches.length} overlay(s)`);
+    cblcarsLog.debug(`[SystemsManager] 🎨 ATTEMPTING INCREMENTAL UPDATES for ${overlayPatches.length} overlay(s)`);
 
     const failedOverlays = [];
     const successfulOverlays = [];
@@ -1187,7 +1187,7 @@ export class SystemsManager {
           cblcarsLog.debug(`[SystemsManager] Incremental update returned false - will use SELECTIVE RE-RENDER: ${overlay.id}`);
           failedOverlays.push({ id: overlay.id, type: overlay.type, reason: 'Update method returned false', overlay, patch });
         } else {
-          cblcarsLog.info(`[SystemsManager] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.type} "${overlay.id}"`);
+          cblcarsLog.debug(`[SystemsManager] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.type} "${overlay.id}"`);
           successfulOverlays.push({ id: overlay.id, type: overlay.type });
         }
       } catch (error) {
@@ -1212,7 +1212,7 @@ export class SystemsManager {
       cblcarsLog.debug(`[SystemsManager] ${failCount}/${overlayPatches.length} overlay(s) need SELECTIVE RE-RENDER`);
 
       if (successCount > 0) {
-        cblcarsLog.info(`[SystemsManager] ✅ Successfully updated incrementally (${successCount}):`);
+        cblcarsLog.debug(`[SystemsManager] ✅ Successfully updated incrementally (${successCount}):`);
         successfulOverlays.forEach(o => {
           cblcarsLog.debug(`  ✅ ${o.type}: ${o.id}`);
         });
@@ -1267,7 +1267,7 @@ export class SystemsManager {
    * @param {Array} failedOverlays - Array of overlay info objects with {id, type, overlay, patch}
    */
   _scheduleSelectiveReRender(failedOverlays) {
-    cblcarsLog.info(`[SystemsManager] 📅 SCHEDULED selective re-render for ${failedOverlays.length} overlay(s) (100ms delay)`);
+    cblcarsLog.debug(`[SystemsManager] 📅 SCHEDULED selective re-render for ${failedOverlays.length} overlay(s) (100ms delay)`);
 
     if (this._selectiveRenderTimeout) {
       cblcarsLog.debug('[SystemsManager] ⏰ Clearing existing selective render timeout');
@@ -1278,7 +1278,7 @@ export class SystemsManager {
     this._overlaysToReRender = failedOverlays;
 
     this._selectiveRenderTimeout = setTimeout(() => {
-      cblcarsLog.info(`[SystemsManager] 🚀 EXECUTING selective re-render for ${failedOverlays.length} overlay(s)`);
+      cblcarsLog.debug(`[SystemsManager] 🚀 EXECUTING selective re-render for ${failedOverlays.length} overlay(s)`);
 
       failedOverlays.forEach(failedInfo => {
         try {
@@ -1305,7 +1305,7 @@ export class SystemsManager {
 
       // For now, trigger a full re-render if ANY overlay failed
       // TODO: Implement true selective re-rendering at the renderer level
-      cblcarsLog.info('[SystemsManager] 🔄 Using AdvancedRenderer.reRenderOverlays() for selective re-rendering');
+      cblcarsLog.debug('[SystemsManager] 🔄 Using AdvancedRenderer.reRenderOverlays() for selective re-rendering');
 
       // Get the complete resolved model (needed for anchors, viewBox, etc.)
       const resolvedModel = this.modelBuilder?.getResolvedModel();
@@ -1394,7 +1394,7 @@ export class SystemsManager {
    * @private
    */
   _propagateHassToSystems(hass) {
-    cblcarsLog.info('[SystemsManager] 🔄 _propagateHassToSystems: Starting ordered propagation');
+    cblcarsLog.debug('[SystemsManager] 🔄 _propagateHassToSystems: Starting ordered propagation');
 
     // 1. DataSourceManager first (provides entity values)
     if (this.dataSourceManager && typeof this.dataSourceManager.ingestHass === 'function') {
@@ -1406,7 +1406,7 @@ export class SystemsManager {
 
     // 2. RulesEngine second (evaluates conditions with fresh data)
     if (this.rulesEngine && typeof this.rulesEngine.ingestHass === 'function') {
-      cblcarsLog.info('[SystemsManager] 📏 Propagating to RulesEngine', {
+      cblcarsLog.debug('[SystemsManager] 📏 Propagating to RulesEngine', {
         hasRulesEngine: !!this.rulesEngine,
         hasMethod: typeof this.rulesEngine.ingestHass === 'function'
       });

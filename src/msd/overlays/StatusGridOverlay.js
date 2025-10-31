@@ -150,7 +150,7 @@ export class StatusGridOverlay extends OverlayBase {
    */
   update(overlayElement, overlay, sourceData) {
     try {
-      cblcarsLog.debug(`[StatusGridOverlay] Updating overlay ${overlay.id} with data:`, sourceData);
+      cblcarsLog.trace(`[StatusGridOverlay] Updating overlay ${overlay.id} with data:`, sourceData);
 
       // Update cached overlay reference
       this.overlay = overlay;

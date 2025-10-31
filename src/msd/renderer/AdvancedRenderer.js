@@ -135,7 +135,7 @@ export class AdvancedRenderer {
 
         const result = this.renderOverlay(ov, anchors, viewBox);
 
-        cblcarsLog.debug(`[AdvancedRenderer] 📊 Phase 1 overlay ${ov.id} result:`, {
+        cblcarsLog.trace(`[AdvancedRenderer] 📊 Phase 1 overlay result:`, {
           resultType: typeof result,
           isObject: result && typeof result === 'object',
           hasMarkup: result?.markup,
@@ -206,7 +206,7 @@ export class AdvancedRenderer {
       }
     });
 
-    cblcarsLog.debug(`[AdvancedRenderer] 📋 Phase 1 action queue:`, {
+    cblcarsLog.trace(`[AdvancedRenderer] 📋 Phase 1 action queue:`, {
       queueSize: phase1ActionQueue.length,
       overlayIds: phase1ActionQueue.map(a => a.overlayId)
     });
@@ -215,7 +215,7 @@ export class AdvancedRenderer {
     overlayGroup.innerHTML = svgMarkupAccum;
 
     // ADDED: Attach Phase 1 actions immediately after Phase 1 DOM injection
-    cblcarsLog.debug(`[AdvancedRenderer] 🎯 Attaching ${phase1ActionQueue.length} Phase 1 actions`);
+    cblcarsLog.trace(`[AdvancedRenderer] 🎯 Attaching Phase 1 actions`);
 
     phase1ActionQueue.forEach(({ overlayId, actionInfo }) => {
       const element = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"]`);
@@ -838,7 +838,7 @@ export class AdvancedRenderer {
 
       // Log what attachment points we're reading for title_overlay
       if (id === 'title_overlay') {
-        cblcarsLog.debug(`[AdvancedRenderer] 🔍 _updateDynamicAnchorsForOverlays reading title_overlay attachment points:`, {
+        cblcarsLog.trace(`[AdvancedRenderer] 🔍 _updateDynamicAnchorsForOverlays reading title_overlay attachment points:`, {
           right: tap.points.right,
           bboxRight: tap.bbox?.right,
           bboxWidth: tap.bbox?.width
@@ -872,7 +872,7 @@ export class AdvancedRenderer {
 
         // Log for title_overlay
         if (id === 'title_overlay' && effectiveSide === 'right') {
-          cblcarsLog.debug(`[AdvancedRenderer] 🔍 _updateDynamicAnchorsForOverlays setting title_overlay.right:`, {
+          cblcarsLog.trace(`[AdvancedRenderer] 🔍 _updateDynamicAnchorsForOverlays setting title_overlay.right:`, {
             basePt,
             gapPt,
             gap: raw.attach_gap
@@ -906,7 +906,7 @@ export class AdvancedRenderer {
     const gapX = Number(raw.attach_gap_x || raw.attachGapX || raw.anchor_gap_x || raw.anchorGapX || gap || 0);
     const gapY = Number(raw.attach_gap_y || raw.attachGapY || raw.anchor_gap_y || raw.anchorGapY || gap || 0);
 
-    cblcarsLog.debug(`[AdvancedRenderer] 🔧 _applyAttachGap:`, {
+    cblcarsLog.trace(`[AdvancedRenderer] 🔧 _applyAttachGap:`, {
       point,
       side,
       gap,
@@ -938,7 +938,7 @@ export class AdvancedRenderer {
     }
 
     const result = [x + dx, y + dy];
-    cblcarsLog.debug(`[AdvancedRenderer] ✅ Applied gap: [${point}] + [${dx}, ${dy}] = [${result}]`);
+    cblcarsLog.trace(`[AdvancedRenderer] ✅ Applied gap: [${point}] + [${dx}, ${dy}] = [${result}]`);
     return result;
   }
 
@@ -1243,7 +1243,7 @@ export class AdvancedRenderer {
    * @returns {boolean} True if all overlays were successfully re-rendered
    */
   reRenderOverlays(overlaysToReRender, resolvedModel) {
-    cblcarsLog.info(`[AdvancedRenderer] 🔄 Selectively re-rendering ${overlaysToReRender.length} overlay(s)`);
+    cblcarsLog.debug(`[AdvancedRenderer] 🔄 Selectively re-rendering overlay(s)`);
 
     if (!resolvedModel || !overlaysToReRender || overlaysToReRender.length === 0) {
       cblcarsLog.warn('[AdvancedRenderer] ⚠️ Invalid parameters for selective re-render');
@@ -1305,7 +1305,7 @@ export class AdvancedRenderer {
             const importedElement = document.importNode(newElement, true);
             overlayGroup.appendChild(importedElement);
             reRenderedIds.add(overlay.id);
-            cblcarsLog.debug(`[AdvancedRenderer] ✅ Re-rendered overlay: ${overlay.id}`);
+            cblcarsLog.trace(`[AdvancedRenderer] ✅ Re-rendered overlay: ${overlay.id}`);
 
             // Re-attach actions if present
             if (result.actionInfo && !newElement.hasAttribute('data-actions-attached')) {
@@ -1363,7 +1363,7 @@ export class AdvancedRenderer {
    */
   renderOverlay(overlay, anchors, viewBox, svgContainer) {
     try {
-      cblcarsLog.debug(`[AdvancedRenderer] 🎨 Rendering overlay: ${overlay.type} (${overlay.id})`);
+      cblcarsLog.trace(`[AdvancedRenderer] 🎨 Rendering overlay: ${overlay.type} (${overlay.id})`);
 
       let result;
 
@@ -1372,7 +1372,7 @@ export class AdvancedRenderer {
 
       if (renderer instanceof OverlayBase) {
         // Instance-based overlay - all overlays now use this pattern
-        cblcarsLog.debug(`[AdvancedRenderer] 🎯 Using instance-based renderer for ${overlay.id}`);
+        cblcarsLog.trace(`[AdvancedRenderer] 🎯 Using instance-based renderer for ${overlay.id}`);
 
         // Handle special cases for different overlay types
 
@@ -1465,7 +1465,7 @@ export class AdvancedRenderer {
     // Store provenance
     config.__provenance.renderers[overlayId] = provenance;
 
-    cblcarsLog.debug(`[AdvancedRenderer] 📊 Stored renderer provenance for ${overlayId}`, provenance);
+    cblcarsLog.trace(`[AdvancedRenderer] 📊 Stored renderer provenance for ${overlayId}`, provenance);
   }
 
   /**
@@ -1867,7 +1867,7 @@ export class AdvancedRenderer {
         if (overlay.type === 'line') {
           const renderer = this._getRendererForOverlay(overlay);
           if (renderer) {
-            cblcarsLog.debug(`[AdvancedRenderer] 🔗 Re-rendering line overlay with updated attachment points: ${overlayId}`);
+            cblcarsLog.trace(`[AdvancedRenderer] 🔗 Re-rendering line overlay with updated attachment points: ${overlayId}`);
           }
         }
 
@@ -1896,7 +1896,7 @@ export class AdvancedRenderer {
           if (newElement) {
             const importedElement = document.importNode(newElement, true);
             overlayGroup.appendChild(importedElement);
-            cblcarsLog.debug(`[AdvancedRenderer] ✅ Re-rendered dependent overlay: ${overlayId}`);
+            cblcarsLog.trace(`[AdvancedRenderer] ✅ Re-rendered dependent overlay: ${overlayId}`);
           }
         }
       } catch (e) {
@@ -2004,7 +2004,7 @@ export class AdvancedRenderer {
       createdAnchors.push({ id: overlay.id, point: attachmentPoints.center });
 
       if (createdAnchors.length > 0) {
-        cblcarsLog.debug(`[AdvancedRenderer] 🔗 Created ${createdAnchors.length} virtual anchors for overlay ${overlay.id}:`, createdAnchors);
+        cblcarsLog.trace(`[AdvancedRenderer] 🔗 Created virtual anchors for overlay ${overlay.id}:`, createdAnchors);
       }
     });
   }
@@ -2029,7 +2029,7 @@ export class AdvancedRenderer {
 
     // Validate bbox - skip if invalid (text not rendered yet or during font load)
     if (bb.width <= 0 || bb.height <= 0) {
-      cblcarsLog.debug(`[AdvancedRenderer] ⏭️ Skipping attachment point update for ${overlay.id} - invalid bbox:`, bb);
+      cblcarsLog.trace(`[AdvancedRenderer] ⏭️ Skipping attachment point update for ${overlay.id} - invalid bbox:`, bb);
       return;
     }
 
@@ -2079,7 +2079,7 @@ export class AdvancedRenderer {
       if (expandedBboxAttr) {
         try {
           bbox = JSON.parse(expandedBboxAttr);
-          cblcarsLog.debug(`[AdvancedRenderer] 📍 Read expanded bbox from DOM for ${overlay.id}:`, bbox);
+          cblcarsLog.trace(`[AdvancedRenderer] 📍 Read expanded bbox from DOM for ${overlay.id}:`, bbox);
         } catch (e) {
           cblcarsLog.warn(`[AdvancedRenderer] Failed to parse expanded bbox for ${overlay.id}`, e);
         }
@@ -2142,7 +2142,7 @@ export class AdvancedRenderer {
       // Store in attachment manager (single source of truth)
       this.attachmentManager.setAttachmentPoints(overlay.id, attachmentPoints);
 
-      cblcarsLog.debug(`[AdvancedRenderer] ✅ Populated initial attachment points for ${overlay.id}`, {
+      cblcarsLog.trace(`[AdvancedRenderer] ✅ Populated initial attachment points for ${overlay.id}`, {
         right: bbox.right,
         expandedRight: bbox.right,
         hasExpandedBbox: !!expandedBboxAttr
@@ -2201,7 +2201,7 @@ export class AdvancedRenderer {
       // Store in attachment manager (single source of truth)
       this.attachmentManager.setAttachmentPoints(overlay.id, attachmentPoints);
 
-      cblcarsLog.debug(`[AdvancedRenderer] ✅ Populated initial attachment points for ${overlay.id} (${overlay.type})`, {
+      cblcarsLog.trace(`[AdvancedRenderer] ✅ Populated initial attachment points for ${overlay.id} (${overlay.type})`, {
         bbox: bbox,
         center: [bbox.centerX, bbox.centerY]
       });
@@ -2353,7 +2353,7 @@ export class AdvancedRenderer {
 
       // Validate textBBox - skip if invalid (text not rendered yet)
       if (!textBBox || textBBox.width <= 0 || textBBox.height <= 0) {
-        cblcarsLog.debug('[AdvancedRenderer] ⏭️ Skipping status indicator update - invalid textBBox:', textBBox);
+        cblcarsLog.trace('[AdvancedRenderer] ⏭️ Skipping status indicator update - invalid textBBox:', textBBox);
         return;
       }
 
@@ -2530,7 +2530,7 @@ export class AdvancedRenderer {
 
     // Validate textBbox - skip if invalid (text not rendered yet or during font load)
     if (textBbox.width <= 0 || textBbox.height <= 0) {
-      cblcarsLog.debug(`[AdvancedRenderer] ⏭️ Skipping attachment point update after stabilization for ${overlay.id} - invalid textBbox:`, textBbox);
+      cblcarsLog.trace(`[AdvancedRenderer] ⏭️ Skipping attachment point update after stabilization for ${overlay.id} - invalid textBbox:`, textBbox);
       return;
     }
 

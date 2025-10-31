@@ -357,8 +357,8 @@ export class TextRenderer {
     let bbox = this._getTextBBox(content, x, y, style, container);
 
     // DEBUG: Log status_indicator info and original bbox
-    cblcarsLog.debug(`[TextRenderer._buildMetadata] status_indicator=${style.status_indicator}, position=${style.status_indicator_position}, size=${style.status_indicator_size}, padding=${style.status_indicator_padding}`);
-    cblcarsLog.debug(`[TextRenderer._buildMetadata] ORIGINAL bbox: left=${bbox.left}, right=${bbox.right}, width=${bbox.width}`);
+    cblcarsLog.trace(`[TextRenderer._buildMetadata] status_indicator=${style.status_indicator}, position=${style.status_indicator_position}, size=${style.status_indicator_size}, padding=${style.status_indicator_padding}`);
+    cblcarsLog.trace(`[TextRenderer._buildMetadata] ORIGINAL bbox: left=${bbox.left}, right=${bbox.right}, width=${bbox.width}`);
 
     // Default attachment points based on text bbox
     const attachmentPoints = {
@@ -520,7 +520,7 @@ export class TextRenderer {
       }
 
       // DEBUG: Log bbox after expansion
-      cblcarsLog.debug(`[TextRenderer._buildMetadata] EXPANDED bbox: left=${bbox.left}, right=${bbox.right}, width=${bbox.width}, totalIndicatorSpace=${padding + indicatorSize * 2}`);
+      cblcarsLog.trace(`[TextRenderer._buildMetadata] EXPANDED bbox: left=${bbox.left}, right=${bbox.right}, width=${bbox.width}, totalIndicatorSpace=${padding + indicatorSize * 2}`);
     }
 
     return {

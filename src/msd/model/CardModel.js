@@ -1,4 +1,5 @@
 import { perfTime } from '../perf/PerfCounters.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export async function buildCardModel(mergedConfig) {
   return perfTime('cardModel.build', async () => {
@@ -6,8 +7,8 @@ export async function buildCardModel(mergedConfig) {
     // Extract actual viewBox from SVG content instead of hardcoding
     let viewBox = [0, 0, 400, 200]; // fallback only
 
-    console.debug('[CardModel] Initial viewBox (fallback):', viewBox);
-    console.debug('[CardModel] Merged config base_svg:', mergedConfig.base_svg);
+    cblcarsLog.trace('[CardModel] Initial viewBox (fallback):', viewBox);
+    cblcarsLog.trace('[CardModel] Merged config base_svg:', mergedConfig.base_svg);
 
     // Handle base_svg in multiple formats:
     // Format 1: base_svg: "builtin:template-name"
@@ -19,29 +20,29 @@ export async function buildCardModel(mergedConfig) {
       baseSvgSource = mergedConfig.base_svg.source;
     }
 
-    console.debug('[CardModel] Resolved base_svg source:', baseSvgSource);
+    cblcarsLog.trace('[CardModel] Resolved base_svg source:', baseSvgSource);
 
     // Try to extract actual SVG viewBox from base_svg
     if (baseSvgSource) {
-      console.log('[CardModel] Using SVG source:', baseSvgSource);
+      cblcarsLog.debug('[CardModel] Using SVG source:', baseSvgSource);
       const { getSvgContent, getSvgViewBox } = await import('../../utils/cb-lcars-anchor-helpers.js');
       const svgContent = getSvgContent(baseSvgSource);
       if (svgContent) {
         const extractedViewBox = getSvgViewBox(svgContent);
         if (extractedViewBox && Array.isArray(extractedViewBox) && extractedViewBox.length === 4) {
           viewBox = extractedViewBox;
-          console.log('[CardModel] Extracted viewBox from SVG:', viewBox);
+          cblcarsLog.debug('[CardModel] Extracted viewBox from SVG:', viewBox);
         } else {
-          console.warn('[CardModel] Could not extract viewBox from SVG content');
+          cblcarsLog.warn('[CardModel] Could not extract viewBox from SVG content');
         }
       } else {
-        console.warn('[CardModel] Could not get SVG content for:', baseSvgSource);
+        cblcarsLog.warn('[CardModel] Could not get SVG content for:', baseSvgSource);
       }
     } else {
-      console.warn('[CardModel] No base_svg specified in merged config');
+      cblcarsLog.warn('[CardModel] No base_svg specified in merged config');
     }
 
-    console.log('[CardModel] Final viewBox:', viewBox);
+    cblcarsLog.debug('[CardModel] Final viewBox:', viewBox);
 
     const anchors = {}; // merged + normalized numeric
 

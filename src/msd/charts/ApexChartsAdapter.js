@@ -1104,7 +1104,7 @@ export class ApexChartsAdapter {
         const computed = getComputedStyle(root).getPropertyValue(varName).trim();
 
         if (computed) {
-          cblcarsLog.debug(`[ApexChartsAdapter] ✅ Resolved CSS variable: ${colorValue} → ${computed}`);
+          cblcarsLog.trace(`[ApexChartsAdapter] ✅ Resolved CSS variable: ${colorValue} → ${computed}`);
           return computed;
         }
 
@@ -1114,7 +1114,7 @@ export class ApexChartsAdapter {
           if (fallback.startsWith('var(')) {
             return this._resolveCssVariable(fallback);
           }
-          cblcarsLog.debug(`[ApexChartsAdapter] ⚠️ Using fallback: ${colorValue} → ${fallback}`);
+          cblcarsLog.trace(`[ApexChartsAdapter] ⚠️ Using fallback: ${colorValue} → ${fallback}`);
           return fallback;
         }
 
