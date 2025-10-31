@@ -50,21 +50,21 @@
 // Access the debug API
 const msd = window.cblcars.debug.msd;
 
-// Run health check
-const audit = msd.audit();
-console.log(`API Status: ${audit.present}/${audit.expected} present`);
-
-// Get help
+// Get help on available methods
 msd.help();
 
+// Get code examples
+msd.usage();
+
 // Performance check
-const perf = msd.perf.stats();
+const perf = msd.perf.summary();
 
 // Rules debugging
 const rules = msd.rules.listActive();
 ```
 
-**See:** [API_REFERENCE.md](API_REFERENCE.md) for complete documentation.
+**Quick Reference:** [CONSOLE_HELP_QUICK_REF.md](CONSOLE_HELP_QUICK_REF.md) - Console help commands
+**Complete API:** [API_REFERENCE.md](API_REFERENCE.md) - Full API documentation
 
 ---
 

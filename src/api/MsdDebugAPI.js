@@ -19,6 +19,257 @@ export class MsdDebugAPI {
   static create() {
     return {
       // ==========================================
+      // ROOT UTILITY METHODS
+      // ==========================================
+
+      /**
+       * Display help information about available API methods
+       *
+       * @param {string} [topic] - Optional namespace to get specific help (e.g., 'perf', 'routing', 'data')
+       *
+       * @example
+       * // Show all available namespaces
+       * window.cblcars.debug.msd.help();
+       *
+       * // Show methods in a specific namespace
+       * window.cblcars.debug.msd.help('perf');
+       */
+      help(topic) {
+        const namespaces = {
+          perf: {
+            desc: 'Performance profiling and analysis',
+            methods: ['summary()', 'slowestOverlays(n)', 'byRenderer()', 'byOverlay(id)', 'warnings()', 'timeline()', 'compare()']
+          },
+          routing: {
+            desc: 'Routing and resolution debugging',
+            methods: ['inspect(guid)', 'trace(guid)', 'analyze(guid)', 'listActive()', 'testMatch()']
+          },
+          data: {
+            desc: 'Data context and subscription inspection',
+            methods: ['context()', 'subscriptions()', 'inspect(entityId)', 'entities()', 'refresh()', 'trace(entityId)', 'history()', 'validate()']
+          },
+          styles: {
+            desc: 'Style computation and inspection',
+            methods: ['computed(guid)', 'effective(guid)', 'overrides(guid)', 'inheritance(guid)', 'cascade(guid)', 'validate(guid)']
+          },
+          charts: {
+            desc: 'Chart data processing inspection',
+            methods: ['inspect(guid)', 'trace(guid)', 'validate(guid)', 'compareSnapshots()']
+          },
+          rules: {
+            desc: 'Rule evaluation and validation',
+            methods: ['listActive(options)', 'evaluate()', 'trace()', 'validate()']
+          },
+          animations: {
+            desc: 'Animation state and playback control',
+            methods: ['list()', 'inspect(id)', 'control(id, action)', 'registry()']
+          },
+          packs: {
+            desc: 'Pack compilation and management',
+            methods: ['list()', 'inspect(packId)', 'compile()', 'validate()']
+          },
+          visual: {
+            desc: 'Visual debugging and overlay inspection',
+            methods: ['hud()', 'highlight(guid)', 'inspect(guid)', 'snapshot()', 'diff(before, after)', 'validate(guid)', 'toggleBorders()']
+          },
+          overlays: {
+            desc: 'Overlay management and bulk operations',
+            methods: ['list(filter)', 'inspect(id)', 'create()', 'update(id, changes)', 'remove(id)', 'bulkUpdate(selector, changes)', 'bulkRemove(selector)', 'bulkApplyTags(selector, tags)', 'validate(id)', 'export(filter)', 'import(data)']
+          },
+          pipeline: {
+            desc: 'Pipeline execution and lifecycle control',
+            methods: ['status()', 'lifecycle()', 'trace()', 'rerun()', 'getInstance()']
+          }
+        };
+
+        if (!topic) {
+          console.log('%c CB-LCARS Debug API Help ', 'background: #ff9900; color: #000; font-weight: bold; padding: 4px 8px;');
+          console.log('\n%cAvailable namespaces:', 'font-weight: bold; color: #ff9900;');
+          Object.entries(namespaces).forEach(([name, info]) => {
+            console.log(`  %c${name}%c - ${info.desc}`, 'color: #66ccff; font-weight: bold', 'color: inherit');
+          });
+          console.log('\n%cUsage:', 'font-weight: bold; color: #ff9900;');
+          console.log('  window.cblcars.debug.msd.help("namespace") - Show methods in a namespace');
+          console.log('  window.cblcars.debug.msd.usage("namespace") - Show usage examples');
+          console.log('\n%cExample:', 'font-weight: bold; color: #ff9900;');
+          console.log('  msd.help("perf")  // Show performance methods');
+          return;
+        }
+
+        const ns = namespaces[topic];
+        if (!ns) {
+          console.error(`Unknown namespace: "${topic}". Available: ${Object.keys(namespaces).join(', ')}`);
+          return;
+        }
+
+        console.log(`%c ${topic} Namespace `, 'background: #ff9900; color: #000; font-weight: bold; padding: 4px 8px;');
+        console.log(`\n${ns.desc}\n`);
+        console.log('%cMethods:', 'font-weight: bold; color: #ff9900;');
+        ns.methods.forEach(method => {
+          console.log(`  msd.${topic}.${method}`);
+        });
+        console.log(`\n%cFor examples:%c msd.usage("${topic}")`, 'font-weight: bold; color: #ff9900', 'color: inherit');
+      },
+
+      /**
+       * Show usage examples for API methods
+       *
+       * @param {string} [namespace] - Optional namespace to show examples for
+       *
+       * @example
+       * // Show examples for all namespaces
+       * window.cblcars.debug.msd.usage();
+       *
+       * // Show examples for specific namespace
+       * window.cblcars.debug.msd.usage('perf');
+       */
+      usage(namespace) {
+        const examples = {
+          perf: [
+            '// Get performance summary',
+            'const perf = msd.perf.summary();',
+            'console.log("Render time:", perf.total_render_time_ms, "ms");',
+            '',
+            '// Find slowest overlays',
+            'const slow = msd.perf.slowestOverlays(5);',
+            'slow.forEach(o => console.log(o.overlay_id, o.duration_ms + "ms"));'
+          ],
+          routing: [
+            '// Inspect routing for a GUID',
+            'msd.routing.inspect("my-button-guid");',
+            '',
+            '// Trace full resolution path',
+            'msd.routing.trace("my-button-guid");',
+            '',
+            '// List all active routes',
+            'msd.routing.listActive();'
+          ],
+          data: [
+            '// View data context',
+            'const ctx = msd.data.context();',
+            'console.log("Entities:", ctx.entities);',
+            '',
+            '// Inspect specific entity',
+            'msd.data.inspect("sensor.temperature");',
+            '',
+            '// Refresh data sources',
+            'msd.data.refresh();'
+          ],
+          styles: [
+            '// Get computed styles for GUID',
+            'const styles = msd.styles.computed("my-button-guid");',
+            '',
+            '// Check style inheritance chain',
+            'msd.styles.inheritance("my-button-guid");',
+            '',
+            '// Validate style configuration',
+            'msd.styles.validate("my-button-guid");'
+          ],
+          charts: [
+            '// Inspect chart data processing',
+            'msd.charts.inspect("my-chart-guid");',
+            '',
+            '// Trace data transformation',
+            'msd.charts.trace("my-chart-guid");',
+            '',
+            '// Validate chart configuration',
+            'msd.charts.validate("my-chart-guid");'
+          ],
+          rules: [
+            '// List all active rules',
+            'msd.rules.listActive();',
+            '',
+            '// List with disabled rules included',
+            'msd.rules.listActive({ includeDisabled: true });',
+            '',
+            '// Evaluate rules for current context',
+            'msd.rules.evaluate();'
+          ],
+          animations: [
+            '// List all animations',
+            'const anims = msd.animations.list();',
+            '',
+            '// Inspect specific animation',
+            'msd.animations.inspect("fade-in-1");',
+            '',
+            '// Control animation playback',
+            'msd.animations.control("fade-in-1", "pause");',
+            'msd.animations.control("fade-in-1", "play");'
+          ],
+          packs: [
+            '// List all packs',
+            'const packs = msd.packs.list();',
+            '',
+            '// Inspect specific pack',
+            'msd.packs.inspect("my-pack-id");',
+            '',
+            '// Validate pack configuration',
+            'msd.packs.validate();'
+          ],
+          visual: [
+            '// Toggle HUD display',
+            'msd.visual.hud();',
+            '',
+            '// Highlight element by GUID',
+            'msd.visual.highlight("my-button-guid");',
+            '',
+            '// Take visual snapshot',
+            'const snapshot = msd.visual.snapshot();',
+            '',
+            '// Toggle debug borders',
+            'msd.visual.toggleBorders();'
+          ],
+          overlays: [
+            '// List all overlays',
+            'const all = msd.overlays.list();',
+            '',
+            '// Filter overlays by tag',
+            'const buttons = msd.overlays.list({ tags: ["button"] });',
+            '',
+            '// Bulk update matching overlays',
+            'msd.overlays.bulkUpdate({ tags: ["button"] }, { label_color: "#ff9900" });',
+            '',
+            '// Bulk apply tags',
+            'msd.overlays.bulkApplyTags({ row: 1 }, ["top-row"]);'
+          ],
+          pipeline: [
+            '// Get pipeline status',
+            'const status = msd.pipeline.status();',
+            'console.log("State:", status.state);',
+            '',
+            '// View lifecycle state',
+            'msd.pipeline.lifecycle();',
+            '',
+            '// Re-run pipeline',
+            'msd.pipeline.rerun();'
+          ]
+        };
+
+        if (!namespace) {
+          console.log('%c CB-LCARS Debug API Usage Examples ', 'background: #ff9900; color: #000; font-weight: bold; padding: 4px 8px;');
+          console.log('\n%cQuick Start:', 'font-weight: bold; color: #ff9900;');
+          console.log('  const msd = window.cblcars.debug.msd;  // Shorthand');
+          console.log('  msd.help();                             // List all namespaces');
+          console.log('  msd.help("perf");                       // Show perf methods');
+          console.log('  msd.usage("perf");                      // Show perf examples');
+          console.log('\n%cAvailable namespaces:', 'font-weight: bold; color: #ff9900;');
+          console.log('  ' + Object.keys(examples).join(', '));
+          console.log('\n%cTip:%c Use msd.usage("namespace") for specific examples', 'font-weight: bold; color: #ff9900', 'color: inherit');
+          return;
+        }
+
+        const ex = examples[namespace];
+        if (!ex) {
+          console.error(`Unknown namespace: "${namespace}". Available: ${Object.keys(examples).join(', ')}`);
+          return;
+        }
+
+        console.log(`%c ${namespace} Usage Examples `, 'background: #ff9900; color: #000; font-weight: bold; padding: 4px 8px;');
+        console.log('\n' + ex.join('\n'));
+        console.log(`\n%cFor method details:%c msd.help("${namespace}")`, 'font-weight: bold; color: #ff9900', 'color: inherit');
+      },
+
+      // ==========================================
       // PERFORMANCE INTROSPECTION
       // ==========================================
 
