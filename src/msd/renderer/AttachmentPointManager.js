@@ -139,7 +139,6 @@ export class AttachmentPointManager {
     const existing = this._anchors.get(anchorId);
     if (existing && anchorId.includes('title_overlay.right')) {
       // Log stack trace for title_overlay.right overwrites
-      console.trace(`[AttachmentPointManager] Stack trace for title_overlay.right overwrite`);
       cblcarsLog.debug(`[AttachmentPointManager] ⚠️  Overwriting anchor ${anchorId}: [${existing}] → [${coordinate}]`);
     } else if (existing) {
       cblcarsLog.debug(`[AttachmentPointManager] ⚠️  Overwriting anchor ${anchorId}: [${existing}] → [${coordinate}]`);

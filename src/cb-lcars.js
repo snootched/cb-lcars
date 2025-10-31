@@ -190,6 +190,7 @@ function setThemeColors(themes, alertCondition = 'green', clobber = false) {
     }
 
     const colors = selectedTheme.colors;
+    const skippedColors = [];
 
     for (const [colorGroup, colorValues] of Object.entries(colors)) {
         for (const [colorName, colorValue] of Object.entries(colorValues)) {
@@ -200,9 +201,15 @@ function setThemeColors(themes, alertCondition = 'green', clobber = false) {
                 cblcarsLog.warn(`[setThemeColors] Color undefined or overridden - Setting ${cssVarName}=${colorValue}`, '', cblcarsGetGlobalLogLevel());
                 document.documentElement.style.setProperty(cssVarName, colorValue);
             } else {
-                cblcarsLog.debug(`[setThemeColors] Skipping ${cssVarName} as it is already defined with value ${existingValue}`, '', cblcarsGetGlobalLogLevel());
+                // Track skipped colors instead of logging each one
+                skippedColors.push(cssVarName);
             }
         }
+    }
+
+    // Log summary of skipped colors (if any)
+    if (skippedColors.length > 0) {
+        cblcarsLog.debug(`[setThemeColors] Preserved ${skippedColors.length} theme colors already defined by HA theme`, '', cblcarsGetGlobalLogLevel());
     }
 }
 function setAlertCondition(alertCondition) {

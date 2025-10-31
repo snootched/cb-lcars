@@ -82,7 +82,7 @@ export async function loadSVGToCache(key, url) {
         });
 
         cache[key] = svgText;
-        cblcarsLog.debug(`[loadSVGToCache] Loaded SVG [${key}] from [${url}]`);
+        // Individual load messages removed - see preloadSVGs() for summary
         return svgText;
     } catch (error) {
         cblcarsLog.error(`[loadSVGToCache] Error loading SVG [${key}] from [${url}]`, error);
