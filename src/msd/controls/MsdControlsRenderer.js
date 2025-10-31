@@ -122,7 +122,8 @@ export class MsdControlsRenderer {
               if (card.setHass && typeof card.setHass === 'function') {
                   card.setHass(hass);
               } else {
-                  cblcarsLog.warn(`[MsdControlsRenderer] Standard HA card ${controlId} has no setHass method`);
+                  // Not all standard HA cards implement setHass - fallback is normal
+                  cblcarsLog.debug(`[MsdControlsRenderer] Standard HA card ${controlId} has no setHass method, using fallback`);
 
                   // Fallback: property assignment
                   const oldHass = card.hass;
@@ -869,11 +870,12 @@ export class MsdControlsRenderer {
           cardElement.setConfig(config);
           cardElement._config = config;
 
-          // ADDED: Verify the config was applied correctly
+          // ADDED: Verify the config was applied correctly (triggers_update is custom-button-card specific)
           if (cardElement._config && cardElement._config.triggers_update) {
             cblcarsLog.debug(`[MsdControls] ✅ Config applied with triggers_update:${cardElement._config.triggers_update} for:`, overlayId);
           } else {
-            cblcarsLog.warn(`[MsdControls] ⚠️ Config applied but no triggers_update found for:`, overlayId);
+            // Debug only: triggers_update is specific to custom-button-card and CB-LCARS, not regular HA cards
+            cblcarsLog.debug(`[MsdControls] Config applied (no triggers_update - normal for standard HA cards) for:`, overlayId);
           }
 
           cblcarsLog.debug(`[MsdControls] ✅ Config applied on attempt ${attempt + 1} for:`, overlayId);

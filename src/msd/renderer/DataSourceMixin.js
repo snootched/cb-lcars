@@ -79,7 +79,8 @@ export class DataSourceMixin {
       const dataSource = dataSourceManager.getSource(sourceName);
 
       if (!dataSource) {
-        cblcarsLog.warn(`[${rendererName}] 🔗 DataSource '${sourceName}' not found`);
+        // Not necessarily an error - data sources may be optional or not initialized yet
+        cblcarsLog.debug(`[${rendererName}] DataSource '${sourceName}' not found`);
         return `[Source: ${sourceName} not found]`;
       }
 
@@ -272,7 +273,8 @@ export class DataSourceMixin {
           const dataSource = dataSourceManager.getSource(sourceName);
 
           if (!dataSource) {
-            cblcarsLog.warn(`[${rendererName}] 🔗 DataSource '${sourceName}' not found`);
+            // Not necessarily an error - data sources may be optional or not initialized yet
+            cblcarsLog.debug(`[${rendererName}] DataSource '${sourceName}' not found`);
             hasUnresolvedTemplates = true;
             return fallbackToOriginal ? match : `[Source: ${sourceName} not found]`;
           }

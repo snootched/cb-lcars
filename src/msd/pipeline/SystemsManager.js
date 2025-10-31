@@ -1143,14 +1143,21 @@ export class SystemsManager {
       // Get renderer for this overlay type
       const RendererClass = this._getRendererForType(overlay.type);
       if (!RendererClass) {
-        cblcarsLog.debug(`[SystemsManager] ℹ️ No renderer registered for type "${overlay.type}" - will use SELECTIVE RE-RENDER: ${overlay.id}`);
+        // Control overlays (embedded HA cards) don't have renderers - this is expected
+        const isControl = overlay.type === 'control';
+        if (isControl) {
+          cblcarsLog.debug(`[SystemsManager] Control overlay "${overlay.id}" has no renderer - will use SELECTIVE RE-RENDER`);
+        } else {
+          cblcarsLog.debug(`[SystemsManager] No renderer registered for type "${overlay.type}" - will use SELECTIVE RE-RENDER: ${overlay.id}`);
+        }
         failedOverlays.push({ id: overlay.id, type: overlay.type, reason: 'No renderer registered', overlay, patch });
         return;
       }
 
       // Check if renderer supports incremental updates
       if (!RendererClass.supportsIncrementalUpdate || !RendererClass.supportsIncrementalUpdate()) {
-        cblcarsLog.info(`[SystemsManager] ℹ️ Renderer for "${overlay.type}" does not support incremental updates - will use SELECTIVE RE-RENDER: ${overlay.id}`);
+        // Normal behavior - many renderers don't support incremental updates yet
+        cblcarsLog.debug(`[SystemsManager] Renderer for "${overlay.type}" does not support incremental updates - will use SELECTIVE RE-RENDER: ${overlay.id}`);
         failedOverlays.push({ id: overlay.id, type: overlay.type, reason: 'Incremental not supported by renderer', overlay, patch });
         return;
       }
@@ -1158,7 +1165,8 @@ export class SystemsManager {
       // Find existing overlay DOM element
       const overlayElement = this._findOverlayElement(overlay);
       if (!overlayElement) {
-        cblcarsLog.warn(`[SystemsManager] ⚠️ Overlay element not found in DOM - will use SELECTIVE RE-RENDER: ${overlay.id}`);
+        // Could happen during initialization or if overlay was removed
+        cblcarsLog.debug(`[SystemsManager] Overlay element not found in DOM - will use SELECTIVE RE-RENDER: ${overlay.id}`);
         failedOverlays.push({ id: overlay.id, type: overlay.type, reason: 'DOM element not found', overlay, patch });
         return;
       }
@@ -1175,7 +1183,8 @@ export class SystemsManager {
         const succeeded = RendererClass.updateIncremental(overlay, overlayElement, context);
 
         if (!succeeded) {
-          cblcarsLog.warn(`[SystemsManager] ⚠️ Incremental update returned false - will use SELECTIVE RE-RENDER: ${overlay.id}`);
+          // Incremental update declined - will fall back to full re-render (expected for some changes)
+          cblcarsLog.debug(`[SystemsManager] Incremental update returned false - will use SELECTIVE RE-RENDER: ${overlay.id}`);
           failedOverlays.push({ id: overlay.id, type: overlay.type, reason: 'Update method returned false', overlay, patch });
         } else {
           cblcarsLog.info(`[SystemsManager] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.type} "${overlay.id}"`);
@@ -1199,7 +1208,8 @@ export class SystemsManager {
       const successCount = successfulOverlays.length;
       const failCount = failedOverlays.length;
 
-      cblcarsLog.warn(`[SystemsManager] ⚠️ ${failCount}/${overlayPatches.length} overlay(s) need SELECTIVE RE-RENDER`);
+      // Selective re-render is normal behavior, not a warning
+      cblcarsLog.debug(`[SystemsManager] ${failCount}/${overlayPatches.length} overlay(s) need SELECTIVE RE-RENDER`);
 
       if (successCount > 0) {
         cblcarsLog.info(`[SystemsManager] ✅ Successfully updated incrementally (${successCount}):`);
@@ -1208,7 +1218,7 @@ export class SystemsManager {
         });
       }
 
-      cblcarsLog.warn(`[SystemsManager] ⚠️ Will selectively re-render (${failCount}):`);
+      cblcarsLog.debug(`[SystemsManager] Will selectively re-render (${failCount}):`);
       failedOverlays.forEach(f => {
         cblcarsLog.debug(`  ❌ ${f.type || 'unknown'}: ${f.id} - ${f.reason}`);
       });

@@ -265,20 +265,20 @@ export class RulesEngine {
             }
           }
 
-          // PRIORITY 4: Fall back to provided getEntity function (but warn about potential conversion)
+          // PRIORITY 4: Fall back to provided getEntity function (debug: type coercion may occur)
           if (originalGetEntity) {
             const entity = originalGetEntity(entityId);
             if (entity) {
-              cblcarsLog.warn(`[RulesEngine] Using fallback getEntity for ${entityId} - state may be converted: ${entity.state}`);
+              cblcarsLog.debug(`[RulesEngine] Using fallback getEntity for ${entityId} - state may be converted: ${entity.state}`);
               return entity;
             }
           }
 
-          // PRIORITY 5: Try DataSourceManager's getEntity method as last resort
+          // PRIORITY 5: Try DataSourceManager's getEntity method as last resort (debug: type coercion may occur)
           if (this.dataSourceManager && this.dataSourceManager.getEntity) {
             const entity = this.dataSourceManager.getEntity(entityId);
             if (entity) {
-              cblcarsLog.warn(`[RulesEngine] Using DataSourceManager getEntity for ${entityId} - state may be converted: ${entity.state}`);
+              cblcarsLog.debug(`[RulesEngine] Using DataSourceManager getEntity for ${entityId} - state may be converted: ${entity.state}`);
               return entity;
             }
           }

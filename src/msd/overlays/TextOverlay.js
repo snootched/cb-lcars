@@ -94,7 +94,8 @@ export class TextOverlay extends OverlayBase {
       if (style.status_indicator) {
         cblcarsLog.debug(`[TextOverlay] 📍 Status indicator present: ${style.status_indicator}, position: ${style.status_indicator_position}, size: ${style.status_indicator_size}, padding: ${style.status_indicator_padding}`);
       } else {
-        cblcarsLog.warn(`[TextOverlay] ⚠️ No status_indicator in style for ${overlay.id}`);
+        // Not an issue - status indicators are optional decorations
+        cblcarsLog.debug(`[TextOverlay] 📍 No status_indicator configured for ${overlay.id}`);
       }
 
       this.container = svgContainer;

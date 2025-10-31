@@ -704,7 +704,8 @@ export class AdvancedRenderer {
       // Read from attachment manager
       const attachmentPointData = this.attachmentManager.getAttachmentPoints(dest);
       if (!attachmentPointData || !attachmentPointData.points) {
-        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ No attachment points found for ${dest}`);
+        // Some overlays don't need attachment points (e.g., anchors, controls)
+        cblcarsLog.debug(`[AdvancedRenderer] No attachment points found for ${dest}`);
         return;
       }
 
@@ -1409,8 +1410,13 @@ export class AdvancedRenderer {
         }
 
       } else {
-        // No renderer available - this shouldn't happen with Phase 3 complete
-        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ No renderer instance for overlay ${overlay.id} (type: ${overlay.type})`);
+        // No renderer available - expected for control overlays (embedded HA cards)
+        const isControl = overlay.type === 'control';
+        if (isControl) {
+          cblcarsLog.debug(`[AdvancedRenderer] Control overlay ${overlay.id} has no renderer (uses embedded HA card)`);
+        } else {
+          cblcarsLog.warn(`[AdvancedRenderer] ⚠️ No renderer instance for overlay ${overlay.id} (type: ${overlay.type})`);
+        }
         return '';
       }
 

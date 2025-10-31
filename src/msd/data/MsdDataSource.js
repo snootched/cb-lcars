@@ -837,7 +837,8 @@ export class MsdDataSource {
 
         cblcarsLog.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} history points`);
       } else {
-        cblcarsLog.warn('[MsdDataSource] ⚠️ No history data returned from WebSocket call');
+        // Debug only: Entity may not have history yet (new entity, HA just started, or history not enabled)
+        cblcarsLog.debug('[MsdDataSource] No history data returned from WebSocket call (may be unavailable)');
       }
     } catch (error) {
       cblcarsLog.error('[MsdDataSource] ❌ WebSocket state history also failed:', error);
@@ -1547,7 +1548,8 @@ export class MsdDataSource {
 
         cblcarsLog.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} history points`);
       } else {
-        cblcarsLog.warn('[MsdDataSource] ⚠️ No history data returned from WebSocket call');
+        // Debug only: Entity may not have history yet (new entity, HA just started, or history not enabled)
+        cblcarsLog.debug('[MsdDataSource] No history data returned from WebSocket call (may be unavailable)');
       }
     } catch (error) {
       cblcarsLog.error('[MsdDataSource] ❌ WebSocket state history also failed:', error);

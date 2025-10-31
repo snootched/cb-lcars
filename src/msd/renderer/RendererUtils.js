@@ -128,8 +128,8 @@ export class RendererUtils {
   static _transformTextMetrics(metrics, containerElement) {
     const transformInfo = this._getSvgTransformInfo(containerElement);
     if (!transformInfo) {
-      // No transformation available - return original metrics
-      cblcarsLog.warn('[RendererUtils] ⚠️ No transform info available, using pixel metrics');
+      // Fallback to pixel metrics is acceptable - not all contexts have transform info
+      cblcarsLog.debug('[RendererUtils] No transform info available, using pixel metrics');
       return metrics;
     }
 
