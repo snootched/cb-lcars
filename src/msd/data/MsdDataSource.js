@@ -500,6 +500,7 @@ export class MsdDataSource {
 
         if (value !== null) {
           this.buffer.push(timestamp, value);
+          this._updateAggregations(timestamp, value, {});
           this._stats.historyLoaded++;
         }
       }
@@ -531,6 +532,7 @@ export class MsdDataSource {
 
         if (value !== null) {
           this.buffer.push(timestamp, value);
+          this._updateAggregations(timestamp, value, {});
           this._stats.historyLoaded++;
         }
       }
@@ -781,6 +783,7 @@ export class MsdDataSource {
 
           if (value !== null) {
             this.buffer.push(timestamp, value);
+            this._updateAggregations(timestamp, value, {});
             this._stats.historyLoaded++;
           }
         }
@@ -831,6 +834,7 @@ export class MsdDataSource {
 
           if (value !== null) {
             this.buffer.push(timestamp, value);
+            this._updateAggregations(timestamp, value, {});
             this._stats.historyLoaded++;
           }
         }
@@ -889,6 +893,7 @@ export class MsdDataSource {
 
           if (value !== null) {
             this.buffer.push(timestamp, value);
+            this._updateAggregations(timestamp, value, {});
             this._stats.historyLoaded++;
           }
         }
@@ -1211,6 +1216,7 @@ export class MsdDataSource {
 
         if (value !== null) {
           this.buffer.push(timestamp, value);
+          this._updateAggregations(timestamp, value, {});
           this._stats.historyLoaded++;
         }
       }
@@ -1242,6 +1248,7 @@ export class MsdDataSource {
 
         if (value !== null) {
           this.buffer.push(timestamp, value);
+          this._updateAggregations(timestamp, value, {});
           this._stats.historyLoaded++;
         }
       }
@@ -1492,6 +1499,7 @@ export class MsdDataSource {
 
           if (value !== null) {
             this.buffer.push(timestamp, value);
+            this._updateAggregations(timestamp, value, {});
             this._stats.historyLoaded++;
           }
         }
@@ -1542,6 +1550,7 @@ export class MsdDataSource {
 
           if (value !== null) {
             this.buffer.push(timestamp, value);
+            this._updateAggregations(timestamp, value, {});
             this._stats.historyLoaded++;
           }
         }
@@ -1600,6 +1609,7 @@ export class MsdDataSource {
 
           if (value !== null) {
             this.buffer.push(timestamp, value);
+            this._updateAggregations(timestamp, value, {});
             this._stats.historyLoaded++;
           }
         }

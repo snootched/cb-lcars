@@ -239,7 +239,7 @@ export class AnimationLifecycle {
 - Multiple debug systems:
   - `DebugManager` (feature flags)
   - `MsdDebugRenderer` (visual debugging)
-  - `window.__msdDebug` (global debugging)
+  - `window.cblcars.debug.msd` (global debugging)
   - Performance counters
 
 **Opportunity:**

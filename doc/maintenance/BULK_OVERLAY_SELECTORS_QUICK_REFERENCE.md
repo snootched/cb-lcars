@@ -109,7 +109,7 @@ rules:
 
 ### Check Overlays with Tags
 ```javascript
-window.__msdDebug.resolvedModel.overlays
+window.cblcars.debug.msd.resolvedModel.overlays
 ```
 
 ### Check Selector Resolution

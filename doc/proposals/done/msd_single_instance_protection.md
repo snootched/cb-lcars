@@ -7,10 +7,10 @@ The MSD system has several single-instance assumptions built into its architectu
 ### 1. **Global Window References**
 ```javascript
 // PipelineCore.js
-window.__msdDebug = window.__msdDebug || {};
-window.__msdDebug.pipelineInstance = pipelineApi;
-window.__msdDebug.routing = systemsManager.router;
-window.__msdDebug.systemsManager = systemsManager;
+window.cblcars.debug.msd = window.cblcars.debug.msd || {};
+window.cblcars.debug.msd.pipelineInstance = pipelineApi;
+window.cblcars.debug.msd.routing = systemsManager.router;
+window.cblcars.debug.msd.systemsManager = systemsManager;
 
 // MsdApi.js
 window.cblcars.msd.api = { /* unified API */ };
@@ -24,7 +24,7 @@ window.__msdHudPanelControls = { /* global panel controls */ };
 The `MsdHudManager` attaches directly to `document.body` and uses global event handlers:
 ```javascript
 // MsdHudManager.js
-window.__msdDebug.hud = {
+window.cblcars.debug.msd.hud = {
   manager: this,
   refresh: () => this.refresh(),
   // ... other methods
@@ -36,7 +36,7 @@ window.__msdDebug.hud = {
 // Multiple storage locations for card instance
 window.cb_lcars_card_instance = this;
 window._currentCardInstance = this;
-window.__msdDebug.cardInstance = this;
+window.cblcars.debug.msd.cardInstance = this;
 ```
 
 ### 4. **Shared Resource Managers**
@@ -154,10 +154,10 @@ export class MsdInstanceManager {
 
       // Clear global references
       if (typeof window !== 'undefined') {
-        delete window.__msdDebug?.pipelineInstance;
-        delete window.__msdDebug?.systemsManager;
-        delete window.__msdDebug?.routing;
-        delete window.__msdDebug?.hud;
+        delete window.cblcars.debug.msd?.pipelineInstance;
+        delete window.cblcars.debug.msd?.systemsManager;
+        delete window.cblcars.debug.msd?.routing;
+        delete window.cblcars.debug.msd?.hud;
 
         // Clear card instance references
         delete window.cb_lcars_card_instance;

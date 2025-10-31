@@ -67,7 +67,7 @@ static _attachActionsImmediately(overlayId, actionInfo) {
   let gridElement = null;
 
   // Method 1: Use renderer mount element (same as ButtonOverlay)
-  const renderer = window.__msdDebug?.pipelineInstance?.systemsManager?.renderer;
+  const renderer = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.renderer;
   if (renderer && renderer.mountEl) {
     const overlayGroup = renderer.mountEl.querySelector('#msd-overlay-container');
     if (overlayGroup) {

@@ -688,7 +688,7 @@ export class ApexChartsOverlayRenderer {
     try {
       // 2. MSD RESPONSIBILITY: Get DataSourceManager
       const dataSourceManager = cardInstance?._config?.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager ||
-                                window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+                                window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (!dataSourceManager) {
         cblcarsLog.error(`[ApexChartsOverlayRenderer] DataSourceManager not available`);

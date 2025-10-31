@@ -1,0 +1,45 @@
+# CORRECTED Test Configuration for Rolling Statistics
+# Your config with fixes applied
+
+type: custom:cb-lcars-msd
+msd:
+  data_sources:
+    temperature:
+      entity: sensor.toronto_feels_like_temperature
+      metadata:
+        area: Living Room
+        friendly_name: Yaaas
+      debug: true
+
+    # Fixed temp_range configuration
+    temp_range:
+      entity: sensor.toronto_feels_like_temperature
+      windowSeconds: 86400  # 24 hours in seconds (24 * 3600)
+
+      aggregations:
+        - type: rolling_statistics
+          key: hourly_range
+          window: "24h"  # ✅ FIX: Must be quoted string!
+          stats:  # ✅ FIX: Can be array or list format
+            - min
+            - max
+          output_format: array  # ✅ CORRECT: lowercase 'array' (not "array")
+
+      # Optional: Enable debug logging for this datasource
+      debug: true
+
+  overlays:
+    # Example overlay to display the values
+    - id: temp_debug
+      type: text
+      content: "Min: {temp_range.aggregates.hourly_range[0]}, Max: {temp_range.aggregates.hourly_range[1]}"
+      position: [50, 50]
+
+  grid:
+    viewBox: "0 0 800 600"
+    rows: 1
+    columns: 1
+    cells:
+      - id: main_cell
+        row: 0
+        column: 0

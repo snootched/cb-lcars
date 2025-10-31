@@ -787,7 +787,7 @@ static applyNumberFormat(value, formatSpec, metadata = null) {
 ```javascript
 static processEnhancedTemplateStringsWithFallback(content, rendererName = 'Renderer', fallbackToOriginal = true) {
   try {
-    const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+    const dataSourceManager = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.dataSourceManager;
     if (!dataSourceManager) {
       return fallbackToOriginal ? content : null;
     }

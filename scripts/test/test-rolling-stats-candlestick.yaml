@@ -1,0 +1,62 @@
+# Test Configuration: Candlestick Chart with Rolling Statistics
+# Tests rolling_statistics aggregation with OHLC stats
+# Shows Open-High-Low-Close financial-style chart
+
+type: custom:cb-lcars-msd
+msd:
+  data_sources:
+    # Power sensor with OHLC rolling statistics
+    power_meter:
+      entity: sensor.power_usage
+      windowSeconds: 86400  # 24 hours of data
+
+      aggregations:
+        - key: power_ohlc
+          type: rolling_statistics
+          window: "15m"  # Calculate OHLC over 15-minute candles
+          stats: [open, high, low, close]  # OHLC stats for candlestick
+          output_format: array  # ApexCharts needs array format [O, H, L, C]
+
+  overlays:
+    # Candlestick chart showing power usage patterns
+    - id: power_candlestick_chart
+      type: apexchart
+      source: power_meter.aggregations.power_ohlc
+      position: [50, 50]
+      size: [800, 400]
+      style:
+        chart_type: "candlestick"
+        name: "Power Usage"
+        time_window: "24h"
+        max_points: 96  # 24 hours ÷ 15 min = 96 candles
+
+        # Candlestick colors
+        colors:
+          upward: "var(--lcars-green)"   # When close > open
+          downward: "var(--lcars-red)"   # When close < open
+
+        # Chart options
+        title: "Power Usage - 15min Candles"
+        title_align: "left"
+        show_grid: true
+
+        # Axis options
+        y_axis_title: "Power (W)"
+        x_axis_type: "datetime"
+
+        # Tooltip
+        tooltip_enabled: true
+        tooltip_shared: false
+
+  # Grid definition
+  grid:
+    viewBox: "0 0 900 600"
+    rows: 1
+    columns: 1
+    cells:
+      - id: chart_cell
+        row: 0
+        column: 0
+        style:
+          background: "var(--lcars-bg-dark)"
+          border: "2px solid var(--lcars-blue)"

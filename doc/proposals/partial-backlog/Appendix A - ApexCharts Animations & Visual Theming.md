@@ -255,7 +255,7 @@ static generateOptions(style, size, context = {}) {
  */
 static _getAnimationPreset(presetName) {
   // Try to get from pack registry
-  const packRegistry = window.__msdDebug?.pipelineInstance?.systemsManager?.packRegistry;
+  const packRegistry = window.cblcars.debug.msd?.pipelineInstance?.systemsManager?.packRegistry;
   
   if (packRegistry) {
     // Check all packs for animation presets

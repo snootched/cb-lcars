@@ -37,10 +37,10 @@ const debugOptions = {
 
 `MsdDebugRenderer.renderRoutingGuides()` looks for the router in two places:
 ```javascript
-const routing = opts.router || window.__msdDebug?.routing;
+const routing = opts.router || window.cblcars.debug.msd?.routing;
 ```
 
-Without `opts.router`, it fell back to `window.__msdDebug?.routing`, which may not always be set or may reference an outdated instance.
+Without `opts.router`, it fell back to `window.cblcars.debug.msd?.routing`, which may not always be set or may reference an outdated instance.
 
 ---
 

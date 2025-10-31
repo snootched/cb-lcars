@@ -1,0 +1,78 @@
+# Test Configuration: BoxPlot Chart with Rolling Statistics
+# Tests rolling_statistics aggregation with distribution stats
+# Shows statistical distribution (quartiles) over time
+
+type: custom:cb-lcars-msd
+msd:
+  data_sources:
+    # Response time sensor with distribution statistics
+    response_time:
+      entity: sensor.api_response_time
+      windowSeconds: 3600  # 1 hour of data
+
+      aggregations:
+        - key: response_distribution
+          type: rolling_statistics
+          window: "5m"  # Calculate distribution over 5-minute windows
+          stats: [min, q1, median, q3, max]  # Five-number summary for boxplot
+          output_format: array  # ApexCharts needs array format
+
+  overlays:
+    # BoxPlot chart showing response time distribution
+    - id: response_boxplot_chart
+      type: apexchart
+      source: response_time.aggregations.response_distribution
+      position: [50, 50]
+      size: [700, 350]
+      style:
+        chart_type: "boxPlot"
+        name: "API Response Time Distribution"
+        time_window: "1h"
+        max_points: 12  # 1 hour ÷ 5 min = 12 boxplots
+
+        # BoxPlot colors
+        color: "var(--lcars-purple)"
+
+        # Chart options
+        title: "Response Time Distribution (5min windows)"
+        title_align: "left"
+        show_grid: true
+        show_legend: false
+
+        # Axis options
+        y_axis_title: "Response Time (ms)"
+        x_axis_type: "datetime"
+
+        # Tooltip - shows all quartiles
+        tooltip_enabled: true
+        tooltip_shared: false
+
+    # Add a reference text overlay to explain the boxplot
+    - id: boxplot_legend
+      type: text
+      position: [760, 60]
+      size: [200, 150]
+      content: |
+        Box Plot Elements:
+        • Whisker (top): Maximum
+        • Box (top): Q3 (75th percentile)
+        • Line (middle): Median (Q2)
+        • Box (bottom): Q1 (25th percentile)
+        • Whisker (bottom): Minimum
+      style:
+        font_size: 12
+        color: "var(--lcars-white)"
+        text_anchor: "start"
+
+  # Grid definition
+  grid:
+    viewBox: "0 0 1000 600"
+    rows: 1
+    columns: 1
+    cells:
+      - id: chart_cell
+        row: 0
+        column: 0
+        style:
+          background: "var(--lcars-bg-dark)"
+          border: "2px solid var(--lcars-purple)"

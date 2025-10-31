@@ -331,12 +331,12 @@ data_sources:
 3. **Browser console tests:**
    ```javascript
    // Check computed source has metadata
-   const netPower = window.__msdDebug.systems.dataSourceManager.getSource('net_power');
+   const netPower = window.cblcars.debug.msd.systems.dataSourceManager.getSource('net_power');
    console.log(netPower.metadata);
    // Should show: unit_of_measurement: "W", friendly_name: "Net Power Flow", etc.
 
    // Check override tracking
-   const humidity = window.__msdDebug.systems.dataSourceManager.getSource('humidity');
+   const humidity = window.cblcars.debug.msd.systems.dataSourceManager.getSource('humidity');
    console.log(humidity._metadataOverrides);
    // Should show: { friendly_name: true, icon: true }
    ```

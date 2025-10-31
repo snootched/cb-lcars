@@ -127,6 +127,7 @@ data_sources:
 - Real-time state updates
 - Historical data preloading
 - Attribute access
+- ⭐ **Nested attribute paths** (`attribute_path: "forecast[0].temperature"`)
 - Transformation pipelines
 - Aggregation windows
 
@@ -174,6 +175,7 @@ data_sources:
 - Rate of change
 - Trend detection
 - Duration tracking
+- ⭐ **Rolling statistics** (multi-value: min, max, mean, median, quartiles, OHLC)
 
 ---
 
@@ -1018,5 +1020,5 @@ animations:
 
 ---
 
-**Last Updated:** October 26, 2025
+**Last Updated:** October 31, 2025
 **Version:** 2025.10.1-fuk.42-69

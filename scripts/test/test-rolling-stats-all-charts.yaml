@@ -1,0 +1,205 @@
+# Comprehensive Test: All Multi-Value Chart Types
+# Tests rolling_statistics with rangeArea, candlestick, and boxPlot
+# Demonstrates the complete Phase 3A ApexCharts integration
+
+type: custom:cb-lcars-msd
+msd:
+  data_sources:
+    # Temperature sensor - for rangeArea
+    temperature:
+      entity: sensor.outdoor_temperature
+      windowSeconds: 3600
+      aggregations:
+        - key: temp_range
+          type: rolling_statistics
+          window: "5m"
+          stats: [min, max]
+          output_format: array
+
+    # Power sensor - for candlestick
+    power:
+      entity: sensor.power_usage
+      windowSeconds: 3600
+      aggregations:
+        - key: power_ohlc
+          type: rolling_statistics
+          window: "10m"
+          stats: [open, high, low, close]
+          output_format: array
+
+    # Response time sensor - for boxPlot
+    response_time:
+      entity: sensor.api_response_time
+      windowSeconds: 3600
+      aggregations:
+        - key: response_dist
+          type: rolling_statistics
+          window: "5m"
+          stats: [min, q1, median, q3, max]
+          output_format: array
+
+  overlays:
+    # Title
+    - id: title
+      type: text
+      position: [50, 30]
+      content: "Multi-Value Chart Types - Rolling Statistics Demo"
+      style:
+        font_size: 24
+        color: "var(--lcars-orange)"
+        font_weight: "bold"
+
+    # ============================================
+    # 1. RangeArea Chart (Top)
+    # ============================================
+    - id: section_label_1
+      type: text
+      position: [50, 70]
+      content: "1. RANGEAREA: Temperature Range (min/max)"
+      style:
+        font_size: 14
+        color: "var(--lcars-blue)"
+        font_weight: "bold"
+
+    - id: temp_range_chart
+      type: apexchart
+      source: temperature.aggregations.temp_range
+      position: [50, 90]
+      size: [900, 180]
+      style:
+        chart_type: "rangeArea"
+        name: "Temp Range"
+        time_window: "1h"
+        max_points: 200
+        color: "var(--lcars-orange)"
+        fill_opacity: 0.2
+        stroke_width: 2
+        title: "Temperature Min/Max Range"
+        y_axis_title: "°C"
+        x_axis_type: "datetime"
+        show_grid: true
+        tooltip_enabled: true
+
+    # ============================================
+    # 2. Candlestick Chart (Middle)
+    # ============================================
+    - id: section_label_2
+      type: text
+      position: [50, 290]
+      content: "2. CANDLESTICK: Power Usage (OHLC)"
+      style:
+        font_size: 14
+        color: "var(--lcars-blue)"
+        font_weight: "bold"
+
+    - id: power_candlestick
+      type: apexchart
+      source: power.aggregations.power_ohlc
+      position: [50, 310]
+      size: [900, 180]
+      style:
+        chart_type: "candlestick"
+        name: "Power"
+        time_window: "1h"
+        max_points: 100
+        colors:
+          upward: "var(--lcars-green)"
+          downward: "var(--lcars-red)"
+        title: "Power Usage Candles (10min)"
+        y_axis_title: "Watts"
+        x_axis_type: "datetime"
+        show_grid: true
+        tooltip_enabled: true
+
+    # ============================================
+    # 3. BoxPlot Chart (Bottom)
+    # ============================================
+    - id: section_label_3
+      type: text
+      position: [50, 510]
+      content: "3. BOXPLOT: Response Time Distribution (quartiles)"
+      style:
+        font_size: 14
+        color: "var(--lcars-blue)"
+        font_weight: "bold"
+
+    - id: response_boxplot
+      type: apexchart
+      source: response_time.aggregations.response_dist
+      position: [50, 530]
+      size: [900, 180]
+      style:
+        chart_type: "boxPlot"
+        name: "Response Time"
+        time_window: "1h"
+        max_points: 12
+        color: "var(--lcars-purple)"
+        title: "API Response Time (5min windows)"
+        y_axis_title: "ms"
+        x_axis_type: "datetime"
+        show_grid: true
+        tooltip_enabled: true
+
+    # Info box explaining the data flow
+    - id: info_box
+      type: text
+      position: [1000, 90]
+      size: [350, 620]
+      content: |
+        DATA FLOW:
+
+        1. DataSource collects
+           sensor values over time
+
+        2. rolling_statistics
+           aggregation calculates:
+           • min, max (rangeArea)
+           • open, high, low, close
+             (candlestick)
+           • min, q1, median, q3, max
+             (boxPlot)
+
+        3. ApexChartsAdapter detects
+           array-valued data and
+           passes to ApexCharts
+
+        4. Charts render with
+           proper multi-value
+           visualization
+
+        REAL-TIME UPDATES:
+        • Charts subscribe to
+          DataSource changes
+        • Aggregations recalculate
+          on each new value
+        • ApexCharts.updateSeries()
+          refreshes display
+
+        STATS EXPLAINED:
+        min: minimum value
+        max: maximum value
+        open: first value
+        close: last value
+        high: highest value
+        low: lowest value
+        q1: 25th percentile
+        median: 50th percentile
+        q3: 75th percentile
+      style:
+        font_size: 12
+        color: "var(--lcars-white)"
+        text_anchor: "start"
+        line_height: 1.4
+
+  # Grid definition
+  grid:
+    viewBox: "0 0 1400 800"
+    rows: 1
+    columns: 1
+    cells:
+      - id: main_cell
+        row: 0
+        column: 0
+        style:
+          background: "var(--lcars-bg-dark)"
+          border: "3px solid var(--lcars-orange)"

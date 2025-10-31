@@ -851,14 +851,14 @@ overlays:
 ```javascript
 // Runtime API usage in browser console
 // Override font size globally
-window.__msdDebug.api.setUserDefault('text.font_size', {
+window.cblcars.debug.msd.api.setUserDefault('text.font_size', {
   value: 16,
   scale: 'viewbox',
   unit: 'px'
 });
 
 // Check current defaults
-window.__msdDebug.api.getDefaultsIntrospection();
+window.cblcars.debug.msd.api.getDefaultsIntrospection();
 ```
 
 ## Benefits

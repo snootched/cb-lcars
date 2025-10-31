@@ -1,0 +1,335 @@
+# Test Configuration: DataSource Metadata Override Feature
+# This file demonstrates the new metadata override capability
+
+type: custom:cb-lcars-card
+config:
+  msd:
+    data_sources:
+      # Test 1: Entity source - auto-capture metadata (baseline)
+      temperature:
+        type: entity
+        entity: sensor.outdoor_temperature
+        # Metadata will be auto-captured from entity:
+        #   - unit_of_measurement from entity attributes
+        #   - friendly_name from entity attributes
+        #   - device_class from entity attributes
+
+      # Test 2: Entity source with partial override
+      humidity:
+        type: entity
+        entity: sensor.outdoor_humidity
+        # Override some properties, keep others from entity
+        metadata:
+          friendly_name: "Outside Humidity"  # Custom name
+          icon: "mdi:water-percent"           # Custom icon
+          # unit_of_measurement will still come from entity (not overridden)
+
+      # Test 3: Computed source with full metadata
+      net_power:
+        type: computed
+        expression: "solar - consumption"
+        dependencies:
+          solar: solar_power
+          consumption: home_power
+        # Computed sources have no entity, so specify all metadata
+        metadata:
+          unit_of_measurement: "W"
+          friendly_name: "Net Power Flow"
+          device_class: "power"
+          icon: "mdi:transmission-tower"
+          state_class: "measurement"
+
+      # Test 4: Computed source mixing different unit sources
+      avg_temp:
+        type: computed
+        expression: "(celsius + (fahrenheit - 32) * 5/9) / 2"
+        dependencies:
+          celsius: temp_celsius
+          fahrenheit: temp_fahrenheit
+        # Specify result unit since inputs are mixed
+        metadata:
+          unit_of_measurement: "°C"
+          friendly_name: "Average Temperature"
+          device_class: "temperature"
+          icon: "mdi:thermometer"
+
+      # Test 5: Entity with complete override (unusual but supported)
+      pressure:
+        type: entity
+        entity: sensor.barometric_pressure
+        # Override everything (testing full override capability)
+        metadata:
+          unit_of_measurement: "hPa"
+          friendly_name: "Barometric Pressure"
+          device_class: "atmospheric_pressure"
+          icon: "mdi:gauge"
+          state_class: "measurement"
+
+      # Supporting data sources
+      solar_power:
+        type: entity
+        entity: sensor.solar_power
+
+      home_power:
+        type: entity
+        entity: sensor.home_power
+
+      temp_celsius:
+        type: entity
+        entity: sensor.indoor_temperature
+
+      temp_fahrenheit:
+        type: entity
+        entity: sensor.outdoor_temperature_f
+
+    overlays:
+      # Header
+      - type: text
+        id: header
+        content: "METADATA OVERRIDE TEST"
+        position: [100, 50]
+        style:
+          font_size: 28
+          color: var(--lcars-orange)
+          font_weight: bold
+
+      # Test 1: Auto-captured metadata (no override)
+      - type: text
+        id: test1_label
+        content: "Test 1: Auto-capture (no override)"
+        position: [100, 120]
+        style:
+          font_size: 14
+          color: var(--lcars-blue)
+
+      - type: text
+        id: test1_name
+        content: "Name: {temperature.metadata.friendly_name}"
+        position: [100, 145]
+
+      - type: text
+        id: test1_value
+        content: "Value: {temperature.v:.1f}{temperature.metadata.unit_of_measurement}"
+        position: [100, 170]
+        style:
+          font_size: 20
+
+      # Test 2: Partial override (name and icon)
+      - type: text
+        id: test2_label
+        content: "Test 2: Partial override (name + icon)"
+        position: [100, 230]
+        style:
+          font_size: 14
+          color: var(--lcars-blue)
+
+      - type: text
+        id: test2_name
+        content: "Name: {humidity.metadata.friendly_name}"
+        position: [100, 255]
+
+      - type: text
+        id: test2_value
+        content: "Value: {humidity.v:.1f}{humidity.metadata.unit_of_measurement}"
+        position: [100, 280]
+        style:
+          font_size: 20
+
+      - type: text
+        id: test2_icon
+        content: "Icon: {humidity.metadata.icon}"
+        position: [100, 305]
+        style:
+          font_size: 12
+          color: var(--lcars-gray)
+
+      # Test 3: Computed source with full metadata
+      - type: text
+        id: test3_label
+        content: "Test 3: Computed source with metadata"
+        position: [100, 360]
+        style:
+          font_size: 14
+          color: var(--lcars-blue)
+
+      - type: text
+        id: test3_name
+        content: "Name: {net_power.metadata.friendly_name}"
+        position: [100, 385]
+
+      - type: text
+        id: test3_value
+        content: "Value: {net_power.v:.0f}{net_power.metadata.unit_of_measurement}"
+        position: [100, 410]
+        style:
+          font_size: 20
+
+      - type: text
+        id: test3_class
+        content: "Device Class: {net_power.metadata.device_class}"
+        position: [100, 435]
+        style:
+          font_size: 12
+          color: var(--lcars-gray)
+
+      # Test 4: Mixed unit computed source
+      - type: text
+        id: test4_label
+        content: "Test 4: Mixed units (C + F avg)"
+        position: [600, 120]
+        style:
+          font_size: 14
+          color: var(--lcars-blue)
+
+      - type: text
+        id: test4_name
+        content: "Name: {avg_temp.metadata.friendly_name}"
+        position: [600, 145]
+
+      - type: text
+        id: test4_value
+        content: "Value: {avg_temp.v:.1f}{avg_temp.metadata.unit_of_measurement}"
+        position: [600, 170]
+        style:
+          font_size: 20
+
+      - type: text
+        id: test4_note
+        content: "Result unit specified in config"
+        position: [600, 195]
+        style:
+          font_size: 12
+          color: var(--lcars-gray)
+
+      # Test 5: Complete override
+      - type: text
+        id: test5_label
+        content: "Test 5: Complete override (all metadata)"
+        position: [600, 230]
+        style:
+          font_size: 14
+          color: var(--lcars-blue)
+
+      - type: text
+        id: test5_name
+        content: "Name: {pressure.metadata.friendly_name}"
+        position: [600, 255]
+
+      - type: text
+        id: test5_value
+        content: "Value: {pressure.v:.1f}{pressure.metadata.unit_of_measurement}"
+        position: [600, 280]
+        style:
+          font_size: 20
+
+      - type: text
+        id: test5_all
+        content: "Class: {pressure.metadata.device_class} | Icon: {pressure.metadata.icon}"
+        position: [600, 305]
+        style:
+          font_size: 12
+          color: var(--lcars-gray)
+
+      # Debug info
+      - type: text
+        id: debug_title
+        content: "DEBUG INFO"
+        position: [100, 500]
+        style:
+          font_size: 16
+          color: var(--lcars-orange)
+
+      - type: text
+        id: debug_test1
+        content: "Test 1 entity: {temperature.metadata.entity_id}"
+        position: [100, 530]
+        style:
+          font_size: 11
+          color: var(--lcars-dark-gray)
+
+      - type: text
+        id: debug_test2
+        content: "Test 2 entity: {humidity.metadata.entity_id}"
+        position: [100, 550]
+        style:
+          font_size: 11
+          color: var(--lcars-dark-gray)
+
+      - type: text
+        id: debug_test3
+        content: "Test 3 computed: no entity (metadata from config)"
+        position: [100, 570]
+        style:
+          font_size: 11
+          color: var(--lcars-dark-gray)
+
+      # Verification instructions
+      - type: text
+        id: verify_title
+        content: "VERIFICATION CHECKLIST"
+        position: [100, 630]
+        style:
+          font_size: 16
+          color: var(--lcars-orange)
+
+      - type: text
+        id: verify1
+        content: "✓ Test 1: Shows entity's original friendly_name and unit"
+        position: [100, 660]
+        style:
+          font_size: 12
+
+      - type: text
+        id: verify2
+        content: "✓ Test 2: Shows custom name 'Outside Humidity' but entity's unit"
+        position: [100, 680]
+        style:
+          font_size: 12
+
+      - type: text
+        id: verify3
+        content: "✓ Test 3: Shows all metadata from config (computed source)"
+        position: [100, 700]
+        style:
+          font_size: 12
+
+      - type: text
+        id: verify4
+        content: "✓ Test 4: Shows °C result unit despite mixed F/C inputs"
+        position: [100, 720]
+        style:
+          font_size: 12
+
+      - type: text
+        id: verify5
+        content: "✓ Test 5: Shows all overridden metadata, not entity's"
+        position: [100, 740]
+        style:
+          font_size: 12
+
+      # Console test commands
+      - type: text
+        id: console_title
+        content: "BROWSER CONSOLE TESTS"
+        position: [100, 800]
+        style:
+          font_size: 16
+          color: var(--lcars-orange)
+
+      - type: text
+        id: console1
+        content: "window.__msdDebug.systems.dataSourceManager.getSource('net_power').metadata"
+        position: [100, 830]
+        style:
+          font_size: 10
+          font_family: monospace
+          color: var(--lcars-dark-gray)
+
+      - type: text
+        id: console2
+        content: "window.__msdDebug.systems.dataSourceManager.getSource('humidity')._metadataOverrides"
+        position: [100, 850]
+        style:
+          font_size: 10
+          font_family: monospace
+          color: var(--lcars-dark-gray)

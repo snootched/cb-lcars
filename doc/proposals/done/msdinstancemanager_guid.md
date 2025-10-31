@@ -128,7 +128,7 @@ static _generateGuid() {
 
 if (!this._msdInstanceGuid) {
   // Generate stable GUID for this card instance
-  this._msdInstanceGuid = window.__msdDebug.MsdInstanceManager._generateGuid();
+  this._msdInstanceGuid = window.cblcars.debug.msd.MsdInstanceManager._generateGuid();
 
   cblcarsLog.debug('[MSD Card] Generated instance GUID:', {
     guid: this._msdInstanceGuid,
@@ -182,7 +182,7 @@ static _getCardInstanceFromMount(mountEl) {
     // Method 1: Check global references (most reliable)
     const globalCard = window.cb_lcars_card_instance ||
                       window._currentCardInstance ||
-                      window.__msdDebug?.cardInstance;
+                      window.cblcars.debug.msd?.cardInstance;
 
     if (globalCard && globalCard._msdInstanceGuid) {
       cblcarsLog.debug('[MsdInstanceManager] Found card instance via globals:',
@@ -455,17 +455,17 @@ static async destroyInstance() {
 
     // Clear global references (unchanged)
     if (typeof window !== 'undefined') {
-      delete window.__msdDebug?.pipelineInstance;
-      delete window.__msdDebug?.systemsManager;
-      delete window.__msdDebug?.routing;
-      delete window.__msdDebug?.hud;
+      delete window.cblcars.debug.msd?.pipelineInstance;
+      delete window.cblcars.debug.msd?.systemsManager;
+      delete window.cblcars.debug.msd?.routing;
+      delete window.cblcars.debug.msd?.hud;
       delete window.cb_lcars_card_instance;
       delete window._currentCardInstance;
       delete window._msdCardInstance;
       delete window.__msdHudBus;
       delete window.__msdHudPanelControls;
-      delete window.__msdDebug?.cardInstance;
-      delete window.__msdDebug?.debugManager;
+      delete window.cblcars.debug.msd?.cardInstance;
+      delete window.cblcars.debug.msd?.debugManager;
     }
 
     // ✅ CHANGED: Clear instance AND GUID

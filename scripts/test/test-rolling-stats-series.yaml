@@ -1,0 +1,184 @@
+# Test Configuration: Rolling Statistics Series (Time-Series)
+#
+# This test demonstrates both rolling_statistics types:
+# 1. rolling_statistics - Point-in-time stats (current values)
+# 2. rolling_statistics_series - Time-series history (for charting trends)
+#
+# Use Case: Temperature monitoring with ApexCharts rangeArea visualization
+
+data_sources:
+  temp_range:
+    entity: sensor.outdoor_temperature
+    windowSeconds: 86400  # 24 hour buffer
+    history:
+      enabled: true
+      hours: 24           # Pre-fill buffer with 24h history
+
+    aggregations:
+      # Point-in-time rolling statistics (existing feature)
+      # Shows current min/max over the rolling window
+      - type: rolling_statistics
+        key: "current_range"
+        window: "24h"
+        stats: [min, max]
+        output_format: array
+
+      # Time-series rolling statistics (NEW feature)
+      # Stores hourly min/max calculations for trend visualization
+      - type: rolling_statistics_series
+        key: "range_history"
+        window: "24h"         # Calculate stats over 24 hour window
+        interval: "1h"        # Store calculation every hour
+        stats: [min, max]
+        output_format: array
+        max_points: 48        # Keep 2 days of hourly data
+
+      # Additional example: Quartile intervals for confidence bands
+      - type: rolling_statistics_series
+        key: "quartile_history"
+        window: "1h"          # Stats over 1 hour
+        interval: "5m"        # Update every 5 minutes
+        stats: [q1, median, q3]
+        output_format: array
+        max_points: 72        # 6 hours of 5-minute intervals
+
+# Example MSD Card Configuration with ApexCharts
+msd_cards:
+  - type: msd_card
+    title: "Temperature Analysis"
+    layout:
+      rows: 4
+      columns: 4
+
+    data_sources:
+      - temp_range
+
+    overlays:
+      # Display current stats (point-in-time)
+      - type: text
+        row: 1
+        col: 1
+        content: "Current 24h Range"
+        style: { fontSize: "1rem", color: "#ff9933" }
+
+      - type: text
+        row: 1
+        col: 2
+        colspan: 2
+        content: "{temp_range.aggregations.current_range[0]:.1f}°F - {temp_range.aggregations.current_range[1]:.1f}°F"
+        style: { fontSize: "1.2rem", fontWeight: "bold" }
+
+      # ApexCharts: Temperature range trend over time
+      - type: apexchart
+        row: 2
+        col: 1
+        rowspan: 3
+        colspan: 4
+
+        chart:
+          type: rangeArea
+          height: 300
+          toolbar:
+            show: true
+            tools:
+              zoom: true
+              pan: true
+
+        title:
+          text: "24h Temperature Range History"
+          style:
+            fontSize: "16px"
+            color: "#ff9933"
+
+        xaxis:
+          type: datetime
+          labels:
+            format: "HH:mm"
+
+        yaxis:
+          title:
+            text: "Temperature (°F)"
+          decimalsInFloat: 1
+
+        series:
+          - name: "Temperature Range"
+            type: rangeArea
+            # Direct use of time-series aggregation!
+            # Format: [[timestamp, [min, max]], ...]
+            data: temp_range.aggregations.range_history
+
+        stroke:
+          curve: smooth
+          width: 2
+
+        fill:
+          type: gradient
+          gradient:
+            shadeIntensity: 0.4
+            opacityFrom: 0.5
+            opacityTo: 0.1
+
+        colors: ["#ff9933"]
+
+# Example: Debugging the data
+#
+# In browser console, inspect the aggregations:
+#
+# const dsManager = window.cblcars.debug.msd.MsdInstanceManager.getCurrentInstance().getDataSourceManager();
+# const ds = dsManager.sources.get('temp_range');
+# const data = ds.getCurrentData();
+#
+# console.log('Current range (point-in-time):', data.aggregations.current_range);
+# // Expected: [18.5, 23.7] or similar
+#
+# console.log('Range history (time-series):', data.aggregations.range_history);
+# // Expected: [[1730397600000, [18.5, 23.7]], [1730401200000, [19.2, 24.1]], ...]
+#
+# console.log('Number of historical points:', data.aggregations.range_history.length);
+# // Expected: 1-48 depending on how long it's been running
+#
+# // Verify interval is working (should see ~1 hour between timestamps)
+# const first = data.aggregations.range_history[0];
+# const second = data.aggregations.range_history[1];
+# if (first && second) {
+#   const intervalMinutes = (second[0] - first[0]) / 60000;
+#   console.log('Actual interval:', intervalMinutes, 'minutes');
+#   // Expected: ~60 minutes
+# }
+
+# Expected Behavior:
+#
+# 1. On first load:
+#    - History loading will populate buffer with 24h of data
+#    - rolling_statistics will immediately calculate current_range
+#    - rolling_statistics_series will be empty [] until first interval passes
+#
+# 2. After 1 hour:
+#    - range_history will have 1 entry: [[timestamp, [min, max]]]
+#    - ApexCharts will show single point
+#
+# 3. After 24 hours:
+#    - range_history will have 24 entries (one per hour)
+#    - ApexCharts will show full 24h trend
+#
+# 4. After 48 hours:
+#    - range_history will have 48 entries (max_points limit)
+#    - ApexCharts will show rolling 48h window
+#
+# 5. Steady state:
+#    - New calculations replace oldest (circular buffer behavior)
+#    - Chart always shows most recent 48 hours
+
+# Comparison: Point-in-Time vs Time-Series
+#
+# current_range (rolling_statistics):
+#   - Updates on every data point
+#   - Single value always current
+#   - Good for: Real-time displays, current status
+#   - Format: [18.5, 23.7]
+#
+# range_history (rolling_statistics_series):
+#   - Updates at specified interval (1h)
+#   - Array of historical calculations
+#   - Good for: Trend charts, historical analysis
+#   - Format: [[ts1, [18.5, 23.7]], [ts2, [19.2, 24.1]], ...]

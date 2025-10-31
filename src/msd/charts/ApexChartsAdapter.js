@@ -85,7 +85,72 @@ export class ApexChartsAdapter {
       // Convert to ApexCharts format
       const seriesName = config.name || this._extractSeriesName(sourceRef);
 
-      // ✅ FIXED: Validate and filter data points to prevent ApexCharts path morphing errors
+      // ✅ NEW: Detect if data contains multi-value arrays (from rolling_statistics)
+      // Check first data point to determine if values are arrays
+      const hasArrayValues = data.length > 0 && Array.isArray(data[0].value || data[0].v);
+
+      if (hasArrayValues) {
+        // ✅ NEW: Handle multi-value array data for rangeArea, candlestick, boxPlot
+        const validData = data
+          .filter(point => {
+            const x = point.timestamp || point.t;
+            const y = point.value || point.v;
+
+            // For array values, validate x and that y is an array
+            const isValid = (
+              x !== undefined &&
+              x !== null &&
+              !isNaN(Number(x)) &&
+              Array.isArray(y) &&
+              y.length > 0 &&
+              y.every(val => val !== null && val !== undefined && !isNaN(Number(val)) && isFinite(val))
+            );
+
+            if (!isValid && config.debug) {
+              cblcarsLog.debug(`[ApexChartsAdapter] Filtered invalid multi-value point:`, { x, y, point });
+            }
+
+            return isValid;
+          })
+          .map(point => ({
+            x: point.timestamp || point.t,
+            y: point.value || point.v  // Keep as array for ApexCharts
+          }));
+
+        // ✅ NEW: Log info about multi-value data processing
+        if (validData.length > 0 && config.debug) {
+          const sampleY = validData[0].y;
+          cblcarsLog.debug(`[ApexChartsAdapter] Processing multi-value data for ${seriesName}:`, {
+            points: validData.length,
+            valuesPerPoint: sampleY.length,
+            sample: sampleY
+          });
+        }
+
+        // ✅ FIXED: Log warning if data was filtered
+        if (validData.length < data.length) {
+          cblcarsLog.warn(`[ApexChartsAdapter] Filtered ${data.length - validData.length} invalid multi-value points from ${sourceRef}`, {
+            original: data.length,
+            valid: validData.length
+          });
+        }
+
+        // ✅ FIXED: Return empty series if no valid data
+        if (validData.length === 0) {
+          cblcarsLog.warn(`[ApexChartsAdapter] No valid multi-value data points for series ${seriesName} (${sourceRef})`);
+          return [{
+            name: seriesName,
+            data: []
+          }];
+        }
+
+        return [{
+          name: seriesName,
+          data: validData
+        }];
+      }
+
+      // ✅ EXISTING: Handle single-value data (original code path)
       const validData = data
         .filter(point => {
           const x = point.timestamp || point.t;
@@ -1312,7 +1377,16 @@ static _getRawData(dataSource, config) {
         return [];
       }
 
-      // Return single point (ApexCharts will handle it)
+      // ✅ NEW: Handle array values from rolling_statistics aggregations
+      // rolling_statistics can output arrays like [min, max] or [open, high, low, close]
+      if (Array.isArray(value)) {
+        return [{
+          timestamp: Date.now(),
+          value: value  // Keep as array for multi-value charts
+        }];
+      }
+
+      // ✅ EXISTING: Handle single numeric values
       return [{
         timestamp: Date.now(),
         value: typeof value === 'number' ? value : 0

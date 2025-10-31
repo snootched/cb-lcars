@@ -5,6 +5,7 @@
  * and exports all aggregation types for easy importing.
  */
 import { RollingStatisticsAggregation } from './RollingStatisticsAggregation.js';
+import { RollingStatisticsSeriesAggregation } from './RollingStatisticsSeriesAggregation.js';
 import {
   MovingAverageAggregation,
   MinMaxAggregation,
@@ -57,11 +58,15 @@ export function createAggregationProcessor(type, config) {
     case 'rolling_stats':
       return new RollingStatisticsAggregation(config);
 
+    case 'rolling_statistics_series':
+    case 'rolling_stats_series':
+      return new RollingStatisticsSeriesAggregation(config);
+
 
     default:
       throw new Error(
         `Unknown aggregation type: ${type}\n` +
-        `  Valid types: moving_average, min_max, rate_of_change, session_stats, duration, recent_trend, rolling_statistics`
+        `  Valid types: moving_average, min_max, rate_of_change, session_stats, duration, recent_trend, rolling_statistics, rolling_statistics_series`
       );
   }
 }
@@ -74,5 +79,6 @@ export {
   SessionStatsAggregation,
   DurationAggregation,
   RecentTrendAggregation,
-  RollingStatisticsAggregation
+  RollingStatisticsAggregation,
+  RollingStatisticsSeriesAggregation
 };

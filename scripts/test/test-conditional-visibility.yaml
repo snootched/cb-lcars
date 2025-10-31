@@ -1,0 +1,366 @@
+###############################################################################
+# CB-LCARS Conditional Visibility Test Configuration
+###############################################################################
+# This configuration demonstrates conditional overlay visibility controlled
+# by Rules Engine. Overlays can be shown/hidden based on entity states,
+# sensor values, or any Home Assistant condition.
+#
+# FEATURES DEMONSTRATED:
+# 1. Hide overlay when sensor unavailable
+# 2. Show emergency alert on critical condition
+# 3. Hide maintenance panels during normal operation
+# 4. Hide lines when endpoint overlays are hidden
+# 5. Combine with cell-level tags for Status Grid cells
+#
+# HOME ASSISTANT HELPER SETUP:
+# Create these helpers in Home Assistant (Settings > Devices & Services > Helpers):
+#
+# 1. input_boolean.system_emergency (Toggle helper)
+#    - Name: "System Emergency Mode"
+#    - Initial: Off
+#
+# 2. input_select.operation_mode (Dropdown helper)
+#    - Name: "Operation Mode"
+#    - Options: ["normal", "maintenance", "diagnostic"]
+#    - Initial: "normal"
+#
+# 3. input_boolean.subsystem_a_online (Toggle helper)
+#    - Name: "Subsystem A Online"
+#    - Initial: On
+#
+# 4. input_boolean.subsystem_b_online (Toggle helper)
+#    - Name: "Subsystem B Online"
+#    - Initial: On
+#
+# 5. sensor.system_temperature (Sensor helper or use any existing sensor)
+#    - Use any numeric sensor, or create a template sensor
+#
+# TESTING SCENARIOS:
+# - Toggle input_boolean.system_emergency → "alert-overlay" appears/disappears
+# - Change input_select.operation_mode to "maintenance" → "maint-panel" appears
+# - Toggle input_boolean.subsystem_a_online → "subsystem-a" and "line-to-a" hide
+# - Make sensor.system_temperature unavailable → "temp-display" hides
+###############################################################################
+
+type: 'custom:cb-lcars'
+config:
+  # System configuration
+  dimensions:
+    width: 1600
+    height: 900
+
+  # 🎨 Overlays
+  overlays:
+    # ─────────────────────────────────────────────────────────────────────
+    # Scenario 1: Always-visible header
+    # ─────────────────────────────────────────────────────────────────────
+    - id: header
+      type: text
+      content: "CONDITIONAL VISIBILITY TEST"
+      position: [800, 50]
+      style:
+        font_size: 48
+        color: '#FF9900'
+        font_family: 'Antonio'
+        text_anchor: middle
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Scenario 2: Hide overlay when sensor unavailable
+    # ─────────────────────────────────────────────────────────────────────
+    - id: temp-display
+      type: text
+      content: "Temperature: {{sensor.system_temperature}}°C"
+      position: [100, 150]
+      style:
+        font_size: 32
+        color: '#99CCFF'
+        visible: true  # Default visible
+      # Will be hidden by rule when sensor unavailable
+
+    - id: temp-status-label
+      type: text
+      content: "Sensor:"
+      position: [100, 200]
+      style:
+        font_size: 24
+        color: '#FFFFFF'
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Scenario 3: Show emergency alert on critical condition
+    # ─────────────────────────────────────────────────────────────────────
+    - id: alert-overlay
+      type: text
+      content: "⚠️ EMERGENCY ALERT ⚠️"
+      position: [800, 200]
+      style:
+        font_size: 56
+        color: '#FF0000'
+        font_family: 'Antonio'
+        text_anchor: middle
+        visible: false  # Hidden by default
+      # Will be shown by rule when input_boolean.system_emergency is on
+
+    - id: alert-details
+      type: text
+      content: "Emergency mode activated - all systems alert"
+      position: [800, 260]
+      style:
+        font_size: 28
+        color: '#FF6666'
+        text_anchor: middle
+        visible: false  # Hidden by default
+      # Will be shown by rule when input_boolean.system_emergency is on
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Scenario 4: Hide maintenance panel during normal operation
+    # ─────────────────────────────────────────────────────────────────────
+    - id: maint-panel
+      type: button
+      label: "MAINTENANCE PANEL"
+      position: [1200, 150]
+      size:
+        width: 300
+        height: 80
+      style:
+        color: '#FFCC00'
+        border_width: 3
+        corner_radius: 10
+        visible: false  # Hidden by default
+      # Will be shown by rule when input_select.operation_mode is "maintenance"
+
+    - id: maint-details
+      type: text
+      content: "Diagnostic mode active"
+      position: [1350, 250]
+      style:
+        font_size: 24
+        color: '#FFCC00'
+        text_anchor: middle
+        visible: false  # Hidden by default
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Scenario 5: Hide lines when endpoint overlays are hidden
+    # ─────────────────────────────────────────────────────────────────────
+    - id: control-center
+      type: button
+      label: "CONTROL"
+      position: [400, 400]
+      size:
+        width: 200
+        height: 100
+      style:
+        color: '#99CCFF'
+
+    - id: subsystem-a
+      type: button
+      label: "SUBSYSTEM A"
+      position: [800, 400]
+      size:
+        width: 200
+        height: 100
+      style:
+        color: '#66FF66'
+        visible: true  # Default visible
+      # Will be hidden by rule when input_boolean.subsystem_a_online is off
+
+    - id: subsystem-b
+      type: button
+      label: "SUBSYSTEM B"
+      position: [1200, 400]
+      size:
+        width: 200
+        height: 100
+      style:
+        color: '#66FF66'
+        visible: true  # Default visible
+      # Will be hidden by rule when input_boolean.subsystem_b_online is off
+
+    # Lines connecting control center to subsystems
+    - id: line-to-a
+      type: line
+      from_overlay: control-center
+      to_overlay: subsystem-a
+      style:
+        color: '#66FF66'
+        stroke_width: 3
+        visible: true  # Default visible
+      # Will be hidden by rule when subsystem-a is hidden
+
+    - id: line-to-b
+      type: line
+      from_overlay: control-center
+      to_overlay: subsystem-b
+      style:
+        color: '#66FF66'
+        stroke_width: 3
+        visible: true  # Default visible
+      # Will be hidden by rule when subsystem-b is hidden
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Scenario 6: Status Grid with cell-level visibility via tags
+    # (Combines with cell-level tags feature)
+    # ─────────────────────────────────────────────────────────────────────
+    - id: status-grid
+      type: status_grid
+      position: [100, 600]
+      layout:
+        rows: 2
+        cols: 3
+        cell_width: 150
+        cell_height: 80
+        gap: 10
+      cells:
+        - index: 0
+          label: "SYSTEM 1"
+          tags: ["critical"]
+          style:
+            color: '#99CCFF'
+        - index: 1
+          label: "SYSTEM 2"
+          tags: ["normal"]
+          style:
+            color: '#99CCFF'
+        - index: 2
+          label: "SYSTEM 3"
+          tags: ["diagnostic"]
+          style:
+            color: '#99CCFF'
+        - index: 3
+          label: "SYSTEM 4"
+          tags: ["critical"]
+          style:
+            color: '#99CCFF'
+        - index: 4
+          label: "SYSTEM 5"
+          tags: ["normal"]
+          style:
+            color: '#99CCFF'
+        - index: 5
+          label: "SYSTEM 6"
+          tags: ["diagnostic"]
+          style:
+            color: '#99CCFF'
+
+    # Instructions overlay
+    - id: instructions
+      type: text
+      content: "Toggle helpers in HA to test visibility"
+      position: [800, 850]
+      style:
+        font_size: 20
+        color: '#FFFFFF'
+        text_anchor: middle
+
+  # 🔧 Rules Engine - Conditional Visibility
+  rules:
+    # ───────────────────────────────────────────────────────────────────
+    # Rule 1: Hide temperature display when sensor unavailable
+    # ───────────────────────────────────────────────────────────────────
+    - conditions:
+        - entity: sensor.system_temperature
+          state: unavailable
+      actions:
+        - selectors:
+            - id: temp-display
+          patches:
+            - visible: false  # Hide overlay
+
+    # ───────────────────────────────────────────────────────────────────
+    # Rule 2: Show emergency alert when emergency mode active
+    # ───────────────────────────────────────────────────────────────────
+    - conditions:
+        - entity: input_boolean.system_emergency
+          state: 'on'
+      actions:
+        - selectors:
+            - all:
+                type: text
+                ids: [alert-overlay, alert-details]
+          patches:
+            - visible: true  # Show both alert overlays
+
+    # ───────────────────────────────────────────────────────────────────
+    # Rule 3: Show maintenance panel when in maintenance mode
+    # ───────────────────────────────────────────────────────────────────
+    - conditions:
+        - entity: input_select.operation_mode
+          state: maintenance
+      actions:
+        - selectors:
+            - ids: [maint-panel, maint-details]
+          patches:
+            - visible: true  # Show maintenance overlays
+
+    # ───────────────────────────────────────────────────────────────────
+    # Rule 4: Hide Subsystem A and its connection line when offline
+    # ───────────────────────────────────────────────────────────────────
+    - conditions:
+        - entity: input_boolean.subsystem_a_online
+          state: 'off'
+      actions:
+        - selectors:
+            - ids: [subsystem-a, line-to-a]
+          patches:
+            - visible: false  # Hide subsystem and line
+
+    # ───────────────────────────────────────────────────────────────────
+    # Rule 5: Hide Subsystem B and its connection line when offline
+    # ───────────────────────────────────────────────────────────────────
+    - conditions:
+        - entity: input_boolean.subsystem_b_online
+          state: 'off'
+      actions:
+        - selectors:
+            - ids: [subsystem-b, line-to-b]
+          patches:
+            - visible: false  # Hide subsystem and line
+
+    # ───────────────────────────────────────────────────────────────────
+    # Rule 6: Hide diagnostic cells when not in diagnostic mode
+    # (Combines overlay-level and cell-level visibility)
+    # ───────────────────────────────────────────────────────────────────
+    - conditions:
+        - entity: input_select.operation_mode
+          state: normal
+      actions:
+        - selectors:
+            - id: status-grid
+              tags: ["diagnostic"]  # Target cells with "diagnostic" tag
+          patches:
+            - visible: false  # Hide diagnostic cells
+
+    # ───────────────────────────────────────────────────────────────────
+    # Rule 7: Highlight critical systems during emergency
+    # (Shows how visibility works with other style properties)
+    # ───────────────────────────────────────────────────────────────────
+    - conditions:
+        - entity: input_boolean.system_emergency
+          state: 'on'
+      actions:
+        - selectors:
+            - id: status-grid
+              tags: ["critical"]  # Target critical cells
+          patches:
+            - style:
+                color: '#FF0000'  # Change color
+                border_width: 4   # Thicker border
+              visible: true       # Ensure visible
+
+###############################################################################
+# TESTING WORKFLOW
+###############################################################################
+# 1. Load this config in your Home Assistant dashboard
+# 2. Open Developer Tools > States
+# 3. Test each scenario:
+#    a. Set sensor.system_temperature to "unavailable" → temp-display hides
+#    b. Toggle input_boolean.system_emergency → alert overlays appear
+#    c. Set input_select.operation_mode to "maintenance" → maint panel appears
+#    d. Toggle input_boolean.subsystem_a_online → subsystem-a + line hide
+#    e. Toggle input_boolean.subsystem_b_online → subsystem-b + line hide
+#    f. Change operation_mode while emergency is on → see combined effects
+#
+# 4. Open browser console to see visibility debug logs:
+#    - "[Router] ⚫ Skipping route - source/target overlay hidden"
+#    - "[AdvancedRenderer] ⚫ Skipping hidden overlay"
+#    - "[VisibilityUtils] 👁️ Visibility changes"
+###############################################################################

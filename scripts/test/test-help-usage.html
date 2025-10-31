@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CB-LCARS Help/Usage Test</title>
+  <style>
+    body {
+      background: #000;
+      color: #66ccff;
+      font-family: 'Courier New', monospace;
+      padding: 20px;
+    }
+    h1 {
+      color: #ff9900;
+      border-bottom: 2px solid #ff9900;
+      padding-bottom: 10px;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #333;
+      background: #111;
+    }
+    .test-title {
+      color: #ff9900;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    button {
+      background: #ff9900;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #ffbb44;
+    }
+    .console-note {
+      color: #999;
+      font-style: italic;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>CB-LCARS Help/Usage Test</h1>
+
+  <div class="test-section">
+    <div class="test-title">1. Test help() - General Help</div>
+    <button onclick="testGeneralHelp()">Run msd.help()</button>
+    <div class="console-note">Check browser console for output</div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">2. Test help("perf") - Namespace Help</div>
+    <button onclick="testNamespaceHelp()">Run msd.help("perf")</button>
+    <div class="console-note">Check browser console for output</div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">3. Test usage() - General Usage</div>
+    <button onclick="testGeneralUsage()">Run msd.usage()</button>
+    <div class="console-note">Check browser console for output</div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">4. Test usage("routing") - Namespace Usage</div>
+    <button onclick="testNamespaceUsage()">Run msd.usage("routing")</button>
+    <div class="console-note">Check browser console for output</div>
+  </div>
+
+  <div class="test-section">
+    <div class="test-title">5. Test All Namespaces</div>
+    <button onclick="testAllNamespaces()">Test All help() Calls</button>
+    <div class="console-note">Check browser console for output</div>
+  </div>
+
+  <script type="module">
+    import './dist/cb-lcars.js';
+
+    // Wait for API to be available
+    setTimeout(() => {
+      const msd = window.cblcars?.debug?.msd;
+
+      if (!msd) {
+        document.body.innerHTML += '<div style="color: red; margin-top: 20px;">ERROR: API not available!</div>';
+        return;
+      }
+
+      // Make msd globally available for button handlers
+      window.msd = msd;
+
+      // Test functions
+      window.testGeneralHelp = () => {
+        console.clear();
+        console.log('=== TEST: msd.help() ===\n');
+        msd.help();
+      };
+
+      window.testNamespaceHelp = () => {
+        console.clear();
+        console.log('=== TEST: msd.help("perf") ===\n');
+        msd.help('perf');
+      };
+
+      window.testGeneralUsage = () => {
+        console.clear();
+        console.log('=== TEST: msd.usage() ===\n');
+        msd.usage();
+      };
+
+      window.testNamespaceUsage = () => {
+        console.clear();
+        console.log('=== TEST: msd.usage("routing") ===\n');
+        msd.usage('routing');
+      };
+
+      window.testAllNamespaces = () => {
+        console.clear();
+        console.log('=== TEST: All Namespace help() calls ===\n');
+        const namespaces = ['perf', 'routing', 'data', 'styles', 'charts', 'rules', 'animations', 'packs', 'visual', 'overlays', 'pipeline'];
+
+        namespaces.forEach(ns => {
+          console.log(`\n${'='.repeat(50)}`);
+          msd.help(ns);
+        });
+      };
+
+      document.body.innerHTML += '<div style="color: #00ff00; margin-top: 20px;">✓ API loaded successfully! Click buttons to test.</div>';
+
+      // Also test that the methods exist
+      console.log('%c✓ help() method exists:', 'color: #00ff00', typeof msd.help === 'function');
+      console.log('%c✓ usage() method exists:', 'color: #00ff00', typeof msd.usage === 'function');
+
+    }, 100);
+  </script>
+</body>
+</html>

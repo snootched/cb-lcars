@@ -33,13 +33,14 @@ That's it! The datasource subscribes to the entity and provides real-time update
 1. [Overview](#overview)
 2. [DataSource Types](#datasource-types)
 3. [Basic Configuration](#basic-configuration)
-4. [DataSource Metadata](#datasource-metadata)
-5. [Transformations](#transformations)
-6. [Aggregations](#aggregations)
-7. [Computed Sources](#computed-sources)
-8. [Using DataSources](#using-datasources)
-9. [Performance Tuning](#performance-tuning)
-10. [Troubleshooting](#troubleshooting)
+4. [Nested Attribute Paths](#nested-attribute-paths) ⭐ **NEW**
+5. [DataSource Metadata](#datasource-metadata)
+6. [Transformations](#transformations)
+7. [Aggregations](#aggregations)
+8. [Computed Sources](#computed-sources)
+9. [Using DataSources](#using-datasources)
+10. [Performance Tuning](#performance-tuning)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -365,6 +366,395 @@ graph TD
 
 ---
 
+## 🔍 Nested Attribute Paths ⭐ **NEW**
+
+**Access nested data within entity attributes using dot notation and array indices.** Many Home Assistant entities have complex attribute structures—weather forecasts, multi-zone systems, array data—and CB-LCARS can navigate deep into these structures to extract exactly the data you need.
+
+### What are Nested Attribute Paths?
+
+When you configure a datasource with the `attribute` property, you're telling it which entity attribute to read. But what if that attribute contains nested objects or arrays? That's where `attribute_path` comes in.
+
+```mermaid
+graph TD
+    Entity[Entity: weather.home<br/>state: sunny] --> Attrs[Attributes Object]
+
+    Attrs --> Temp[temperature: 72]
+    Attrs --> Forecast[forecast: Array]
+
+    Forecast --> F0[0: Object]
+    Forecast --> F1[1: Object]
+    Forecast --> F2[2: Object]
+
+    F0 --> F0_Temp[temperature: 68]
+    F0 --> F0_Cond[condition: partly-cloudy]
+    F0 --> F0_Time[datetime: 2025-10-31T12:00]
+
+    F1 --> F1_Temp[temperature: 75]
+    F1 --> F1_Cond[condition: sunny]
+
+    F2 --> F2_Temp[temperature: 71]
+    F2 --> F2_Cond[condition: rainy]
+
+    Path1[attribute_path:<br/>forecast.0.temperature] -.-> F0_Temp
+    Path2[attribute_path:<br/>forecast[1].condition] -.-> F1_Cond
+
+    style Entity fill:#4d94ff,stroke:#0066cc,color:#fff
+    style Forecast fill:#ff9933,stroke:#cc6600,color:#fff
+    style F0_Temp fill:#00cc66,stroke:#009944,color:#fff
+    style F1_Cond fill:#00cc66,stroke:#009944,color:#fff
+    style Path1 fill:#cc99ff,stroke:#9966cc,color:#fff
+    style Path2 fill:#cc99ff,stroke:#9966cc,color:#fff
+```
+
+### Basic Usage
+
+#### Accessing Nested Objects (Dot Notation)
+
+```yaml
+data_sources:
+  # Entity with nested attributes
+  climate_zone1:
+    type: entity
+    entity: climate.hvac_system
+    attribute_path: "zones.living_room.temperature"
+    # Navigates: entity.attributes.zones.living_room.temperature
+
+overlays:
+  - type: text
+    content: "Living Room: {climate_zone1.v}°F"
+```
+
+**Entity Structure:**
+```json
+{
+  "state": "heat",
+  "attributes": {
+    "zones": {
+      "living_room": {
+        "temperature": 72,
+        "humidity": 45
+      },
+      "bedroom": {
+        "temperature": 68,
+        "humidity": 50
+      }
+    }
+  }
+}
+```
+
+#### Accessing Array Elements
+
+CB-LCARS supports **two array index syntaxes**—use whichever you prefer:
+
+##### Syntax 1: Bracket Notation `[index]`
+
+```yaml
+data_sources:
+  tomorrow_temp:
+    type: entity
+    entity: weather.home
+    attribute_path: "forecast[1].temperature"
+    # Gets: entity.attributes.forecast[1].temperature
+```
+
+##### Syntax 2: Dot Notation `.index`
+
+```yaml
+data_sources:
+  tomorrow_temp:
+    type: entity
+    entity: weather.home
+    attribute_path: "forecast.1.temperature"
+    # Same as above—internally converted to [1]
+```
+
+**Both syntaxes are equivalent.** CB-LCARS automatically normalizes `forecast.1.temperature` → `forecast[1].temperature`.
+
+### Real-World Examples
+
+#### Example 1: Weather Forecast
+
+Extract tomorrow's forecast from a weather entity:
+
+```yaml
+data_sources:
+  # Today's forecast (index 0)
+  today_high:
+    type: entity
+    entity: weather.home
+    attribute_path: "forecast[0].temperature"
+
+  today_condition:
+    type: entity
+    entity: weather.home
+    attribute_path: "forecast[0].condition"
+
+  # Tomorrow's forecast (index 1)
+  tomorrow_high:
+    type: entity
+    entity: weather.home
+    attribute_path: "forecast[1].temperature"
+
+  tomorrow_condition:
+    type: entity
+    entity: weather.home
+    attribute_path: "forecast[1].condition"
+
+overlays:
+  - type: text
+    id: today
+    content: "Today: {today_condition.v}, High {today_high.v}°F"
+    position: [100, 100]
+
+  - type: text
+    id: tomorrow
+    content: "Tomorrow: {tomorrow_condition.v}, High {tomorrow_high.v}°F"
+    position: [100, 140]
+```
+
+**Entity Structure:**
+```json
+{
+  "state": "sunny",
+  "attributes": {
+    "forecast": [
+      {
+        "datetime": "2025-10-31T12:00:00",
+        "temperature": 75,
+        "condition": "sunny",
+        "precipitation_probability": 10
+      },
+      {
+        "datetime": "2025-11-01T12:00:00",
+        "temperature": 68,
+        "condition": "partly-cloudy",
+        "precipitation_probability": 30
+      }
+    ]
+  }
+}
+```
+
+#### Example 2: Multi-Zone HVAC System
+
+Access individual zones in a multi-zone climate system:
+
+```yaml
+data_sources:
+  living_room_temp:
+    type: entity
+    entity: climate.hvac_system
+    attribute_path: "zones.living_room.current_temperature"
+
+  living_room_target:
+    type: entity
+    entity: climate.hvac_system
+    attribute_path: "zones.living_room.target_temperature"
+
+  bedroom_temp:
+    type: entity
+    entity: climate.hvac_system
+    attribute_path: "zones.bedroom.current_temperature"
+
+overlays:
+  - type: text
+    content: "Living Room: {living_room_temp.v}°F → {living_room_target.v}°F"
+    position: [100, 100]
+
+  - type: text
+    content: "Bedroom: {bedroom_temp.v}°F"
+    position: [100, 140]
+```
+
+#### Example 3: Device with Multiple Sensors
+
+Extract specific sensor readings from a device with many sensors:
+
+```yaml
+data_sources:
+  # Multi-sensor device
+  air_quality_pm25:
+    type: entity
+    entity: sensor.air_quality_monitor
+    attribute_path: "sensors.particulate_matter.pm2_5"
+
+  air_quality_pm10:
+    type: entity
+    entity: sensor.air_quality_monitor
+    attribute_path: "sensors.particulate_matter.pm10"
+
+  air_quality_voc:
+    type: entity
+    entity: sensor.air_quality_monitor
+    attribute_path: "sensors.volatile_organic_compounds"
+
+overlays:
+  - type: text
+    content: "PM2.5: {air_quality_pm25.v} µg/m³"
+    position: [100, 100]
+
+  - type: text
+    content: "VOC: {air_quality_voc.v} ppb"
+    position: [100, 180]
+```
+
+#### Example 4: Deeply Nested Structures
+
+Navigate multiple levels deep:
+
+```yaml
+data_sources:
+  battery_voltage:
+    type: entity
+    entity: sensor.smart_device
+    attribute_path: "device_info.power.battery.voltage"
+    # Navigates 4 levels deep!
+
+  battery_health:
+    type: entity
+    entity: sensor.smart_device
+    attribute_path: "device_info.power.battery.health_percentage"
+
+overlays:
+  - type: text
+    content: "Battery: {battery_voltage.v}V ({battery_health.v}%)"
+    position: [100, 100]
+```
+
+**Entity Structure:**
+```json
+{
+  "state": "online",
+  "attributes": {
+    "device_info": {
+      "power": {
+        "battery": {
+          "voltage": 3.7,
+          "health_percentage": 95,
+          "cycles": 42
+        }
+      }
+    }
+  }
+}
+```
+
+### Path Syntax Reference
+
+| Pattern | Example | Accesses |
+|---------|---------|----------|
+| `property` | `"temperature"` | `attributes.temperature` |
+| `nested.property` | `"zones.living_room"` | `attributes.zones.living_room` |
+| `array[index]` | `"forecast[0]"` | `attributes.forecast[0]` |
+| `array.index` | `"forecast.1"` | `attributes.forecast[1]` (normalized to [1]) |
+| `nested.array[index].property` | `"data.readings[2].value"` | `attributes.data.readings[2].value` |
+| `deep.nested.path` | `"a.b.c.d.e"` | `attributes.a.b.c.d.e` |
+
+### Combining with Aggregations and Transformations
+
+Nested attribute paths work seamlessly with processing pipelines:
+
+```yaml
+data_sources:
+  # Extract forecast temperature and process it
+  tomorrow_temp:
+    type: entity
+    entity: weather.home
+    attribute_path: "forecast[1].temperature"
+
+    # Convert from Fahrenheit to Celsius
+    transformations:
+      - type: unit_conversion
+        from: "°F"
+        to: "°C"
+        key: "celsius"
+
+    # Track rolling average
+    aggregations:
+      - type: moving_average
+        window: "1h"
+        key: "avg"
+
+overlays:
+  - type: text
+    content: "Tomorrow: {tomorrow_temp.celsius:.1f}°C (avg: {tomorrow_temp.avg:.1f}°C)"
+```
+
+### Error Handling
+
+**What happens if the path doesn't exist?**
+
+CB-LCARS handles missing paths gracefully:
+
+1. **Path not found** → Datasource returns `null`
+2. **Array index out of bounds** → Returns `null`
+3. **Type mismatch** (accessing property on non-object) → Returns `null`
+
+**Example:**
+```yaml
+data_sources:
+  # If forecast only has 2 items, this returns null
+  day_3_temp:
+    type: entity
+    entity: weather.home
+    attribute_path: "forecast[3].temperature"  # Out of bounds
+```
+
+**Best practice:** Check for null in templates or use fallback values:
+
+```yaml
+overlays:
+  - type: text
+    # Will show "N/A" if path is invalid
+    content: "Temp: {day_3_temp.v if day_3_temp.v is not none else 'N/A'}"
+```
+
+### Troubleshooting
+
+**Problem: "AttributeError: 'NoneType' object has no attribute..."**
+
+**Cause:** The attribute path is invalid or the nested structure doesn't match expectations.
+
+**Solution:**
+1. Check the entity's attributes in Home Assistant Developer Tools → States
+2. Verify the structure matches your `attribute_path`
+3. Use brackets for array indices: `forecast[0]` not `forecast.0` (or vice versa)
+4. Check for typos in property names (case-sensitive!)
+
+**Problem: "Datasource returns null but attribute exists"**
+
+**Cause:** You may be using `attribute` instead of `attribute_path`, or the wrong syntax.
+
+**Solution:**
+```yaml
+# ❌ WRONG - attribute only gets top-level attribute
+data_sources:
+  temp:
+    type: entity
+    entity: weather.home
+    attribute: "forecast[0].temperature"  # This tries to find an attribute literally named "forecast[0].temperature"
+
+# ✅ CORRECT - attribute_path navigates nested structure
+data_sources:
+  temp:
+    type: entity
+    entity: weather.home
+    attribute_path: "forecast[0].temperature"  # This navigates into forecast array
+```
+
+**Problem: "Syntax with dots vs brackets?"**
+
+**Both work!** CB-LCARS normalizes `forecast.0.temperature` → `forecast[0].temperature` automatically. Use whichever is more readable to you:
+
+```yaml
+# These are equivalent:
+attribute_path: "forecast[0].temperature"   # Explicit bracket syntax
+attribute_path: "forecast.0.temperature"    # Dot syntax (auto-converted)
+```
+
+---
+
 ## � DataSource Metadata
 
 **Every datasource automatically captures and provides metadata from Home Assistant entities.** This metadata gives you access to entity attributes like units, friendly names, device information, and more.
@@ -558,30 +948,149 @@ overlays:
     # Output: "Net: 500.0W" ✅
 ```
 
-### Overriding Auto-Captured Metadata
+### Overriding Auto-Captured Metadata ⭐ **ENHANCED**
 
-You can also **override** auto-captured metadata from entities. This is useful when:
-- You want a custom display name
-- You need to change the unit representation
-- You're mixing multiple sensor types
+**User-specified metadata always takes precedence over auto-captured metadata.** CB-LCARS uses a merge strategy where your config overrides specific properties while preserving others from the entity.
+
+#### How Metadata Merging Works
+
+```mermaid
+graph LR
+    Entity[Entity Metadata<br/>Auto-Captured] --> Merge{Merge Strategy}
+    Config[Config Metadata<br/>User-Specified] --> Merge
+
+    Merge --> Priority[Priority Rules]
+
+    Priority --> Rule1[1. Config overrides<br/>matching properties]
+    Priority --> Rule2[2. Entity provides<br/>unspecified properties]
+    Priority --> Rule3[3. Result = merged<br/>metadata object]
+
+    Rule3 --> Result[Final Metadata<br/>Available to Overlays]
+
+    style Entity fill:#4d94ff,stroke:#0066cc,color:#fff
+    style Config fill:#ff9933,stroke:#cc6600,color:#fff
+    style Result fill:#00cc66,stroke:#009944,color:#fff
+    style Priority fill:#cc99ff,stroke:#9966cc,color:#fff
+```
+
+**Merge Priority:**
+1. **User config** (highest) - Properties specified in `metadata:` config
+2. **Entity attributes** (fallback) - Properties auto-extracted from Home Assistant
+3. **Default values** (if neither above) - System defaults (rare)
+
+#### When to Override Metadata
+
+Override auto-captured metadata when:
+- ✅ You want a **custom display name** (shorter, more descriptive)
+- ✅ You need to **change unit representation** (display kW instead of W)
+- ✅ You're **mixing sensor types** and need consistent units
+- ✅ Entity has **missing metadata** (some integrations don't provide full metadata)
+- ✅ You want **custom iconography** for your dashboard theme
 
 ```yaml
 data_sources:
   temperature:
     type: entity
     entity: sensor.outdoor_temperature
-    # Entity has: unit_of_measurement: "°C", friendly_name: "Outdoor Temperature"
+    # Entity has:
+    #   unit_of_measurement: "°C"
+    #   friendly_name: "Outdoor Temperature Sensor Model XYZ123"
+    #   device_class: "temperature"
+    #   icon: "mdi:thermometer"
 
     # Override with custom metadata
     metadata:
-      friendly_name: "Outside Temp"  # Shorter name
-      icon: "mdi:weather-sunny"      # Custom icon
-    # unit_of_measurement: "°C" is preserved from entity (not overridden)
+      friendly_name: "Outside Temp"  # ✅ Override: Shorter name
+      icon: "mdi:weather-sunny"      # ✅ Override: Custom icon
+      # unit_of_measurement: "°C" ← NOT overridden, preserved from entity
+      # device_class: "temperature" ← NOT overridden, preserved from entity
 
 overlays:
   - type: text
     content: "{temperature.metadata.friendly_name}: {temperature.v:.1f}{temperature.metadata.unit_of_measurement}"
-    # Output: "Outside Temp: 23.5°C" (custom name, auto unit)
+    # Output: "Outside Temp: 23.5°C"
+    # ↑ Uses custom name from config
+    #                              ↑ Uses unit from entity (not overridden)
+```
+
+#### Complete Override Example
+
+Override multiple properties while keeping others:
+
+```yaml
+data_sources:
+  power_sensor:
+    type: entity
+    entity: sensor.home_power_meter
+    # Entity auto-metadata:
+    #   unit_of_measurement: "W"
+    #   friendly_name: "Acme Power Meter Device 12345"
+    #   device_class: "power"
+    #   icon: "mdi:flash"
+    #   entity_id: "sensor.home_power_meter"
+    #   device_id: "abc123xyz"
+
+    # Partial override - specify only what you want to change
+    metadata:
+      friendly_name: "House Power"      # Override
+      icon: "mdi:home-lightning-bolt"   # Override
+      unit_of_measurement: "kW"         # Override
+      # device_class, entity_id, device_id preserved from entity
+
+    # Also convert values to match new unit
+    transformations:
+      - type: expression
+        expression: "v / 1000"  # Convert W to kW
+        key: "value"
+
+overlays:
+  - type: text
+    content: "{power_sensor.metadata.friendly_name}: {power_sensor.value:.2f} {power_sensor.metadata.unit_of_measurement}"
+    # Output: "House Power: 2.45 kW"
+    # ↑ custom name        ↑ transformed value  ↑ custom unit
+```
+
+#### Overriding for Computed Sources
+
+Computed sources **require manual metadata** since they don't have entities:
+
+```yaml
+data_sources:
+  # Entity sources with auto-metadata
+  solar:
+    type: entity
+    entity: sensor.solar_power
+    # Auto: unit_of_measurement: "W", friendly_name: "Solar Power", etc.
+
+  consumption:
+    type: entity
+    entity: sensor.home_power
+    # Auto: unit_of_measurement: "W", friendly_name: "Home Power", etc.
+
+  # Computed source - NO auto-metadata
+  net_power:
+    type: computed
+    expression: "solar - consumption"
+    dependencies:
+      solar: solar
+      consumption: consumption
+
+    # ✅ REQUIRED: Computed sources need metadata config
+    metadata:
+      unit_of_measurement: "W"
+      friendly_name: "Net Power Flow"
+      device_class: "power"
+      icon: "mdi:transmission-tower"
+      # Without this, net_power.metadata would be empty!
+
+overlays:
+  # Now metadata is available for all sources
+  - type: text
+    content: "{solar.metadata.friendly_name}: {solar.v:.0f}{solar.metadata.unit_of_measurement}"
+
+  - type: text
+    content: "{net_power.metadata.friendly_name}: {net_power.v:.0f}{net_power.metadata.unit_of_measurement}"
+    # Works because we provided metadata! ✅
 ```
 
 ### Metadata Configuration Reference
@@ -1301,13 +1810,19 @@ expression: "temp > 0 ? (other / temp) : 0"
 
 ### Configuration References
 - [Transformation Reference](datasource-transformations.md) - Complete transformation documentation
-- [Aggregation Reference](datasource-aggregations.md) - Complete aggregation documentation
+- [Aggregation Reference](datasource-aggregations.md) - Complete aggregation documentation (includes rolling statistics)
 - [Computed Sources Guide](computed-sources.md) - Detailed computed source examples
 
 ### Examples
 - [DataSource Examples](../examples/datasource-examples.md) - Comprehensive examples
+- [ApexCharts Integration](../examples/apexcharts-examples.md) - Chart examples with rolling statistics
+
+### New Features
+- ⭐ **Nested Attribute Paths** - Access complex entity structures with dot notation
+- ⭐ **Metadata Overrides** - Customize display properties and units
+- ⭐ **Rolling Statistics** - Multi-value aggregations for advanced charts
 
 ---
 
-**Last Updated:** October 26, 2025
+**Last Updated:** October 31, 2025
 **Version:** 2025.10.1-fuk.42-69

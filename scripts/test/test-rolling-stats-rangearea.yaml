@@ -1,0 +1,63 @@
+# Test Configuration: rangeArea Chart with Rolling Statistics
+# Tests rolling_statistics aggregation with min/max stats
+# Shows temperature range over time as a shaded area
+
+type: custom:cb-lcars-msd
+msd:
+  data_sources:
+    # Temperature sensor with rolling statistics
+    temperature:
+      entity: sensor.outdoor_temperature
+      windowSeconds: 3600  # 1 hour of data
+
+      aggregations:
+        - key: temp_range
+          type: rolling_statistics
+          window: "5m"  # Calculate stats over 5-minute rolling window
+          stats: [min, max]  # Min and max for range display
+          output_format: array  # ApexCharts needs array format
+
+  overlays:
+    # RangeArea chart showing temperature range
+    - id: temp_range_chart
+      type: apexchart
+      source: temperature.aggregations.temp_range
+      position: [50, 50]
+      size: [600, 300]
+      style:
+        chart_type: "rangeArea"
+        name: "Temperature Range (5min)"
+        time_window: "1h"
+        max_points: 200
+
+        # Styling for rangeArea
+        color: "var(--lcars-orange)"
+        fill_opacity: 0.2
+        stroke_width: 2
+
+        # Chart options
+        title: "Temperature Range Over Time"
+        title_align: "left"
+        show_grid: true
+        show_legend: true
+
+        # Axis options
+        y_axis_title: "Temperature (°C)"
+        x_axis_type: "datetime"
+
+        # Tooltip
+        tooltip_enabled: true
+        tooltip_shared: true
+
+  # Grid definition
+  grid:
+    viewBox: "0 0 800 600"
+    rows: 1
+    columns: 1
+    cells:
+      - id: chart_cell
+        row: 0
+        column: 0
+        style:
+          background: "var(--lcars-bg-dark)"
+          border: "2px solid var(--lcars-orange)"
