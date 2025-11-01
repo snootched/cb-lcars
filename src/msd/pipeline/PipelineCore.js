@@ -13,6 +13,7 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { StyleResolverService } from '../styles/StyleResolverService.js';
 import { ValidationService } from '../validation/ValidationService.js';
 import { registerAllSchemas } from '../validation/schemas/index.js';
+import { applyBaseSvgFilters } from '../utils/BaseSvgFilters.js';
 
 /**
  * Initialize the MSD processing/rendering pipeline.
@@ -412,6 +413,39 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     overlayCount: initialRenderResult?.overlayCount || 0,
     errors: initialRenderResult?.errors || 0
   });
+
+  // ✅ NEW: Apply base SVG filters after initial render
+  if (cardModel.baseSvg?.filters) {
+    cblcarsLog.debug('[PipelineCore] 🎨 Applying initial base SVG filters:', cardModel.baseSvg.filters);
+    try {
+      // Target the base content group (__ prefix = internal/reserved ID, not an anchor)
+      const baseContentGroup = mountEl?.querySelector('#__msd-base-content');
+
+      cblcarsLog.debug('[PipelineCore] 🔍 Filter application details:', {
+        hasMountEl: !!mountEl,
+        mountElTag: mountEl?.tagName,
+        baseContentGroup: !!baseContentGroup,
+        baseContentId: baseContentGroup?.id,
+        currentFilter: baseContentGroup?.style?.filter,
+        filtersToApply: cardModel.baseSvg.filters
+      });
+
+      if (baseContentGroup) {
+        applyBaseSvgFilters(baseContentGroup, cardModel.baseSvg.filters);
+
+        // Verify filters were applied
+        cblcarsLog.debug('[PipelineCore] ✅ Base SVG filters applied to #__msd-base-content:', {
+          appliedFilter: baseContentGroup.style.filter,
+          elementId: baseContentGroup.id,
+          elementTag: baseContentGroup.tagName
+        });
+      } else {
+        cblcarsLog.warn('[PipelineCore] ⚠️ #__msd-base-content group not found, cannot apply filters (overlays will not be affected)');
+      }
+    } catch (filterError) {
+      cblcarsLog.error('[PipelineCore] ❌ Failed to apply base SVG filters:', filterError);
+    }
+  }
 
   // PHASE 8: Create pipeline API and finalize
   cblcarsLog.debug('[PipelineCore] 🔌 Phase 8: Creating pipeline API');

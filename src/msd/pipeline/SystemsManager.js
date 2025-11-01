@@ -246,6 +246,12 @@ export class SystemsManager {
         // Evaluate dirty rules
         const ruleResults = this.rulesEngine.evaluateDirty(this._hass);
 
+        cblcarsLog.debug(`[SystemsManager] 🔍 DIRTY RULES RESULT:`, {
+          hasBaseSvgUpdate: !!ruleResults.baseSvgUpdate,
+          baseSvgUpdate: ruleResults.baseSvgUpdate,
+          patchCount: ruleResults.overlayPatches?.length || 0
+        });
+
         if (ruleResults.overlayPatches && ruleResults.overlayPatches.length > 0) {
           cblcarsLog.debug(`[SystemsManager] 🎨 Rules produced patch(es)`);
 
@@ -257,6 +263,12 @@ export class SystemsManager {
             cblcarsLog.debug(`[SystemsManager] 🔄 Triggering SELECTIVE RE-RENDER for ${updateResults.failedOverlays.length} overlay(s)`);
             this._scheduleSelectiveReRender(updateResults.failedOverlays);
           }
+        }
+
+        // ✅ NEW: Apply base_svg filter updates from rules
+        if (ruleResults.baseSvgUpdate) {
+          cblcarsLog.debug(`[SystemsManager] � Rules produced base_svg update`);
+          this._applyBaseSvgUpdate(ruleResults.baseSvgUpdate);
         }
       });
 
@@ -495,7 +507,7 @@ export class SystemsManager {
           // Evaluate rules to check if patches need to be applied
           const ruleResults = this.rulesEngine.evaluateDirty(this._hass);
 
-          cblcarsLog.info('[SystemsManager] 🔍 RULE EVALUATION RESULT:', {
+          cblcarsLog.debug('[SystemsManager] 🔍 RULE EVALUATION RESULT:', {
             patchCount: ruleResults.overlayPatches?.length || 0,
             patches: ruleResults.overlayPatches?.map(p => ({
               overlayId: p.id,
@@ -519,6 +531,12 @@ export class SystemsManager {
             }
           } else {
             cblcarsLog.debug('[SystemsManager] ℹ️ No rule patches needed');
+          }
+
+          // ✅ NEW: Apply base_svg filter updates from rules
+          if (ruleResults.baseSvgUpdate) {
+            cblcarsLog.debug(`[SystemsManager] � Rules produced base_svg update`);
+            this._applyBaseSvgUpdate(ruleResults.baseSvgUpdate);
           }
         }
       });
@@ -1225,6 +1243,86 @@ export class SystemsManager {
     }
 
     return { successfulOverlays, failedOverlays, allSucceeded };
+  }
+
+  /**
+   * Apply base_svg filter update from rule
+   * @param {Object} baseSvgConfig - base_svg configuration from rule.apply.base_svg
+   * @private
+   */
+  async _applyBaseSvgUpdate(baseSvgConfig) {
+    if (!baseSvgConfig) return;
+
+    try {
+      // Find the base SVG content group (not the root SVG element)
+      const mountEl = this.renderer?.mountEl;
+
+      cblcarsLog.debug('[SystemsManager] 🔍 Searching for base content group:', {
+        hasMountEl: !!mountEl,
+        mountElTag: mountEl?.tagName,
+        svgExists: !!mountEl?.querySelector('svg'),
+        allSvgGroups: Array.from(mountEl?.querySelectorAll('svg g') || []).map(g => g.id).filter(id => id)
+      });
+
+      const baseSvgElement = mountEl?.querySelector('#__msd-base-content');
+
+      if (!baseSvgElement) {
+        cblcarsLog.warn('[SystemsManager] Cannot update base SVG filters - base content group not found');
+        cblcarsLog.debug('[SystemsManager] Available groups in SVG:',
+          Array.from(mountEl?.querySelectorAll('svg g') || []).map(g => ({
+            id: g.id,
+            tagName: g.tagName
+          }))
+        );
+        return;
+      }
+
+      cblcarsLog.debug('[SystemsManager] ✅ Found base content group:', {
+        id: baseSvgElement.id,
+        tagName: baseSvgElement.tagName
+      });
+
+      // Resolve filters (preset or explicit)
+      let filters = null;
+
+      if (baseSvgConfig.filter_preset) {
+        const preset = this.themeManager?.getFilterPreset(baseSvgConfig.filter_preset);
+        if (preset) {
+          filters = { ...preset };
+          cblcarsLog.debug(`[SystemsManager] Resolved filter preset '${baseSvgConfig.filter_preset}':`, filters);
+        } else {
+          cblcarsLog.warn(`[SystemsManager] Unknown filter preset: ${baseSvgConfig.filter_preset}`);
+          return;
+        }
+      }
+
+      // Merge explicit filters (they override preset values)
+      if (baseSvgConfig.filters) {
+        filters = filters ? { ...filters, ...baseSvgConfig.filters } : { ...baseSvgConfig.filters };
+      }
+
+      // Check if this is a clear/remove operation (preset: "none" or empty filters object)
+      const isClearOperation = baseSvgConfig.filter_preset === 'none' ||
+                               (filters && Object.keys(filters).length === 0);
+
+      const transition = baseSvgConfig.transition || 1000; // Default 1s transition
+
+      if (isClearOperation || !filters) {
+        // Clear filters (remove all filtering)
+        const { clearBaseSvgFilters } = await import('../utils/BaseSvgFilters.js');
+        clearBaseSvgFilters(baseSvgElement, transition);
+        cblcarsLog.debug(`[SystemsManager] ✅ Cleared base SVG filters`);
+        return;
+      }
+
+      // Apply the filters with transition
+      const { transitionBaseSvgFilters } = await import('../utils/BaseSvgFilters.js');
+      await transitionBaseSvgFilters(baseSvgElement, filters, transition);
+
+      cblcarsLog.debug(`[SystemsManager] ✅ Applied base SVG filters:`, filters);
+    } catch (error) {
+      cblcarsLog.error('[SystemsManager] Failed to apply base SVG filter update:', error);
+    }
   }
 
   /**

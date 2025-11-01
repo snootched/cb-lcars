@@ -32,6 +32,59 @@ export function validateMerged(config) {
   return issues;
 }
 
+// Helper function to validate filter properties
+function validateFilterProperties(filters, issues, context) {
+  const VALID_FILTERS = {
+    opacity: { type: 'number', min: 0, max: 1 },
+    blur: { type: 'string', pattern: /^\d+(\.\d+)?(px|rem|em)$/ },
+    brightness: { type: 'number', min: 0, max: 2 },
+    contrast: { type: 'number', min: 0, max: 2 },
+    grayscale: { type: 'number', min: 0, max: 1 },
+    sepia: { type: 'number', min: 0, max: 1 },
+    hue_rotate: { type: 'number', min: -360, max: 360 },
+    saturate: { type: 'number', min: 0, max: 2 },
+    invert: { type: 'number', min: 0, max: 1 }
+  };
+
+  Object.entries(filters).forEach(([key, value]) => {
+    const spec = VALID_FILTERS[key];
+
+    if (!spec) {
+      issues.warnings.push({
+        code: `${context}.${key}.unknown`,
+        message: `Unknown filter property '${key}' - will be ignored`
+      });
+      return;
+    }
+
+    if (spec.type === 'number') {
+      if (typeof value !== 'number') {
+        issues.errors.push({
+          code: `${context}.${key}.invalid_type`,
+          message: `Filter '${key}' must be a number, got ${typeof value}`
+        });
+      } else if (value < spec.min || value > spec.max) {
+        issues.errors.push({
+          code: `${context}.${key}.out_of_range`,
+          message: `Filter '${key}' must be between ${spec.min} and ${spec.max}, got ${value}`
+        });
+      }
+    } else if (spec.type === 'string') {
+      if (typeof value !== 'string') {
+        issues.errors.push({
+          code: `${context}.${key}.invalid_type`,
+          message: `Filter '${key}' must be a string, got ${typeof value}`
+        });
+      } else if (spec.pattern && !spec.pattern.test(value)) {
+        issues.errors.push({
+          code: `${context}.${key}.invalid_format`,
+          message: `Filter '${key}' has invalid format '${value}' (expected format like "2px", "1.5rem")`
+        });
+      }
+    }
+  });
+}
+
 function validateStructure(config, issues) {
   // Version validation
   if (!config.version) {
@@ -57,7 +110,7 @@ function validateStructure(config, issues) {
         });
       }
     } else if (typeof config.base_svg === 'object') {
-      // Object format: { source: "builtin:template-name" }
+      // Object format: { source: "builtin:template-name", filters?: {...}, filter_preset?: "..." }
       if (!config.base_svg.source) {
         issues.errors.push({
           code: 'base_svg.source.missing',
@@ -68,6 +121,56 @@ function validateStructure(config, issues) {
           code: 'base_svg.source.invalid',
           message: 'base_svg.source must be a string'
         });
+      } else if (config.base_svg.source !== 'none' &&
+                 !config.base_svg.source.startsWith('builtin:') &&
+                 !config.base_svg.source.startsWith('/local/')) {
+        issues.warnings.push({
+          code: 'base_svg.source.format.unknown',
+          message: 'base_svg.source should be "none", start with "builtin:" or "/local/"'
+        });
+      }
+
+      // Validate filters property
+      if (config.base_svg.filters !== undefined) {
+        if (typeof config.base_svg.filters !== 'object' || Array.isArray(config.base_svg.filters)) {
+          issues.errors.push({
+            code: 'base_svg.filters.invalid',
+            message: 'base_svg.filters must be an object with filter properties'
+          });
+        } else {
+          validateFilterProperties(config.base_svg.filters, issues, 'base_svg.filters');
+        }
+      }
+
+      // Validate filter_preset property
+      if (config.base_svg.filter_preset !== undefined) {
+        if (typeof config.base_svg.filter_preset !== 'string') {
+          issues.errors.push({
+            code: 'base_svg.filter_preset.invalid',
+            message: 'base_svg.filter_preset must be a string preset name'
+          });
+        }
+        // Note: Actual preset existence check happens at runtime in CardModel
+      }
+
+      // If source is "none", require explicit view_box
+      if (config.base_svg.source === 'none') {
+        console.log('[Validation DEBUG] base_svg.source is "none", checking view_box:', {
+          has_view_box: !!config.view_box,
+          view_box_value: config.view_box,
+          is_array: Array.isArray(config.view_box),
+          length: config.view_box?.length,
+          config_keys: Object.keys(config)
+        });
+
+        if (!config.view_box || !Array.isArray(config.view_box) || config.view_box.length !== 4) {
+          issues.errors.push({
+            code: 'base_svg.none.viewbox_required',
+            message: 'When base_svg.source is "none", view_box must be explicitly specified as [minX, minY, width, height]'
+          });
+        } else {
+          console.log('[Validation DEBUG] view_box validation PASSED for "none" source');
+        }
       }
     } else {
       issues.errors.push({
@@ -93,6 +196,11 @@ function validateAnchors(config, issues) {
   if (!config.anchors) return;
 
   Object.entries(config.anchors).forEach(([anchorId, coordinates]) => {
+    // Skip internal/reserved IDs (shouldn't be in config, but safeguard)
+    if (anchorId.startsWith('__') || anchorId.startsWith('msd-internal-')) {
+      return;
+    }
+
     if (!Array.isArray(coordinates) || coordinates.length !== 2) {
       issues.errors.push({
         code: 'anchor.coordinates.invalid',
@@ -500,10 +608,10 @@ function validateActions(config, issues) {
     });
   }
 
-  // Validate rules-based actions (Tier 3)
+  // Validate rules-based base_svg updates
   if (config.rules) {
     config.rules.forEach(rule => {
-      validateRuleActions(rule, issues);
+      validateRuleBaseSvg(rule, issues);
     });
   }
 }
@@ -524,26 +632,57 @@ function validateOverlayActions(overlay, issues) {
   }
 }
 
-function validateRuleActions(rule, issues) {
-  if (!rule.apply?.actions) return;
+function validateRuleBaseSvg(rule, issues) {
+  if (!rule.apply?.base_svg) return;
 
-  rule.apply.actions.forEach((action, index) => {
-    // Validate action targeting
-    if (!action.target) {
+  const baseSvg = rule.apply.base_svg;
+  const hasPreset = baseSvg.filter_preset !== undefined;
+  const hasFilters = baseSvg.filters !== undefined;
+
+  // Must have either preset or explicit filters
+  if (!hasPreset && !hasFilters) {
+    issues.errors.push({
+      code: 'rule.base_svg.filter.missing',
+      rule_id: rule.id,
+      message: `Rule '${rule.id}' base_svg must specify either 'filter_preset' or 'filters'`
+    });
+  }
+
+  // Validate transition (if provided)
+  if (baseSvg.transition !== undefined) {
+    if (typeof baseSvg.transition !== 'number' || baseSvg.transition < 0) {
       issues.errors.push({
-        code: 'rule.action.target.missing',
+        code: 'rule.base_svg.transition.invalid',
         rule_id: rule.id,
-        message: `Rule '${rule.id}' action ${index} missing required target field`
+        message: `Rule '${rule.id}' base_svg transition must be a non-negative number`
       });
     }
+  }
 
-    // Validate action definitions
-    ['tap_action', 'hold_action', 'double_tap_action'].forEach(actionType => {
-      if (action[actionType]) {
-        validateActionDefinition(action[actionType], issues, `Rule '${rule.id}' action ${index} ${actionType}`);
+  // Validate filter properties (if using explicit filters)
+  if (hasFilters && typeof baseSvg.filters === 'object') {
+    const validFilterProps = ['opacity', 'blur', 'brightness', 'contrast', 'grayscale', 'sepia', 'hue_rotate', 'saturate', 'invert'];
+    const filterKeys = Object.keys(baseSvg.filters);
+
+    filterKeys.forEach(key => {
+      if (!validFilterProps.includes(key)) {
+        issues.warnings.push({
+          code: 'rule.base_svg.filter.unknown_property',
+          rule_id: rule.id,
+          message: `Rule '${rule.id}' base_svg uses unknown filter property '${key}'`
+        });
       }
     });
-  });
+  }
+
+  // Validate filter_preset is a string (if provided)
+  if (hasPreset && typeof baseSvg.filter_preset !== 'string') {
+    issues.errors.push({
+      code: 'rule.base_svg.preset.invalid',
+      rule_id: rule.id,
+      message: `Rule '${rule.id}' base_svg filter_preset must be a string`
+    });
+  }
 }
 
 function validateEnhancedActions(actions, issues, context) {

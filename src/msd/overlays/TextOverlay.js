@@ -964,7 +964,7 @@ ${renderResult.markup}
       // Check for geometry changes that require full re-render
       const geometryChanged = this._detectGeometryChanges(oldStyle, newStyle, overlay);
       if (geometryChanged) {
-        cblcarsLog.warn(`[TextOverlay] ⚠️ Geometry changes detected - returning false to trigger selective re-render: ${overlay.id}`);
+        cblcarsLog.debug(`[TextOverlay] ⚠️ Geometry changes detected - returning false to trigger selective re-render: ${overlay.id}`);
         return false;
       }
 

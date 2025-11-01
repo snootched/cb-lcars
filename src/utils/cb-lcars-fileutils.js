@@ -47,12 +47,14 @@ export async function readYamlFile(url) {
 
 /**
  * Ensure the SVG cache exists on the window object.
+ * Stores built-in SVG templates under window.cblcars.assets to avoid
+ * namespace collision with MSD runtime initialization.
  */
 function ensureSVGCache() {
     window.cblcars = window.cblcars || {};
-    window.cblcars.msd = window.cblcars.msd || {};
-    window.cblcars.msd.svg_templates = window.cblcars.msd.svg_templates || {};
-    return window.cblcars.msd.svg_templates;
+    window.cblcars.assets = window.cblcars.assets || {};
+    window.cblcars.assets.svg_templates = window.cblcars.assets.svg_templates || {};
+    return window.cblcars.assets.svg_templates;
 }
 
 /**

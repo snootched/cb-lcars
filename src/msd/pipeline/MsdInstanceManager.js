@@ -680,57 +680,63 @@ export class MsdInstanceManager {
       });
     } else {
       const source = msdConfig.base_svg.source;
-      // Try to validate the SVG source
-      try {
-        if (typeof window !== 'undefined' && window.cblcars?.getSvgContent) {
-          const svgContent = window.cblcars.getSvgContent(source);
-          if (!svgContent) {
-            const isBuiltin = source.startsWith('builtin:');
-            const isUrl = source.startsWith('http');
-            const isLocal = source.startsWith('/') || source.startsWith('./');
 
-            let errorMsg = 'SVG not found or failed to load';
-            let suggestion = 'Check your source path';
+      // Handle special "none" value for overlay-only cards
+      if (source === 'none') {
+        baseSvg = 'none (overlay-only)';
+      } else {
+        // Try to validate the SVG source
+        try {
+          if (typeof window !== 'undefined' && window.cblcars?.getSvgContent) {
+            const svgContent = window.cblcars.getSvgContent(source);
+            if (!svgContent) {
+              const isBuiltin = source.startsWith('builtin:');
+              const isUrl = source.startsWith('http');
+              const isLocal = source.startsWith('/') || source.startsWith('./');
 
-            if (isBuiltin) {
-              const svgName = source.replace('builtin:', '');
-              errorMsg = `Builtin SVG "${svgName}" not found`;
+              let errorMsg = 'SVG not found or failed to load';
+              let suggestion = 'Check your source path';
 
-              // Get actual available SVG templates
-              const availableTemplates = MsdInstanceManager._getAvailableSvgTemplates();
-              suggestion = availableTemplates.length > 0
-                ? `Available: ${availableTemplates.join(', ')}`
-                : 'Available: ncc-1701-a-blue, ncc-1701-d, nx-01';
-            } else if (isUrl) {
-              errorMsg = 'Failed to load SVG from URL';
-              suggestion = 'Check URL accessibility and content type';
-            } else if (isLocal) {
-              errorMsg = 'Failed to load local SVG file';
-              suggestion = 'Check file exists in /local/ directory';
+              if (isBuiltin) {
+                const svgName = source.replace('builtin:', '');
+                errorMsg = `Builtin SVG "${svgName}" not found`;
+
+                // Get actual available SVG templates
+                const availableTemplates = MsdInstanceManager._getAvailableSvgTemplates();
+                suggestion = availableTemplates.length > 0
+                  ? `Available: ${availableTemplates.join(', ')}`
+                  : 'Available: ncc-1701-a-blue, ncc-1701-d, nx-01';
+              } else if (isUrl) {
+                errorMsg = 'Failed to load SVG from URL';
+                suggestion = 'Check URL accessibility and content type';
+              } else if (isLocal) {
+                errorMsg = 'Failed to load local SVG file';
+                suggestion = 'Check file exists in /local/ directory';
+              }
+
+              configIssues.push({
+                type: 'error',
+                title: 'SVG Loading Failed',
+                message: errorMsg,
+                suggestion: suggestion,
+                source: source
+              });
+              baseSvg = `<span style="color: #ff6666;">${source} (failed)</span>`;
+            } else {
+              baseSvg = source.startsWith('builtin:') ? source.replace('builtin:', '') : source;
             }
-
-            configIssues.push({
-              type: 'error',
-              title: 'SVG Loading Failed',
-              message: errorMsg,
-              suggestion: suggestion,
-              source: source
-            });
-            baseSvg = `<span style="color: #ff6666;">${source} (failed)</span>`;
           } else {
             baseSvg = source.startsWith('builtin:') ? source.replace('builtin:', '') : source;
           }
-        } else {
-          baseSvg = source.startsWith('builtin:') ? source.replace('builtin:', '') : source;
+        } catch (error) {
+          configIssues.push({
+            type: 'error',
+            title: 'SVG Error',
+            message: error.message || error.toString(),
+            source: source
+          });
+          baseSvg = `<span style="color: #ff6666;">${source} (error)</span>`;
         }
-      } catch (error) {
-        configIssues.push({
-          type: 'error',
-          title: 'SVG Error',
-          message: error.message || error.toString(),
-          source: source
-        });
-        baseSvg = `<span style="color: #ff6666;">${source} (error)</span>`;
       }
     }
 
@@ -1078,8 +1084,8 @@ export class MsdInstanceManager {
    */
   static _getAvailableSvgTemplates() {
     try {
-      // Access the SVG templates from window.cblcars.msd.svg_templates
-      const svgTemplates = window?.cblcars?.msd?.svg_templates;
+      // Access the SVG templates from window.cblcars.assets.svg_templates
+      const svgTemplates = window?.cblcars?.assets?.svg_templates;
       if (svgTemplates && typeof svgTemplates === 'object') {
         return Object.keys(svgTemplates).sort();
       }

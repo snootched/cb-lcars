@@ -12,18 +12,46 @@ export async function buildCardModel(mergedConfig) {
 
     // Handle base_svg in multiple formats:
     // Format 1: base_svg: "builtin:template-name"
-    // Format 2: base_svg: { source: "builtin:template-name" }
+    // Format 2: base_svg: { source: "builtin:template-name", filters?: {...}, filter_preset?: "..." }
     let baseSvgSource = null;
+    let baseSvgFilters = null;
+    let baseSvgFilterPreset = null;
+
     if (typeof mergedConfig.base_svg === 'string') {
       baseSvgSource = mergedConfig.base_svg;
     } else if (mergedConfig.base_svg && typeof mergedConfig.base_svg === 'object' && mergedConfig.base_svg.source) {
       baseSvgSource = mergedConfig.base_svg.source;
+      baseSvgFilters = mergedConfig.base_svg.filters;
+      baseSvgFilterPreset = mergedConfig.base_svg.filter_preset;
     }
 
     cblcarsLog.trace('[CardModel] Resolved base_svg source:', baseSvgSource);
 
-    // Try to extract actual SVG viewBox from base_svg
-    if (baseSvgSource) {
+    // Resolve filter preset if specified (merge with explicit filters)
+    let resolvedFilters = null;
+    if (baseSvgFilterPreset || baseSvgFilters) {
+      // Get ThemeManager instance to resolve preset
+      const themeManager = window.cblcars?.theme;
+
+      if (baseSvgFilterPreset && themeManager) {
+        const presetFilters = themeManager.getFilterPreset(baseSvgFilterPreset);
+        if (presetFilters) {
+          resolvedFilters = { ...presetFilters };
+          cblcarsLog.debug('[CardModel] Resolved filter preset:', baseSvgFilterPreset, presetFilters);
+        } else {
+          cblcarsLog.warn('[CardModel] Unknown filter preset:', baseSvgFilterPreset);
+        }
+      }
+
+      // Merge explicit filters (they override preset values)
+      if (baseSvgFilters) {
+        resolvedFilters = resolvedFilters ? { ...resolvedFilters, ...baseSvgFilters } : { ...baseSvgFilters };
+        cblcarsLog.debug('[CardModel] Applied explicit filters:', resolvedFilters);
+      }
+    }
+
+    // Try to extract actual SVG viewBox from base_svg (unless source is "none")
+    if (baseSvgSource && baseSvgSource !== 'none') {
       cblcarsLog.debug('[CardModel] Using SVG source:', baseSvgSource);
       const { getSvgContent, getSvgViewBox } = await import('../../utils/cb-lcars-anchor-helpers.js');
       const svgContent = getSvgContent(baseSvgSource);
@@ -38,11 +66,25 @@ export async function buildCardModel(mergedConfig) {
       } else {
         cblcarsLog.warn('[CardModel] Could not get SVG content for:', baseSvgSource);
       }
+    } else if (baseSvgSource === 'none') {
+      // When source is "none", use explicit view_box from config
+      if (mergedConfig.view_box && Array.isArray(mergedConfig.view_box)) {
+        viewBox = mergedConfig.view_box;
+        cblcarsLog.debug('[CardModel] Using explicit viewBox for base_svg="none":', viewBox);
+      } else {
+        cblcarsLog.warn('[CardModel] base_svg is "none" but no explicit view_box provided, using fallback');
+      }
     } else {
       cblcarsLog.warn('[CardModel] No base_svg specified in merged config');
     }
 
     cblcarsLog.debug('[CardModel] Final viewBox:', viewBox);
+
+    // Build baseSvg object for model
+    const baseSvg = {
+      source: baseSvgSource,
+      filters: resolvedFilters
+    };
 
     const anchors = {}; // merged + normalized numeric
 
@@ -75,6 +117,6 @@ export async function buildCardModel(mergedConfig) {
       return baseOverlay;
     });
 
-    return { viewBox, anchors, overlaysBase, __raw: mergedConfig };
+    return { viewBox, baseSvg, anchors, overlaysBase, __raw: mergedConfig };
   });
 }

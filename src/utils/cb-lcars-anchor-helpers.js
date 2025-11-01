@@ -7,6 +7,8 @@ export function findSvgAnchors(svgContent) {
   let m;
   while ((m = circleRegex.exec(svgContent)) !== null) {
     const id = m[1];
+    // Skip internal/reserved IDs (__ prefix or msd-internal- prefix)
+    if (id.startsWith('__') || id.startsWith('msd-internal-')) continue;
     const tag = m[0];
     const cxMatch = tag.match(/\scx="([^"]+)"/);
     const cyMatch = tag.match(/\scy="([^"]+)"/);
@@ -19,6 +21,8 @@ export function findSvgAnchors(svgContent) {
   const textRegex = /<text[^>]*id="([^"]+)"[^>]*>/g;
   while ((m = textRegex.exec(svgContent)) !== null) {
     const id = m[1];
+    // Skip internal/reserved IDs (__ prefix or msd-internal- prefix)
+    if (id.startsWith('__') || id.startsWith('msd-internal-')) continue;
     // Extract x and y attributes from the tag
     const tag = m[0];
     const xMatch = tag.match(/\sx="([^"]+)"/);
@@ -30,7 +34,10 @@ export function findSvgAnchors(svgContent) {
   // <g id="anchor">
   const groupRegex = /<g[^>]*id="([^"]+)"[^>]*>/g;
   while ((m = groupRegex.exec(svgContent)) !== null) {
-    anchors[m[1]] = null; // Optionally: calculate centroid if needed
+    const id = m[1];
+    // Skip internal/reserved IDs (__ prefix or msd-internal- prefix)
+    if (id.startsWith('__') || id.startsWith('msd-internal-')) continue;
+    anchors[id] = null; // Optionally: calculate centroid if needed
   }
   return anchors;
 }
@@ -42,7 +49,7 @@ export function getSvgContent(base_svg) {
   } else if (base_svg && base_svg.startsWith('/local/')) {
     svgKey = base_svg.split('/').pop().replace('.svg','');
   }
-  return svgKey && window.cblcars?.msd?.svg_templates?.[svgKey];
+  return svgKey && window.cblcars?.assets?.svg_templates?.[svgKey];
 }
 
 export function getSvgViewBox(svgContent) {

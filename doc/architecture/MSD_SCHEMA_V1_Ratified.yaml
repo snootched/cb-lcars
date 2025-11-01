@@ -18,6 +18,24 @@ msd:
                                       #   builtin:<key>  (look up packaged SVG)
                                       #   /local/...svg  (from HA www directory)
                                       #   url:https://... (optional future extension)
+                                      #   "none" - No base SVG (overlay-only mode, requires explicit view_box)
+
+    # (Optional) CSS filter effects - dims/blurs base SVG to emphasize overlays
+    # Filters apply ONLY to base SVG content, not to overlays (filter isolation via __msd-base-content wrapper)
+    filter_preset: dimmed             # Built-in: dimmed, subtle, backdrop, faded, red-alert, monochrome
+                                      # Themes can override presets via theme.msd.filter_presets
+    filters:
+      opacity: 0.5                    # 0.0-1.0
+      blur: "3px"                     # CSS length (px, rem, etc.)
+      brightness: 0.8                 # 0.0+
+      contrast: 0.9                   # 0.0+
+      grayscale: 0.3                  # 0.0-1.0
+      sepia: 0.1                      # 0.0-1.0
+      hue_rotate: 45                  # degrees
+      saturate: 0.7                   # 0.0+
+      invert: 0.2                     # 0.0-1.0
+    # Note: Explicit filters override preset values
+
     # (Optional) post-load transformations (future placeholders):
     # remove_ids: [idA, idB]          # Strip elements before anchor extraction (NOT IMPLEMENTED YET)
     # id_prefix: lcars_               # Prefix all extracted ids (NOT IMPLEMENTED YET)
@@ -29,6 +47,11 @@ msd:
   # User-defined / overriding anchors. Keys = anchor IDs; values = [x,y]
   # Coordinates may be numbers or percentage strings ("50%").
   # Duplicate IDs from SVG override the extracted coordinates.
+  #
+  # RESERVED IDs: Anchor IDs starting with "__" (double underscore) or "msd-internal-"
+  # are reserved for internal MSD use and will be excluded from anchor extraction.
+  # Examples: __msd-base-content, msd-internal-temp-group
+  # User anchors should avoid these prefixes.
   anchors:
     cpu: [120, 80]
     mem: ["60%", "40%"]
@@ -347,6 +370,9 @@ msd:
         overlays:
           - id: panel_title
             style: { color: var(--lcars-cyan) }
+      # NOTE: time_between is reactive - only evaluated when referenced entities change.
+      # If you need pure time-based triggers, add sensor.time to conditions:
+      # - entity: sensor.time  # Updates every minute, triggers rule evaluation
 
     - id: cpu_temp_mapped
       when:

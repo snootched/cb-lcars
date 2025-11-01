@@ -149,6 +149,11 @@ rules:
           style:                  # Style overrides
             # ... style properties
 
+      base_svg:                   # Base SVG filter updates (NEW)
+        filters: object           # Filter properties
+        filter_preset: string     # Or use named preset
+        transition: number        # Transition duration (ms)
+
       profiles:                   # Profile activations
         - profile_name
 
@@ -158,6 +163,121 @@ rules:
     stop: boolean                 # Optional: Stop evaluation after this rule
     priority: number              # Optional: Rule priority (higher = first)
     enabled: boolean              # Optional: Enable/disable rule
+```
+
+---
+
+## Base SVG Filters
+
+Rules can dynamically update the base SVG filters based on conditions. Filter configuration is defined in `apply.base_svg`.
+
+### Configuration
+
+**Properties:**
+- `filters`: Object with filter properties (optional)
+- `filter_preset`: Named preset from theme (optional)
+- `transition`: Transition duration in milliseconds (default: 1000)
+
+**Filter Properties:**
+- `opacity`: 0.0 to 1.0
+- `brightness`: 0.0 to 2.0+ (1.0 = normal)
+- `contrast`: 0.0 to 2.0+ (1.0 = normal)
+- `grayscale`: 0.0 to 1.0
+- `blur`: String with unit (e.g., "2px")
+- `sepia`: 0.0 to 1.0
+- `hue_rotate`: String with unit (e.g., "90deg")
+- `saturate`: 0.0 to 2.0+
+- `invert`: 0.0 to 1.0
+
+**Built-in Presets:**
+- `none`: `{}` (clears all filters)
+- `dimmed`: `{opacity: 0.3, brightness: 0.6}`
+- `subtle`: `{opacity: 0.5, brightness: 0.8}`
+- `backdrop`: `{opacity: 0.2, blur: "2px"}`
+- `faded`: `{opacity: 0.4, contrast: 0.7, saturate: 0.5}`
+- `red-alert`: `{opacity: 0.5, hue_rotate: "180deg", saturate: 1.5}`
+- `monochrome`: `{grayscale: 1.0, contrast: 1.2}`
+
+**Example: Time-based dimming**
+```yaml
+rules:
+  - id: night_mode
+    priority: 100
+    when:
+      all:
+        - entity: sensor.time
+        - time_between: "22:00-06:00"
+    apply:
+      base_svg:
+        filters:
+          opacity: 0.3
+          brightness: 0.6
+        transition: 2000
+
+  - id: day_mode
+    priority: 90
+    when:
+      all:
+        - entity: sensor.time
+        - time_between: "06:00-22:00"
+    apply:
+      base_svg:
+        filters:
+          opacity: 0.5
+          brightness: 0.8
+        transition: 2000
+```
+
+**Example: Alert-based filtering with preset**
+```yaml
+rules:
+  - id: critical_alert
+    priority: 200
+    when:
+      entity: binary_sensor.critical_alert
+      state: "on"
+    apply:
+      base_svg:
+        filter_preset: "red-alert"
+        transition: 500
+```
+
+**Example: Combining preset and custom filters**
+```yaml
+rules:
+  - id: away_mode
+    when:
+      entity: input_boolean.away_mode
+      state: "on"
+    apply:
+      base_svg:
+        filter_preset: "dimmed"
+        filters:
+          grayscale: 0.5  # Override/add to preset
+        transition: 1500
+```
+
+**Example: Clearing filters (removing all filtering)**
+```yaml
+rules:
+  - id: alert_off
+    when:
+      entity: binary_sensor.critical_alert
+      state: "off"
+    apply:
+      base_svg:
+        filter_preset: "none"  # Clear all filters
+        transition: 1000
+
+  # Alternative: use empty filters object
+  - id: normal_mode
+    when:
+      entity: input_boolean.normal_mode
+      state: "on"
+    apply:
+      base_svg:
+        filters: {}  # Clear all filters
+        transition: 1000
 ```
 
 ---
@@ -777,6 +897,72 @@ rules:
           style:
             color: var(--lcars-red)
             visible: true
+```
+
+### Example 4: Base SVG Filter with Actions
+
+```yaml
+data_sources:
+  cpu_temp:
+    type: entity
+    entity: sensor.cpu_temperature
+
+rules:
+  # Critical temperature - red alert filter
+  - id: cpu_critical
+    priority: 100
+    when:
+      source: cpu_temp
+      above: 80
+    apply:
+      actions:
+        - type: update_base_svg_filter
+          filter_preset: "red-alert"
+          transition: 500
+      overlays:
+        - id: temp_display
+          style:
+            color: var(--lcars-red)
+            text: "⚠️ CRITICAL: {{ cpu_temp }}°C"
+
+  # Warning temperature - dimmed filter
+  - id: cpu_warning
+    priority: 50
+    when:
+      source: cpu_temp
+      above: 70
+      below: 80
+    apply:
+      actions:
+        - type: update_base_svg_filter
+          filters:
+            opacity: 0.5
+            hue_rotate: "30deg"
+          transition: 1000
+      overlays:
+        - id: temp_display
+          style:
+            color: var(--lcars-yellow)
+            text: "Warning: {{ cpu_temp }}°C"
+
+  # Normal temperature - clear filters
+  - id: cpu_normal
+    priority: 10
+    when:
+      source: cpu_temp
+      below: 70
+    apply:
+      actions:
+        - type: update_base_svg_filter
+          filters:
+            opacity: 0.6
+            brightness: 0.9
+          transition: 1500
+      overlays:
+        - id: temp_display
+          style:
+            color: var(--lcars-blue)
+            text: "Normal: {{ cpu_temp }}°C"
 ```
 
 ---

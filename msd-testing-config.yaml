@@ -1,0 +1,1441 @@
+type: custom:cb-lcars-msd-card
+grid_options:
+  columns: full
+  rows: 5
+msd:
+  theme: lcars-classic
+  version: 12
+  debug:
+    scale: 1.4
+    enabled: true
+    overlays:
+      anchors: false
+      bounding_boxes: true
+      routing: true
+      performance: false
+    console:
+      verbose: true
+      timing: true
+    hud:
+      auto_show: false
+  base_svg:
+    source: none
+  view_box:
+    - 0
+    - 0
+    - 1920
+    - 1080
+  use_packs:
+    builtin:
+      - core
+      - cb_lcars_buttons
+  anchors:
+    debug_anchor_1:
+      - 300
+      - 200
+    debug_anchor_2:
+      - 600
+      - 300
+    debug_anchor_3:
+      - 480
+      - 600
+    debug_anchor_4:
+      - 1440
+      - 300
+    performance_test:
+      - 100
+      - 100
+  data_sources:
+    temperature:
+      entity: sensor.toronto_feels_like_temperature
+      metadata:
+        area: Living Room
+        friendly_name: Yaaas
+      debug: true
+    temp_range:
+      entity: sensor.toronto_feels_like_temperature
+      windowSeconds: 86400
+      history:
+        enabled: true
+        hours: 24
+      aggregations:
+        - type: rolling_statistics
+          key: hourly_range
+          window: 24h
+          stats:
+            - min
+            - max
+          output_format: array
+        - type: rolling_statistics_series
+          key: test_series
+          window: 1h
+          interval: 5m
+          stats:
+            - min
+            - max
+          max_points: 50
+    weather_forecast:
+      entity: weather.home
+      attribute_path: forecast.0.temperature
+    hvac_complete:
+      entity: climate.therm1
+      periodic_update_interval: 150000
+      enum_mapping:
+        "off": 0
+        heat: 1
+        cool: 2
+      transformations:
+        - type: expression
+          key: is_heating
+          expression: "value === 1 ? 100 : 0"
+      aggregations:
+        - type: duration
+          key: heating_time
+          condition: equals
+          threshold: 1
+          units: minutes
+    hvac_state_test:
+      entity: climate.therm1
+      enum_mapping:
+        "off": 0
+        heat: 1
+        cool: 2
+        fan_only: 3
+        dry: 4
+        auto: 5
+        heat_cool: 6
+        idle: 0
+      enum_mapping_debug: true
+      transformations:
+        - type: smooth
+          method: exponential
+          alpha: 0.5
+          key: smoothed
+        - type: expression
+          key: is_error
+          expression: "value === 1 ? 1 : 0"
+    test_aggregations:
+      entity: sensor.desk_sensor_illuminance
+      transformations:
+        - type: scale
+          input_range:
+            - 0
+            - 100
+          output_range:
+            - 0
+            - 1
+          key: normalized
+      aggregations:
+        - type: min_max
+          key: stats_1h
+          window: 1h
+          min: true
+          max: true
+          avg: true
+        - type: moving_average
+          key: avg_10
+          window_size: 10
+        - type: rate_of_change
+          key: rate
+          unit: per_minute
+        - type: recent_trend
+          key: trend
+          samples: 20
+        - type: min_max
+          key: normalized_stats
+          input_source: normalized
+          window: 1h
+          min: true
+          max: true
+    temperature_chain:
+      type: entity
+      entity: sensor.toronto_feels_like_temperature
+      history:
+        preload: true
+        hours: 24
+      transformations:
+        - type: unit_conversion
+          conversion: c_to_f
+          key: fahrenheit
+          debug: true
+        - type: scale
+          input_source: fahrenheit
+          input_range:
+            - 32
+            - 95
+          output_range:
+            - 0
+            - 100
+          key: comfort_percent
+          debug: true
+        - type: smooth
+          input_source: comfort_percent
+          method: exponential
+          alpha: 0.3
+          key: comfort_smooth
+          debug: true
+      aggregations:
+        - key: daily_stats
+          type: min_max
+          min: true
+          max: true
+          input_source: comfort_percent
+          window: 24h
+        - key: comfort_trend
+          type: recent_trend
+          input_source: comfort_smooth
+          samples: 10
+    battery_analysis:
+      type: entity
+      entity: sensor.bathroom_dial_battery
+      history:
+        preload: true
+        hours: 24
+      transformations:
+        - type: smooth
+          method: exponential
+          alpha: 0.2
+          key: smoothed_raw
+          debug: true
+        - type: scale
+          input_range:
+            - 0
+            - 100
+          output_range:
+            - 0
+            - 1
+          key: normalized
+          debug: true
+        - type: smooth
+          input_source: normalized
+          method: moving_average
+          window_size: 5
+          key: normalized_smooth
+          debug: true
+      aggregations:
+        - key: trend_raw
+          type: recent_trend
+          samples: 10
+        - key: trend_smooth
+          type: recent_trend
+          input_source: normalized_smooth
+          samples: 10
+    battery_health:
+      type: entity
+      entity: sensor.bedroom_dial_battery
+      history:
+        preload: true
+        hours: 24
+      transformations:
+        - type: smooth
+          method: exponential
+          alpha: 0.05
+          key: baseline
+        - type: expression
+          expression: Math.abs(value - (transforms.baseline || value))
+          key: deviation
+          debug: true
+        - type: expression
+          input_source: deviation
+          expression: (value / (transforms.baseline || 100)) * 100
+          key: deviation_percent
+          debug: true
+        - type: smooth
+          input_source: deviation_percent
+          method: moving_average
+          window_size: 3
+          key: deviation_smooth
+      aggregations:
+        - key: deviation_stats
+          type: min_max
+          input_source: deviation_smooth
+          min: true
+          max: true
+          avg: true
+          window: 1h
+    signal_processing:
+      type: entity
+      entity: sensor.bathroom_dial_battery
+      history:
+        preload: true
+        hours: 24
+      transformations:
+        - type: smooth
+          method: median
+          window_size: 3
+          key: outliers_removed
+          debug: true
+        - type: smooth
+          input_source: outliers_removed
+          method: moving_average
+          window_size: 5
+          key: noise_reduced
+          debug: true
+        - type: smooth
+          input_source: noise_reduced
+          method: exponential
+          alpha: 0.1
+          key: trend
+          debug: true
+        - type: expression
+          expression: (transforms.noise_reduced || value) - (transforms.trend || 0)
+          key: residual
+          debug: true
+        - type: statistical
+          input_source: residual
+          method: std_dev
+          window_size: 20
+          key: noise_level
+      aggregations:
+        - key: signal_quality
+          type: min_max
+          input_source: noise_level
+          min: true
+          max: true
+          avg: true
+  overlays:
+    - id: hvac-status
+      type: text
+      text: >-
+        HVAC: {hvac_complete.v} | Heating:
+        {hvac_complete.transformations.is_heating}%
+      position:
+        - 1000
+        - 10
+      style:
+        font_size: 24
+        color: "#ff9900"
+    - id: heating-duration
+      type: text
+      text: "On for: {hvac_complete.aggregations.heating_time.current:.1f} min"
+      position:
+        - 500
+        - 50
+      style:
+        font_size: 24
+        color: "#ff9900"
+    - id: hvac-state-text
+      type: text
+      text: "HVAC: {hvac_state_test.v}"
+      position:
+        - 300
+        - 120
+      style:
+        font_size: 24
+        color: "#ff9900"
+    - type: apexchart
+      id: apex_area1
+      position:
+        - 0
+        - 400
+      size:
+        - 400
+        - 200
+      style:
+        chart_type: rangeArea
+      source: temp_range.aggregations.temp_history
+    - id: apex_animation1
+      type: apexchart2
+      style:
+        chart_type: line
+        background_color: components.button.defaultColor
+        stroke_color: var(--lcars-blue)
+        grid_color: rgba(255,255,255,0.2)
+      animation_preset: lcars_dramatic
+      source: battery_analysis
+      position:
+        - 0
+        - 400
+      size:
+        - 400
+        - 200
+    - id: token_test_grid
+      type: status_grid
+      position:
+        - 50
+        - 650
+      size:
+        - 300
+        - 200
+      rows: 3
+      columns: 3
+      lcars_button_preset: lozenge
+      style:
+        border:
+          color: colors.ui.border
+        label_color: colors.ui.foreground
+        cell_radius: borders.radius.lg
+        font_family: typography.fontFamily.primary
+        font_size: typography.fontSize.base
+        label_font_size: typography.fontSize.lg
+        value_font_size: typography.fontSize.sm
+        hover_color: colors.status.warning
+      cells:
+        - id: cell1
+          position:
+            - 0
+            - 0
+          label: cell1
+          content: cell 1 shit
+          style:
+            cell_color: colors.status.success
+        - id: cell2
+          position:
+            - 0
+            - 1
+          label: cell2
+          content: cell 2 shit
+    - id: temp_apex_chart
+      type: apexchart
+      source:
+        - temperature_chain
+      position:
+        - 600
+        - 850
+      size:
+        - 600
+        - 380
+      style:
+        chart_type: line
+        color: var(--lcars-blue)
+        stroke_width: 4
+        smoothing_mode2: smooth
+        time_window: 24h
+        max_points2: 500
+        show_grid: true
+        show_axis: false
+        show_tooltip: true
+    - id: bedroom_status_grid
+      type: status_grid
+      position:
+        - 100
+        - 850
+      size:
+        - 360
+        - 150
+      style:
+        rows: 2
+        columns: 2
+        lcars_button_preset: bullet
+        cell_color: var(--lcars-blue)
+        cell_gap: 10
+      cells:
+        - id: bed_light_cell
+          position:
+            - 0
+            - 0
+          lcars_button_preset: lozenge
+          label: Bed Light
+          content: "{{states('light.tv')}} status"
+          style:
+            border:
+              width: 6
+              color: var(--picard-blue)
+              radius: 0
+          tap_action:
+            action: toggle
+            entity: light.tv
+        - id: room_temp_cell
+          position:
+            - 0
+            - 1
+          label: Brightness
+          content: "{{state_attr('light.tv','brightness')}}°C"
+        - id: humidity_cell
+          position:
+            - 1
+            - 0
+          label: Humidity
+          content: "{{states('sensor.desk_sensor_temperature')}}%"
+        - id: air_quality_cell
+          position:
+            - 1
+            - 1
+          label: Air Quality
+          content: "{{states('sensor.bedroom_dial_battery')}}"
+    - id: emergency_button
+      type: button
+      position:
+        - 800
+        - 600
+      size:
+        - 280
+        - 150
+      label2: EMERGENCY
+      content2: LOCKDOWN
+      texts:
+        - content: REACTOR
+          position: top-left
+          font_size: 14
+        - content: ONLINE
+          position: center
+          font_size: 24
+          font_weight: bold
+        - content: 100%
+          position: bottom-right
+          font_size: 16
+          color: var(--lcars-green)
+      tap_action:
+        action: toggle
+        entity: light.tv
+      style:
+        label_position: top-right
+        border:
+          top:
+            width: 12
+            color: var(--lcars-blue)
+          right:
+            width: 6
+            color: var(--lcars-orange)
+          bottom:
+            width: 6
+            color: var(--lcars-red)
+          left:
+            width: 12
+            color: var(--lcars-orange)
+          radius_top_left: 34
+          radius_top_right: 17
+          radius_bottom_right: 34
+          radius_bottom_left: 17
+        color: colors.status.success
+        label_color: var(--lcars-red)
+        value_color: var(--lcars-orange)
+    - id: test_button1
+      type: button
+      position:
+        - 1400
+        - 1000
+      size:
+        - 120
+        - 56
+      label: TEST
+      content: SHIZZ
+      tap_action:
+        action: toggle
+        entity: light.tv
+      style:
+        border:
+          width: 14
+          color: var(--picard-blue)
+          radius: 0
+          bottom:
+            width: 7
+            color: var(--picard-lightest-blue)
+        label_color: var(--lcars-red)
+        value_color: var(--lcars-orange)
+    - id: test_grid
+      type: status_grid
+      position:
+        - 1500
+        - 0
+      size:
+        - 300
+        - 200
+      rows: 2
+      columns: 2
+      style:
+        lcars_button_preset: bullet
+        cell_color: var(--lcars-blue)
+      cells:
+        - id: cell_1
+          label: cellllz
+          content: shit
+          style:
+            lcars_button_preset: lozenge
+            label_position: top-left
+            border:
+              radius_top_left: 12
+              radius_top_right: 4
+              radius_bottom_right: 12
+              radius_bottom_left: 4
+        - id: cell_2
+          content: bruh
+          style:
+            cell_color: colors.status.success
+        - id: cell_3
+          content: fkme
+    - type: status_grid2
+      tap_action:
+        action: toggle
+        entity: light.floor_lamp
+      double_tap_action:
+        action: more-info
+        entity: light.floor_lamp
+      hold_action:
+        action: toggle
+        entity: light.tv
+      position:
+        - 1500
+        - 0
+      size:
+        - 300
+        - 200
+      lcars_button_preset: lozenge
+      rows: 2
+      columns: 2
+      cells:
+        - id: temp_cell
+          lcars_button_preset: lozenge
+          position:
+            - 0
+            - 0
+          label: Temp
+          content: "{temperature_chain.transformations.celsius:.1f}°C"
+        - id: cpu_cell
+          position:
+            - 0
+            - 1
+          label: CPU
+          content: "{test_cpu_temp:.1%}"
+        - id: memory_cell
+          position:
+            - 1
+            - 0
+          label: Memory
+          content: "{test_memory:.1%}"
+        - id: status_cell
+          position:
+            - 1
+            - 1
+          label: Status
+          content: "{test_cpu_temp > 70 ? 'HOT' : 'OK'}"
+          tap_action:
+            action: toggle
+            entity: light.island
+          hold_action:
+            action: more-info
+            entity: light.island
+          double_tap_action:
+            action: more-info
+            entity: light.floor_lamp
+    - id: test_text
+      type: text
+      content: ENGINE STATUS TESTING
+      position:
+        - 100
+        - 100
+      style:
+        color: colors.accent.primary
+        font_size: typography.fontSize.2xl
+    - id: title_overlay
+      tap_action:
+        action: toggle
+        entity: light.tv
+      double_tap_action:
+        action: more-info
+        entity: light.floor_lamp
+      hold_action:
+        action: toggle
+        entity: light.tv
+      type: text
+      position:
+        - 50
+        - 25
+      content: "Temperature: {temperature_chain:.1f}   °C - {test_cpu_temp:%}"
+      style:
+        multiline: false
+        status_indicator: var(--lcars-african-violet)
+        status_indicator_position: right
+        status_indicator_padding: 10
+        text_anchor: left
+        color: var(--lcars-blue)
+        font_size1: 28
+        font_size:
+          value: 28
+          scale: viewbox
+          unit: px
+        font_weight: bold
+        glow:
+          color: var(--lcars-orange)
+          blur: 30
+          intensity: 10
+    - id: control1
+      type: control
+      card:
+        type: custom:cb-lcars-button-card
+        config:
+          triggers_update: all
+          enable_resize_observer: true
+          cblcars_card_type: cb-lcars-button-lozenge
+          show_label: true
+          entity: light.desk
+          variables:
+            ___debug: false
+            label: LCARS Button
+            entity: light.desk
+            card:
+              color:
+                background:
+                  active: var(--lcars-alert-blue)
+                  inactive: var(--picard-black-cherry)
+          tap_action:
+            action: toggle
+          double_tap_action:
+            action: none
+          hold_action:
+            action: more-info
+      position:
+        - 1250
+        - 20
+      size:
+        - 120
+        - 80
+    - id: control2
+      type: control
+      card:
+        type: button
+        config:
+          show_name: true
+          show_icon: true
+          type: button
+          entity: light.desk
+          show_state: true
+      position:
+        - 1250
+        - 120
+      size:
+        - 120
+        - 80
+    - id: attach_test1
+      type: line
+      attach_to: title_overlay
+      anchor: scr_nw
+      attach_side: right
+      attach_gap: 20
+      route: auto
+      style:
+        color: colors.status.warning
+        width: 9
+        corner_style: round
+        corner_radius: 120
+    - id: line_o2o
+      type: line
+      attach_to: emergency_button
+      anchor: test_grid
+      anchor_gap: 30
+      attach_gap: 20
+      route: auto
+      style:
+        color: var(--lcars-orange)
+        width: 8
+    - id: test_line_1
+      type: line
+      anchor: debug_anchor_1
+      attach_to: debug_anchor_2
+      route: auto
+      style:
+        color: var(--lcars-orange)
+        width: 8
+        dash_array:
+          - 20
+          - 20
+        line_cap: butt
+        marker_end:
+          type: diamond
+          size: medium
+          color: var(--lcars-red)
+          rotate: false
+      corner_style: round
+      corner_radius: 36
+      2smoothing_mode: chaikin
+      smoothing_iterations: 8
+      smoothing_max_points: 80
+    - id: test_line_2
+      type: line
+      anchor: debug_anchor_2
+      attach_to: debug_anchor_3
+      route: auto
+      style:
+        color: var(--lcars-blue)
+        width: 3
+        corner_style: round
+        corner_radius: 12
+    - id: test_line_3
+      type: line
+      anchor: debug_anchor_3
+      attach_to: debug_anchor_4
+      route: auto
+      style:
+        color: var(--lcars-african-violet)
+        width: 2
+  rules:
+    - id: bedroom_light_on_grid_style
+      when:
+        any:
+          - entity: light.tv
+            state: "on"
+      apply:
+        overlays:
+          test_button1:
+            style:
+              border:
+                width: 3
+                color: var(--picard-blue)
+                radius_top_left: 0
+                bottom:
+                  width: 7
+                  color: var(--picard-lightest-blue)
+              label_color: var(--lcars-red)
+              value_color: var(--lcars-orange)
+          bedroom_status_grid:
+            cell_target:
+              cell_id: bed_light_cell
+            style:
+              cell_color: var(--lcars-yellow)
+              bracket_color: var(--lcars-yellow)
+              lcars_button_preset: lozenge
+              text_layout: diagonal
+          temp_apex_chart:
+            style:
+              color: var(--picard-orange)
+              stroke_colors:
+                - var(--picard-orange)
+              fill_colors:
+                - var(--picard-orange)
+              fill_opacity: 1
+              grid_color: var(--lcars-red)
+              axis_color: var(--picard-lightest-blue)
+              legend_color: var(--picard-blue)
+          title_overlay:
+            style:
+              color: var(--lcars-red)
+              font_size: 32
+              font_weight: bold
+              opacity: 0.9
+              status_indicator: var(--lcars-red)
+              status_indicator_position: right
+              status_indicator_padding: 10
+    - id: bedroom_light_off_grid_style
+      when:
+        any:
+          - entity: light.tv
+            state: "off"
+      apply:
+        overlays:
+          test_button1:
+            content: fuckme
+            style:
+              border:
+                width: 6
+                color: var(--picard-yellow)
+                radius_top_left: 34
+                bottom:
+                  width: 3
+              label_color: var(--picard-lightest-blue)
+              value_color: var(--picard-lightest-orange)
+          bedroom_status_grid:
+            cell_target:
+              cell_id: bed_light_cell
+            style:
+              cell_color: var(--lcars-gray)
+              bracket_color: var(--lcars-gray)
+              cell_opacity: 0.6
+          temp_apex_chart:
+            style:
+              color: var(--picard-blue)
+              stroke_colors:
+                - var(--picard-blue)
+              fill_colors:
+                - var(--picard-blue)
+              fill_opacity: 0.2
+              grid_color: var(--picard-gray)
+              axis_color: var(--lcars-african-violet)
+              legend_color: var(--lcars-african-violet)
+          title_overlay:
+            style:
+              visible: false
+              color: var(--lcars-blue)
+              font_size: 28
+              font_weight: bold
+              opacity: 1
+              status_indicator: var(--lcars-african-violet)
+              status_indicator_position: right
+              status_indicator_padding: 10
+    - id: high_temperature_alert
+      priority: 100
+      when:
+        any:
+          - entity: temperature_chain
+            below: 10
+      apply:
+        overlays:
+          title_overlay:
+            style:
+              color: var(--lcars-red)
+              status_indicator: var(--lcars-red)
+    - id: text_geometry_test
+      priority: 50
+      when:
+        any:
+          - entity: light.floor_lamp
+            state: "on"
+      apply:
+        overlays:
+          title_overlay:
+            style:
+              status_indicator_position: left-center
+              status_indicator_size: 12
+              status_indicator: var(--lcars-orange)
+    - id: cpu_hot_test
+      priority: 10
+      when:
+        all:
+          - entity: sensor.bathroom_dial_battery
+            above: 70
+      apply:
+        overlays:
+          cpu_sparkline:
+            style:
+              color: var(--lcars-red)
+          test_line_1:
+            style:
+              color: var(--lcars-red)
+              width: 6
+variables:
+  ___debug: true
+  card:
+    height: 60vw
+    color:
+      background:
+        default: black
+styles:
+  custom_fields:
+    msd_comprehensive:
+      - width: 100%
+      - height: 100%
+      - position: absolute
+      - top: 0
+      - left: 0
+      - z-index: 0
+custom_fields:
+  msd_comprehensive: |
+    [[[
+
+      console.log('[MSD DEBUG] 🏗️ Custom field ENTRY:', {
+        timestamp: new Date().toISOString(),
+        hasBootFlag: !!this._msdV1ComprehensiveBoot,
+        hasMsdDebug: !!window.cblcars?.debug?.msd,
+        hasInitPipeline: !!window.cblcars?.debug?.msd?.initMsdPipeline,
+        cardId: this.id || 'no-id',
+        stackTrace: new Error().stack.split('\n').slice(1, 3).join('\n')
+      });
+
+
+      try {
+        if (!this._msdV1ComprehensiveBoot) {
+          console.log('[MSD DEBUG] 🚀 First boot - initializing MSD system');
+
+          // ✅ CRITICAL: Check if MSD system is fully loaded with MsdInstanceManager
+          if (!window.cblcars?.debug?.msd?.MsdInstanceManager) {
+            console.error('[MSD DEBUG] ❌ FATAL: MsdInstanceManager not available');
+            console.error('[MSD DEBUG] ❌ window.cblcars:', window.cblcars);
+            console.error('[MSD DEBUG] ❌ window.cblcars.debug:', window.cblcars?.debug);
+            console.error('[MSD DEBUG] ❌ window.cblcars.debug.msd:', window.cblcars?.debug?.msd);
+            console.error('[MSD DEBUG] ❌ Keys in window.cblcars.debug.msd:',
+              window.cblcars?.debug?.msd ? Object.keys(window.cblcars.debug.msd) : 'N/A');
+
+            return `
+              <div style="
+                color: #ff6666;
+                padding: 20px;
+                text-align: center;
+                border: 2px solid #ff6666;
+                border-radius: 8px;
+                background: rgba(255, 102, 102, 0.1);
+                font-family: monospace;
+              ">
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                  ❌ MSD System Not Loaded
+                </div>
+                <div style="font-size: 14px; margin-bottom: 8px;">
+                  MsdInstanceManager is not available. Check browser console for details.
+                </div>
+                <div style="font-size: 12px; opacity: 0.7;">
+                  This usually means the cb-lcars.js bundle did not load correctly.
+                </div>
+              </div>
+            `;
+          }
+
+          console.log('[MSD DEBUG] ✅ MsdInstanceManager is available');
+
+          // ✅ NEW: Assign GUID to card instance FIRST (before any other initialization)
+          if (!this._msdInstanceGuid) {
+            this._msdInstanceGuid = window.cblcars.debug.msd.MsdInstanceManager._generateGuid();
+            console.log('[MSD DEBUG] 🔑 Generated instance GUID:', {
+              guid: this._msdInstanceGuid,
+              cardId: this.id,
+              timestamp: new Date().toISOString()
+            });
+          } else {
+            console.log('[MSD DEBUG] 🔑 Using existing instance GUID:', this._msdInstanceGuid);
+          }
+
+          this._msdV1ComprehensiveBoot = true;
+          const msdConfig = this._config?.msd || this.config?.msd;
+          console.log('[MSD DEBUG] 📋 MSD config:', msdConfig);
+
+          // ENHANCED: Always check for preview mode first, even without SVG
+          const realHass = this.___hass || hass;
+
+          // Set card instance BEFORE any processing
+          window.cb_lcars_card_instance = this;
+          window._currentCardInstance = this;
+          if (!window.cblcars.debug.msd) {
+            console.error('[MSD DEBUG] ❌ window.cblcars.debug.msd not initialized');
+          } else {
+            window.cblcars.debug.msd.cardInstance = this;
+          }
+
+          // Check for preview mode early
+          const mount = this.shadowRoot || this;
+          const isPreview = window.cblcars.debug.msd.MsdInstanceManager.detectPreviewMode(mount);
+
+          if (isPreview) {
+            console.log('[MSD DEBUG] 🔍 Preview mode detected - showing preview content');
+            // Use MsdInstanceManager to create preview content
+            const previewResult = window.cblcars.debug.msd.MsdInstanceManager._createPreviewContent(msdConfig || {}, mount);
+            return previewResult.html;
+          }
+
+          // If not preview mode, continue with normal SVG processing
+          if (!msdConfig?.base_svg?.source) {
+            console.warn('[MSD DEBUG] ⚠️ No base_svg defined in config');
+            return `
+              <div style="
+                color: orange;
+                padding: 20px;
+                text-align: center;
+                border: 2px dashed #ff9900;
+                border-radius: 8px;
+                background: rgba(255, 153, 0, 0.1);
+                font-family: monospace;
+              ">
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                  🎯 No Base SVG Configured
+                </div>
+                <div style="font-size: 14px; margin-bottom: 8px;">
+                  Add a base_svg.source to your MSD config:
+                </div>
+                <div style="
+                  background: rgba(0,0,0,0.3);
+                  padding: 8px;
+                  border-radius: 4px;
+                  font-size: 12px;
+                  color: #ffcc00;
+                ">
+                  base_svg:<br/>
+                  &nbsp;&nbsp;source: builtin:ncc-1701-a-blue
+                </div>
+              </div>
+            `;
+          }
+
+          // Process SVG and anchors (use let instead of const to avoid conflicts)
+          let svgContent;
+          let svgError = null;
+          const source = msdConfig.base_svg.source;
+
+          // Handle "none" case - skip SVG loading, use explicit viewBox
+          if (source === 'none') {
+            console.log('[MSD DEBUG] 🚫 base_svg.source is "none" - using overlay-only mode');
+
+            // Validate that view_box is provided
+            if (!msdConfig.view_box || !Array.isArray(msdConfig.view_box) || msdConfig.view_box.length !== 4) {
+              return `
+                <div style="
+                  color: #ff6666;
+                  padding: 20px;
+                  text-align: center;
+                  border: 2px solid #ff6666;
+                  border-radius: 8px;
+                  background: rgba(255, 102, 102, 0.1);
+                  font-family: monospace;
+                ">
+                  <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                    ❌ view_box Required
+                  </div>
+                  <div style="font-size: 14px; margin-bottom: 8px; color: #ffcccc;">
+                    When using base_svg.source: "none", you must provide an explicit view_box
+                  </div>
+                  <div style="
+                    background: rgba(0,0,0,0.3);
+                    padding: 8px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    color: #ffcc99;
+                  ">
+                    view_box: [0, 0, 1920, 1080]
+                  </div>
+                </div>
+              `;
+            }
+
+            // Set svgContent to empty string so we skip SVG rendering
+            svgContent = '';
+          } else {
+            // Normal SVG loading
+            try {
+              svgContent = window.cblcars.getSvgContent(source);
+
+              // Wrap SVG inner content in a group for filter isolation
+              // This prevents filters from affecting overlay layers
+              if (svgContent) {
+                // Parse SVG and wrap contents in <g id="msd-base-content">
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = svgContent;
+                const svgEl = tempDiv.querySelector('svg');
+
+                if (svgEl) {
+                  // Get all child nodes
+                  const children = Array.from(svgEl.childNodes);
+
+                  // Create wrapper group with __ prefix to indicate internal/reserved ID
+                  // (prevents anchor extraction from treating this as an anchor)
+                  const wrapperGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                  wrapperGroup.setAttribute('id', '__msd-base-content');
+
+                  // Move all children into the wrapper
+                  children.forEach(child => wrapperGroup.appendChild(child));
+
+                  // Clear SVG and add wrapped content
+                  svgEl.innerHTML = '';
+                  svgEl.appendChild(wrapperGroup);
+
+                  // Serialize back to string
+                  svgContent = tempDiv.innerHTML;
+
+                  console.log('[MSD DEBUG] 🎨 Wrapped base SVG content in #__msd-base-content for filter isolation');
+                }
+              }
+            } catch (error) {
+              svgError = error;
+              console.error('[MSD DEBUG] ❌ SVG loading error:', error);
+            }
+          }
+
+          if (!svgContent && source !== 'none') {
+            const isBuiltin = source.startsWith('builtin:');
+            const isUrl = source.startsWith('http');
+            const isLocal = source.startsWith('/') || source.startsWith('./');
+
+            let errorMessage = 'Unknown SVG loading error';
+            let suggestion = 'Check your base_svg.source configuration';
+
+            if (svgError) {
+              errorMessage = svgError.message || svgError.toString();
+            } else if (isBuiltin) {
+              const svgName = source.replace('builtin:', '');
+              errorMessage = `Builtin SVG "${svgName}" not found`;
+
+              let templates = 'ncc-1701-a-blue, ncc-1701-d, nx-01, etc.'
+              const svgTemplates = window?.cblcars?.assets?.svg_templates;
+              //const svgTemplates = window?.cblcars?.msd?.svg_templates;
+              if (svgTemplates && typeof svgTemplates === 'object') {
+                templates = Object.keys(svgTemplates).sort();
+              }
+              suggestion = `Available builtin SVGs: ${templates}`;
+            } else if (isUrl) {
+              errorMessage = `Failed to load SVG from URL: ${source}`;
+              suggestion = 'Check URL is accessible and returns valid SVG content';
+            } else if (isLocal) {
+              errorMessage = `Failed to load local SVG: ${source}`;
+              suggestion = 'Check file path exists and is accessible to Home Assistant';
+            } else {
+              errorMessage = `Invalid SVG source: ${source}`;
+              suggestion = 'Use builtin:name, http://url, or /local/path format';
+            }
+
+            console.warn('[MSD DEBUG] ⚠️ SVG content not available:', { source, isBuiltin, isUrl, isLocal, svgError });
+
+            return `
+              <div style="
+                color: #ff6666;
+                padding: 20px;
+                text-align: center;
+                border: 2px solid #ff6666;
+                border-radius: 8px;
+                background: rgba(255, 102, 102, 0.1);
+                font-family: monospace;
+              ">
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                  ❌ SVG Loading Failed
+                </div>
+                <div style="font-size: 14px; margin-bottom: 8px; color: #ffcccc;">
+                  ${errorMessage}
+                </div>
+                <div style="font-size: 12px; margin-bottom: 12px; opacity: 0.8;">
+                  Source: ${source}
+                </div>
+                <div style="
+                  background: rgba(0,0,0,0.3);
+                  padding: 8px;
+                  border-radius: 4px;
+                  font-size: 12px;
+                  color: #ffcc99;
+                ">
+                  💡 ${suggestion}
+                </div>
+              </div>
+            `;
+          }
+
+          // Extract viewBox and aspect ratio
+          let viewBox;
+          let aspect;
+
+          if (source === 'none') {
+            // Use explicit view_box from config
+            viewBox = msdConfig.view_box;
+            aspect = window.cblcars.getSvgAspectRatio(viewBox);
+            console.log('[MSD DEBUG] 📐 Using explicit view_box for "none" source:', { viewBox, aspect });
+          } else {
+            // Extract from SVG content
+            viewBox = window.cblcars.getSvgViewBox(svgContent);
+            aspect = window.cblcars.getSvgAspectRatio(viewBox);
+          }
+
+          // Process anchors
+          const svgAnchors = (source === 'none') ? {} : (window.cblcars.findSvgAnchors(svgContent) || {});
+          const userAnchors = msdConfig.anchors || {};
+          const resolvedAnchors = {};
+          const [minX, minY, vw, vh] = viewBox;
+
+          // Add SVG anchors
+          for (const [name, pos] of Object.entries(svgAnchors)) {
+            resolvedAnchors[name] = pos;
+          }
+
+          // Add user anchors with percentage resolution
+          for (const [name, pos] of Object.entries(userAnchors)) {
+            if (Array.isArray(pos) && pos.length === 2) {
+              let [x, y] = pos;
+              if (typeof x === 'string' && x.endsWith('%')) {
+                x = minX + (parseFloat(x) / 100) * vw;
+              }
+              if (typeof y === 'string' && y.endsWith('%')) {
+                y = minY + (parseFloat(y) / 100) * vh;
+              }
+              resolvedAnchors[name] = [Number(x), Number(y)];
+            } else {
+              resolvedAnchors[name] = pos;
+            }
+          }
+
+          // Store anchors globally
+          this._msdViewBox = viewBox;
+          this._msdAnchors = resolvedAnchors;
+          window._msdTestAnchors = resolvedAnchors;
+
+          // Cache raw overlays for control recovery
+          if (msdConfig?.overlays) {
+            try {
+              window._msdRawOverlays = msdConfig.overlays.map(o => JSON.parse(JSON.stringify(o)));
+              console.log('[MSD v1 Comprehensive] Cached raw overlays for controls recovery:', window._msdRawOverlays.filter(o => o.type === 'control').map(o => o.id));
+            } catch(e) {
+              console.warn('[MSD v1 Comprehensive] Failed to cache raw overlays', e);
+            }
+          }
+
+          // Initialize pipeline
+          const resolveMount = (attempt = 0) => {
+            console.log('[MSD DEBUG] 🎯 Attempting to resolve mount element, attempt:', attempt);
+
+            const baseWrapper = this.shadowRoot?.getElementById('msd-v1-comprehensive-wrapper');
+            const mount = baseWrapper || this.shadowRoot || this;
+
+            console.log('[MSD DEBUG] 🎯 Mount resolution:', {
+              attempt,
+              baseWrapper: !!baseWrapper,
+              shadowRoot: !!this.shadowRoot,
+              mount: !!mount,
+              mountTagName: mount?.tagName,
+              cardGuid: this._msdInstanceGuid  // ✅ NEW: Log GUID
+            });
+            if (!mount && attempt < 5) {
+              console.warn('[MSD DEBUG] ⚠️ mount not ready, retrying...', attempt);
+              setTimeout(() => resolveMount(attempt + 1), 30 * (attempt + 1));
+              return;
+            }
+            if (!mount) {
+              console.error('[MSD DEBUG] ❌ mount could not be resolved after 5 attempts');
+              return;
+            }
+
+            console.log('[MSD DEBUG] 🚀 Using MsdInstanceManager for pipeline initialization...');
+
+            const enhancedConfig = { ...msdConfig };
+            if (window._msdTestAnchors && Object.keys(window._msdTestAnchors).length > 5) {
+              enhancedConfig.anchors = window._msdTestAnchors;
+            }
+
+            const realHass = this.___hass || hass;
+
+            // CRITICAL: Set card instance BEFORE pipeline initialization (with GUID already assigned)
+            window.cb_lcars_card_instance = this;
+            window._currentCardInstance = this;
+            if (!window.cblcars.debug.msd) {
+              console.error('[MSD DEBUG] ❌ window.cblcars.debug.msd not initialized');
+            } else {
+              window.cblcars.debug.msd.cardInstance = this;
+            }
+            console.log('[MSD DEBUG] 🎯 Card instance stored with GUID:', this._msdInstanceGuid);
+
+            // Detect preview mode
+            const isPreview = window.cblcars.debug.msd.MsdInstanceManager.detectPreviewMode(mount);
+
+            // Use MsdInstanceManager instead of direct initMsdPipeline
+            window.cblcars.debug.msd.MsdInstanceManager.requestInstance(enhancedConfig, mount, realHass, isPreview).then(pipelineResult => {
+
+              if (pipelineResult.preview) {
+                console.log('[MSD DEBUG] 📋 Preview mode detected - updating wrapper with preview content');
+                const wrapper = this.shadowRoot?.getElementById('msd-v1-comprehensive-wrapper');
+                if (wrapper) {
+                  wrapper.innerHTML = pipelineResult.html;
+                }
+                return; // Preview content is now displayed
+              }
+
+              if (!pipelineResult.enabled) {
+                if (pipelineResult.blocked) {
+                  console.warn('[MSD DEBUG] 🚫 MSD instance blocked:', pipelineResult.reason, {
+                    existingGuid: pipelineResult.existingGuid,
+                    requestingGuid: pipelineResult.requestingGuid
+                  });
+                  // Update the wrapper content with blocked message
+                  const wrapper = this.shadowRoot?.getElementById('msd-v1-comprehensive-wrapper');
+                  if (wrapper) {
+                    wrapper.innerHTML = pipelineResult.html;
+                  }
+                  return;
+                }
+                if (pipelineResult.html) {
+                  console.warn('[MSD DEBUG] ❌ MSD validation failed - showing error display');
+                  // Update the wrapper content with validation error display
+                  const wrapper = this.shadowRoot?.getElementById('msd-v1-comprehensive-wrapper');
+                  if (wrapper) {
+                    wrapper.innerHTML = pipelineResult.html;
+                  }
+                  return;
+                }
+                console.error('[MSD DEBUG] ❌ MSD initialization failed');
+                return;
+              }
+
+              // Normal pipeline initialization completed
+              const pipeline = pipelineResult;
+              console.log('[MSD DEBUG] ✅ Pipeline initialized successfully via MsdInstanceManager:', {
+                pipeline,
+                cardGuid: this._msdInstanceGuid
+              });
+
+              // Store pipeline reference for HASS updates
+              this._msdPipeline = pipeline;
+
+              // Initialize HASS state
+              if (realHass && pipeline.systemsManager) {
+                  pipeline.systemsManager.ingestHass(realHass);
+              }
+
+              // ADDITIONAL: Set card instance via pipeline API too (for consistency)
+              if (pipeline.setCardInstance && typeof pipeline.setCardInstance === 'function') {
+                  pipeline.setCardInstance(this);
+                  console.log('[MSD DEBUG] 🔧 Card instance also set via pipeline API');
+              } else {
+                  console.warn('[MSD DEBUG] ⚠️ setCardInstance method not available on pipeline');
+              }
+
+              const resolvedModel = pipeline.getResolvedModel?.();
+              const controlOverlays = (resolvedModel?.overlays || []).filter(o => o.type === 'control');
+
+              console.log('[MSD DEBUG] 📊 Pipeline status:', {
+                hasResolvedModel: !!resolvedModel,
+                totalOverlays: resolvedModel?.overlays?.length || 0,
+                controlOverlaysCount: controlOverlays.length,
+                controlOverlayIds: controlOverlays.map(o => o.id)
+              });
+
+              // Trigger control overlay rendering
+              /*
+              if (controlOverlays.length) {
+                const renderer = pipeline.controlsRenderer || window._msdControlsRenderer;
+                if (renderer?.renderControls) {
+                  renderer.renderControls(controlOverlays, resolvedModel);
+                }
+              }
+              */
+            }).catch(err => {
+              console.error('[MSD DEBUG] ❌ MsdInstanceManager initialization FAILED:', err);
+              console.error('[MSD DEBUG] ❌ Error stack:', err.stack);
+            });
+          };
+
+          // Start pipeline initialization
+          setTimeout(() => resolveMount(), 100);
+
+          // SIMPLIFIED: Return single wrapper with layered structure
+          // For "none" source, create an empty SVG container to serve as mount point
+          if (source === 'none') {
+            const [vbX, vbY, vbW, vbH] = viewBox;
+            return `
+              <div id="msd-v1-comprehensive-wrapper" style="
+                width: 100%;
+                height: 100%;
+                position: relative;
+                aspect-ratio: ${aspect};
+                pointer-events: none;
+              ">
+                <!-- Empty SVG Base Layer for overlay mounting (source: none) -->
+                <div style="
+                  position: absolute;
+                  top: 0; left: 0;
+                  width: 100%; height: 100%;
+                  z-index: 0;
+                  pointer-events: auto;
+                ">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       viewBox="${vbX} ${vbY} ${vbW} ${vbH}"
+                       width="100%"
+                       height="100%"
+                       style="display: block;">
+                    <!-- Empty base SVG - overlays will be mounted here -->
+                  </svg>
+                </div>
+              </div>
+            `;
+          }
+
+          return `
+            <div id="msd-v1-comprehensive-wrapper" style="
+              width: 100%;
+              height: 100%;
+              position: relative;
+              aspect-ratio: ${aspect};
+              pointer-events: none;
+            ">
+              <!-- SVG Base Layer (z-index: 0) -->
+              <div style="
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                z-index: 0;
+                pointer-events: auto;
+              ">
+                ${svgContent}
+              </div>
+            </div>
+          `;
+        }
+
+        // Existing MSD case
+        console.log('[MSD DEBUG] 🔄 Subsequent render - MSD already booted with GUID:', this._msdInstanceGuid);
+        const vb = this._msdViewBox || [0,0,1920,1200];
+        const aspect = window.cblcars.getSvgAspectRatio(vb);
+        return `<div style="width:100%;height:100%;aspect-ratio:${aspect};"></div>`;
+
+      } catch(e) {
+        console.error('[MSD DEBUG] ❌ Custom field CRASHED:', e);
+        console.error('[MSD DEBUG] ❌ Custom field error stack:', e.stack);
+        return `<div style="color:red;padding:10px;">Bootstrap failed: ${e.message}</div>`;
+      }
+    ]]]

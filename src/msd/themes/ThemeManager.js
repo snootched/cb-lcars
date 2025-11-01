@@ -18,6 +18,56 @@ import { ThemeTokenResolver, initializeTokenResolver, getTokenResolver } from '.
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
+ * Built-in filter presets for base SVG
+ * These provide common filter combinations for visual hierarchy
+ */
+export const BUILTIN_FILTER_PRESETS = {
+  // No filters - clear/remove all filtering
+  none: {},
+
+  // Subtle backdrop - overlays visible but not overpowering
+  dimmed: {
+    opacity: 0.5,
+    brightness: 0.8
+  },
+
+  // Very subtle - gentle de-emphasis
+  subtle: {
+    opacity: 0.6,
+    blur: '1px',
+    grayscale: 0.2
+  },
+
+  // Heavy dimming - makes overlays really pop
+  backdrop: {
+    opacity: 0.3,
+    blur: '3px',
+    brightness: 0.6
+  },
+
+  // Washed out look
+  faded: {
+    opacity: 0.4,
+    grayscale: 0.5,
+    contrast: 0.7
+  },
+
+  // Alert mode - bright with red tint
+  'red-alert': {
+    opacity: 1.0,
+    brightness: 1.2,
+    hue_rotate: 10
+  },
+
+  // Full grayscale for minimal distraction
+  monochrome: {
+    opacity: 0.6,
+    grayscale: 1.0,
+    contrast: 0.8
+  }
+};
+
+/**
  * ThemeManager - Central theme system coordinator
  *
  * Manages theme loading, activation, and provides unified access to component defaults.
@@ -345,6 +395,48 @@ export class ThemeManager {
       this.resolver.clearCache();
       cblcarsLog.debug('[ThemeManager] Resolver cache cleared');
     }
+  }
+
+  /**
+   * Get a filter preset by name
+   *
+   * Checks both built-in presets and theme-defined presets.
+   * Theme presets override built-in presets with the same name.
+   *
+   * @param {string} presetName - Name of the filter preset
+   * @returns {Object|null} Filter object or null if not found
+   *
+   * @example
+   * const filters = themeManager.getFilterPreset('dimmed');
+   * // Returns: { opacity: 0.5, brightness: 0.8 }
+   */
+  getFilterPreset(presetName) {
+    // Check theme-defined presets first (allows themes to override built-ins)
+    if (this.activeTheme?.filter_presets?.[presetName]) {
+      return this.activeTheme.filter_presets[presetName];
+    }
+
+    // Fall back to built-in presets
+    return BUILTIN_FILTER_PRESETS[presetName] || null;
+  }
+
+  /**
+   * List all available filter preset names
+   *
+   * @returns {Array<string>} Array of preset names
+   *
+   * @example
+   * const presets = themeManager.listFilterPresets();
+   * // Returns: ['dimmed', 'subtle', 'backdrop', 'faded', 'red-alert', 'monochrome', ...]
+   */
+  listFilterPresets() {
+    const builtinPresets = Object.keys(BUILTIN_FILTER_PRESETS);
+    const themePresets = this.activeTheme?.filter_presets
+      ? Object.keys(this.activeTheme.filter_presets)
+      : [];
+
+    // Combine and deduplicate (theme presets take precedence)
+    return [...new Set([...builtinPresets, ...themePresets])];
   }
 
   /**

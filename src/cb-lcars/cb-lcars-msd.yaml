@@ -372,16 +372,87 @@ cb-lcars-msd:
             // Process SVG and anchors (use let instead of const to avoid conflicts)
             let svgContent;
             let svgError = null;
+            const source = msdConfig.base_svg.source;
 
-            try {
-              svgContent = window.cblcars.getSvgContent(msdConfig.base_svg.source);
-            } catch (error) {
-              svgError = error;
-              console.error('[MSD DEBUG] ❌ SVG loading error:', error);
+            // Handle "none" case - skip SVG loading, use explicit viewBox
+            if (source === 'none') {
+              console.log('[MSD DEBUG] 🚫 base_svg.source is "none" - using overlay-only mode');
+
+              // Validate that view_box is provided
+              if (!msdConfig.view_box || !Array.isArray(msdConfig.view_box) || msdConfig.view_box.length !== 4) {
+                return `
+                  <div style="
+                    color: #ff6666;
+                    padding: 20px;
+                    text-align: center;
+                    border: 2px solid #ff6666;
+                    border-radius: 8px;
+                    background: rgba(255, 102, 102, 0.1);
+                    font-family: monospace;
+                  ">
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                      ❌ view_box Required
+                    </div>
+                    <div style="font-size: 14px; margin-bottom: 8px; color: #ffcccc;">
+                      When using base_svg.source: "none", you must provide an explicit view_box
+                    </div>
+                    <div style="
+                      background: rgba(0,0,0,0.3);
+                      padding: 8px;
+                      border-radius: 4px;
+                      font-size: 12px;
+                      color: #ffcc99;
+                    ">
+                      view_box: [0, 0, 1920, 1080]
+                    </div>
+                  </div>
+                `;
+              }
+
+              // Set svgContent to empty string so we skip SVG rendering
+              svgContent = '';
+            } else {
+              // Normal SVG loading
+              try {
+                svgContent = window.cblcars.getSvgContent(source);
+
+                // Wrap SVG inner content in a group for filter isolation
+                // This prevents filters from affecting overlay layers
+                if (svgContent) {
+                  // Parse SVG and wrap contents in <g id="msd-base-content">
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = svgContent;
+                  const svgEl = tempDiv.querySelector('svg');
+
+                  if (svgEl) {
+                    // Get all child nodes
+                    const children = Array.from(svgEl.childNodes);
+
+                    // Create wrapper group with __ prefix to indicate internal/reserved ID
+                    // (prevents anchor extraction from treating this as an anchor)
+                    const wrapperGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    wrapperGroup.setAttribute('id', '__msd-base-content');
+
+                    // Move all children into the wrapper
+                    children.forEach(child => wrapperGroup.appendChild(child));
+
+                    // Clear SVG and add wrapped content
+                    svgEl.innerHTML = '';
+                    svgEl.appendChild(wrapperGroup);
+
+                    // Serialize back to string
+                    svgContent = tempDiv.innerHTML;
+
+                    console.log('[MSD DEBUG] 🎨 Wrapped base SVG content in #__msd-base-content for filter isolation');
+                  }
+                }
+              } catch (error) {
+                svgError = error;
+                console.error('[MSD DEBUG] ❌ SVG loading error:', error);
+              }
             }
 
-            if (!svgContent) {
-              const source = msdConfig.base_svg.source;
+            if (!svgContent && source !== 'none') {
               const isBuiltin = source.startsWith('builtin:');
               const isUrl = source.startsWith('http');
               const isLocal = source.startsWith('/') || source.startsWith('./');
@@ -396,7 +467,8 @@ cb-lcars-msd:
                 errorMessage = `Builtin SVG "${svgName}" not found`;
 
                 let templates = 'ncc-1701-a-blue, ncc-1701-d, nx-01, etc.'
-                const svgTemplates = window?.cblcars?.msd?.svg_templates;
+                const svgTemplates = window?.cblcars?.assets?.svg_templates;
+                //const svgTemplates = window?.cblcars?.msd?.svg_templates;
                 if (svgTemplates && typeof svgTemplates === 'object') {
                   templates = Object.keys(svgTemplates).sort();
                 }
@@ -446,11 +518,23 @@ cb-lcars-msd:
               `;
             }
 
-            const viewBox = window.cblcars.getSvgViewBox(svgContent);
-            const aspect = window.cblcars.getSvgAspectRatio(viewBox);
+            // Extract viewBox and aspect ratio
+            let viewBox;
+            let aspect;
+
+            if (source === 'none') {
+              // Use explicit view_box from config
+              viewBox = msdConfig.view_box;
+              aspect = window.cblcars.getSvgAspectRatio(viewBox);
+              console.log('[MSD DEBUG] 📐 Using explicit view_box for "none" source:', { viewBox, aspect });
+            } else {
+              // Extract from SVG content
+              viewBox = window.cblcars.getSvgViewBox(svgContent);
+              aspect = window.cblcars.getSvgAspectRatio(viewBox);
+            }
 
             // Process anchors
-            const svgAnchors = window.cblcars.findSvgAnchors(svgContent) || {};
+            const svgAnchors = (source === 'none') ? {} : (window.cblcars.findSvgAnchors(svgContent) || {});
             const userAnchors = msdConfig.anchors || {};
             const resolvedAnchors = {};
             const [minX, minY, vw, vh] = viewBox;
@@ -628,6 +712,37 @@ cb-lcars-msd:
             setTimeout(() => resolveMount(), 100);
 
             // SIMPLIFIED: Return single wrapper with layered structure
+            // For "none" source, create an empty SVG container to serve as mount point
+            if (source === 'none') {
+              const [vbX, vbY, vbW, vbH] = viewBox;
+              return `
+                <div id="msd-v1-comprehensive-wrapper" style="
+                  width: 100%;
+                  height: 100%;
+                  position: relative;
+                  aspect-ratio: ${aspect};
+                  pointer-events: none;
+                ">
+                  <!-- Empty SVG Base Layer for overlay mounting (source: none) -->
+                  <div style="
+                    position: absolute;
+                    top: 0; left: 0;
+                    width: 100%; height: 100%;
+                    z-index: 0;
+                    pointer-events: auto;
+                  ">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        viewBox="${vbX} ${vbY} ${vbW} ${vbH}"
+                        width="100%"
+                        height="100%"
+                        style="display: block;">
+                      <!-- Empty base SVG - overlays will be mounted here -->
+                    </svg>
+                  </div>
+                </div>
+              `;
+            }
+
             return `
               <div id="msd-v1-comprehensive-wrapper" style="
                 width: 100%;

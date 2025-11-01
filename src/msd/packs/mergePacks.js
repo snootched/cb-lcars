@@ -87,6 +87,7 @@ async function processSinglePass(layers) {
     data_sources: {},
     base_svg: null,
     theme: null,
+    view_box: null,
     __provenance: {
       anchors: {},
       overlays: {},
@@ -639,6 +640,22 @@ async function processLayer(merged, layer) {
     } else {
       merged.__provenance.debug.overridden = true;
       merged.__provenance.debug.override_layer = layer.pack;
+    }
+  }
+
+  // Process view_box configuration
+  if (layer.data.view_box !== undefined) {
+    merged.view_box = layer.data.view_box;
+
+    // Track view_box provenance
+    if (!merged.__provenance.view_box) {
+      merged.__provenance.view_box = {
+        origin_pack: layer.pack,
+        overridden: false
+      };
+    } else {
+      merged.__provenance.view_box.overridden = true;
+      merged.__provenance.view_box.override_layer = layer.pack;
     }
   }
 }

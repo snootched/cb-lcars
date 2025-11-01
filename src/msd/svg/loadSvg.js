@@ -44,6 +44,8 @@ export function extractAnchors(raw) {
   const anchors = {};
   // circle
   raw.replace(/<circle\b[^>]*id="([^"]+)"[^>]*>/gim, (_m, id) => {
+    // Skip internal/reserved IDs (__ prefix or msd-internal- prefix)
+    if (id.startsWith('__') || id.startsWith('msd-internal-')) return '';
     const cx = attrNum(_m, 'cx');
     const cy = attrNum(_m, 'cy');
     if (cx != null && cy != null) anchors[id] = [cx, cy];
@@ -51,6 +53,8 @@ export function extractAnchors(raw) {
   });
   // text
   raw.replace(/<text\b[^>]*id="([^"]+)"[^>]*>/gim, (_m, id) => {
+    // Skip internal/reserved IDs (__ prefix or msd-internal- prefix)
+    if (id.startsWith('__') || id.startsWith('msd-internal-')) return '';
     const x = attrNum(_m, 'x');
     const y = attrNum(_m, 'y');
     if (x != null && y != null) anchors[id] = [x, y];
@@ -58,6 +62,8 @@ export function extractAnchors(raw) {
   });
   // g placeholders
   raw.replace(/<g\b[^>]*id="([^"]+)"[^>]*>/gim, (_m, id) => {
+    // Skip internal/reserved IDs (__ prefix or msd-internal- prefix)
+    if (id.startsWith('__') || id.startsWith('msd-internal-')) return '';
     if (!anchors[id]) anchors[id] = null;
     return '';
   });

@@ -783,12 +783,12 @@ export class ButtonOverlay extends OverlayBase {
       // - true: Successfully updated attributes incrementally
       // - false: Geometry changes detected, needs full re-render (will trigger fallback)
       if (styleUpdated === false) {
-        cblcarsLog.warn(`[ButtonOverlay] ⚠️ Geometry changes detected - returning false to trigger selective re-render: ${overlay.id}`);
+        cblcarsLog.debug(`[ButtonOverlay] ⚠️ Geometry changes detected - returning false to trigger selective re-render: ${overlay.id}`);
         return false;  // Trigger fallback to selective re-render
       }
 
       if (styleUpdated) {
-        cblcarsLog.info(`[ButtonOverlay] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.id}`);
+        cblcarsLog.debug(`[ButtonOverlay] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.id}`);
         return true;
       } else {
         // This shouldn't happen anymore, but keep for safety

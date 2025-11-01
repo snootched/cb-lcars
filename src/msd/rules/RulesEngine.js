@@ -33,6 +33,7 @@ export class RulesEngine {
     this.hassUnsubscribe = null;
     this._reEvaluationCallback = null;
     this._hassEntities = new Set(); // Cached entity list for performance
+    this._freshStateCache = new Map(); // Cache for fresh states from events (entityId -> state object)
 
     this.buildRulesIndex();
     this.buildDependencyIndex();
@@ -213,6 +214,13 @@ export class RulesEngine {
 
         getEntity = (entityId) => {
           cblcarsLog.trace(`[RulesEngine] getEntity called for: ${entityId}`);
+
+          // PRIORITY 0: Check fresh state cache from events (most recent data)
+          if (this._freshStateCache.has(entityId)) {
+            const freshState = this._freshStateCache.get(entityId);
+            cblcarsLog.trace(`[RulesEngine] Using FRESH cached state for ${entityId}: ${freshState.state}`);
+            return freshState;
+          }
 
           // PRIORITY 1: Try to get HASS state from SystemsManager
           if (this.systemsManager) {
@@ -398,7 +406,16 @@ export class RulesEngine {
         result.profilesAdd = rule.apply.profiles_add || [];
         result.profilesRemove = rule.apply.profiles_remove || [];
         result.animations = rule.apply.animations || [];
+        result.baseSvgUpdate = rule.apply.base_svg || null;  // ✅ NEW: base_svg filter updates
         result.stopAfter = rule.stop === true;
+
+        // DEBUG: Log what we found
+        cblcarsLog.debug(`[RulesEngine] 🎨 Rule ${rule.id} matched - apply block:`, {
+          hasBaseSvg: !!rule.apply.base_svg,
+          baseSvgValue: rule.apply.base_svg,
+          hasOverlays: !!rule.apply.overlays,
+          overlayCount: result.overlayPatches?.length || 0
+        });
       }
 
       return result;
@@ -693,6 +710,12 @@ export class RulesEngine {
         result.value = new Date().toTimeString().substring(0, 5);
       }
 
+      // Time condition with after/before
+      if (condition.time) {
+        result.matched = this.evaluateTimeCondition(condition.time);
+        result.value = new Date().toTimeString().substring(0, 5);
+      }
+
       // Map range condition
       if (condition.map_range_cond) {
         result.matched = this.evaluateMapRangeCondition(condition.map_range_cond, getEntity);
@@ -723,6 +746,39 @@ export class RulesEngine {
       // Crosses midnight
       return currentTime >= start || currentTime <= end;
     }
+  }
+
+  /**
+   * Evaluate time condition with after/before
+   * @param {Object} timeCondition - Time condition with optional after/before
+   * @returns {boolean} True if current time matches condition
+   */
+  evaluateTimeCondition(timeCondition) {
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+    let matchAfter = true;
+    let matchBefore = true;
+
+    // Check "after" condition
+    if (timeCondition.after) {
+      const [afterHour, afterMin] = timeCondition.after.split(':').map(Number);
+      const afterMinutes = afterHour * 60 + afterMin;
+      matchAfter = currentTime >= afterMinutes;
+      cblcarsLog.trace(`[RulesEngine] Time after check: ${currentTime} >= ${afterMinutes} (${timeCondition.after}) = ${matchAfter}`);
+    }
+
+    // Check "before" condition
+    if (timeCondition.before) {
+      const [beforeHour, beforeMin] = timeCondition.before.split(':').map(Number);
+      const beforeMinutes = beforeHour * 60 + beforeMin;
+      matchBefore = currentTime < beforeMinutes;
+      cblcarsLog.trace(`[RulesEngine] Time before check: ${currentTime} < ${beforeMinutes} (${timeCondition.before}) = ${matchBefore}`);
+    }
+
+    const finalMatch = matchAfter && matchBefore;
+    cblcarsLog.debug(`[RulesEngine] Time condition evaluated: after=${matchAfter}, before=${matchBefore}, final=${finalMatch}`);
+    return finalMatch;
   }
 
   evaluateMapRangeCondition(mapRangeCondition, getEntity) {
@@ -848,7 +904,8 @@ export class RulesEngine {
       overlayPatches: [],
       profilesAdd: [],
       profilesRemove: [],
-      animations: []
+      animations: [],
+      baseSvgUpdate: null  // ✅ NEW: Aggregate base_svg updates
     };
 
     // Group results by target overlays for stop semantics
@@ -873,7 +930,7 @@ export class RulesEngine {
       this.processOverlayRules(overlayId, rules, aggregated);
     });
 
-    // Add non-overlay results (profiles, animations)
+    // Add non-overlay results (profiles, animations, base_svg)
     ruleResults
       .sort((a, b) => (b.priority || 0) - (a.priority || 0))
       .forEach(result => {
@@ -885,6 +942,10 @@ export class RulesEngine {
         }
         if (result.animations) {
           aggregated.animations.push(...result.animations);
+        }
+        // ✅ NEW: Take the first (highest priority) base_svg update
+        if (result.baseSvgUpdate && !aggregated.baseSvgUpdate) {
+          aggregated.baseSvgUpdate = result.baseSvgUpdate;
         }
       });
 
@@ -951,7 +1012,8 @@ export class RulesEngine {
       overlayPatches: [],
       profilesAdd: [],
       profilesRemove: [],
-      animations: []
+      animations: [],
+      baseSvgUpdate: null  // ✅ NEW: Include base_svg in empty result
     };
   }
 
@@ -1030,6 +1092,18 @@ export class RulesEngine {
   _handleRuleEntityChange(entityId, eventData) {
     cblcarsLog.debug(`[RulesEngine] Processing entity change: ${entityId} -> ${eventData.new_state?.state}`);
 
+    // Cache the fresh state from the event for immediate use
+    if (eventData.new_state) {
+      this._freshStateCache.set(entityId, {
+        entity_id: entityId,
+        state: eventData.new_state.state,
+        attributes: eventData.new_state.attributes || {},
+        last_changed: eventData.new_state.last_changed,
+        last_updated: eventData.new_state.last_updated
+      });
+      cblcarsLog.trace(`[RulesEngine] Cached fresh state for ${entityId}: ${eventData.new_state.state}`);
+    }
+
     // Mark affected rules as dirty using existing infrastructure
     const affectedRules = this.markEntitiesDirty([entityId]);
 
@@ -1045,6 +1119,13 @@ export class RulesEngine {
         }
       }
     }
+
+    // Clear the cache after evaluation (it will be stale for next change)
+    // Do this async so the callback completes first
+    setTimeout(() => {
+      this._freshStateCache.delete(entityId);
+      cblcarsLog.trace(`[RulesEngine] Cleared cached state for ${entityId}`);
+    }, 100);
   }
 
   /**
