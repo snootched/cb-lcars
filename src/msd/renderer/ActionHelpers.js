@@ -20,15 +20,21 @@ export class ActionHelpers {
    * @param {Element} element - The DOM element to attach actions to
    * @param {Object} simpleActions - Simple actions configuration
    * @param {Object} cardInstance - Card instance for action handling
+   * @param {Object} options - Additional options (e.g., animationManager for animation triggers)
    * @private
    * @static
    */
-  static _attachSimpleActions(element, simpleActions, cardInstance) {
+  static _attachSimpleActions(element, simpleActions, cardInstance, options = {}) {
     cblcarsLog.debug(`[ActionHelpers] 🔗 Attaching overlay actions to element`, {
       elementType: element.tagName,
       overlayId: element.getAttribute('data-overlay-id'),
-      actions: simpleActions
+      actions: simpleActions,
+      hasAnimationManager: !!options.animationManager
     });
+
+    const overlayId = element.getAttribute('data-overlay-id');
+    const animationManager = options.animationManager;
+
     // Track action state to prevent conflicts (same as cell system)
     let isHolding = false;
     let holdTimer = null;
@@ -57,6 +63,12 @@ export class ActionHelpers {
         holdTimer = setTimeout(() => {
           isHolding = true;
           cblcarsLog.debug(`[ActionHelpers] 🎯 Overlay HOLD ACTION TRIGGERED after 500ms`);
+
+          // Trigger animation if animation manager is available
+          if (animationManager && overlayId) {
+            animationManager.triggerAnimations(overlayId, 'on_hold');
+          }
+
           ActionHelpers.executeActionViaButtonCardBridge(simpleActions.hold_action, cardInstance, 'hold');
         }, 500);
       }
@@ -91,6 +103,12 @@ export class ActionHelpers {
         // Check for double-tap first
         if (simpleActions.double_tap_action && (now - lastTap < 300) && lastTap > 0) {
           cblcarsLog.debug(`[ActionHelpers] 🎯 Overlay DOUBLE-TAP ACTION TRIGGERED`);
+
+          // Trigger animation if animation manager is available
+          if (animationManager && overlayId) {
+            animationManager.triggerAnimations(overlayId, 'on_double_tap');
+          }
+
           ActionHelpers.executeActionViaButtonCardBridge(simpleActions.double_tap_action, cardInstance, 'double_tap');
           lastTap = 0; // Reset to prevent triple-tap and single-tap
           return; // CRITICAL: Exit early to prevent single-tap logic
@@ -105,6 +123,12 @@ export class ActionHelpers {
             setTimeout(() => {
               if (lastTap === tapTimestamp) { // No double-tap happened (lastTap wasn't reset)
                 cblcarsLog.debug(`[ActionHelpers] 🎯 Overlay SINGLE TAP ACTION TRIGGERED (delayed)`);
+
+                // Trigger animation if animation manager is available
+                if (animationManager && overlayId) {
+                  animationManager.triggerAnimations(overlayId, 'on_tap');
+                }
+
                 ActionHelpers.executeActionViaButtonCardBridge(simpleActions.tap_action, cardInstance, 'tap');
               } else {
                 cblcarsLog.debug(`[ActionHelpers] 🚫 Overlay single tap cancelled (double-tap occurred)`);
@@ -113,6 +137,12 @@ export class ActionHelpers {
           } else {
             // No double-tap action, execute immediately
             cblcarsLog.debug(`[ActionHelpers] 🎯 Overlay SINGLE TAP ACTION TRIGGERED (immediate)`);
+
+            // Trigger animation if animation manager is available
+            if (animationManager && overlayId) {
+              animationManager.triggerAnimations(overlayId, 'on_tap');
+            }
+
             ActionHelpers.executeActionViaButtonCardBridge(simpleActions.tap_action, cardInstance, 'tap');
           }
         }
@@ -142,6 +172,23 @@ export class ActionHelpers {
     element.addEventListener('touchstart', handlePointerDown, { capture: false });
     element.addEventListener('touchend', handlePointerUp, { capture: false });
     element.addEventListener('touchcancel', handlePointerLeave, { capture: false });
+
+    // Add hover support for animations (desktop only)
+    if (animationManager && overlayId) {
+      const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      cblcarsLog.debug(`[ActionHelpers] 🖱️ Hover handler check for ${overlayId}: {hasAnimationManager: true, isDesktop: ${isDesktop}}`);
+
+      if (isDesktop) {
+        const hoverHandler = () => {
+          cblcarsLog.debug(`[ActionHelpers] 🖱️ Hover triggered on ${overlayId}`);
+          animationManager.triggerAnimations(overlayId, 'on_hover');
+        };
+        element.addEventListener('mouseenter', hoverHandler, { capture: false });
+        cblcarsLog.debug(`[ActionHelpers] ✅ Hover handler attached for ${overlayId}`);
+      } else {
+        cblcarsLog.debug(`[ActionHelpers] ⏭️ Skipping hover handler for ${overlayId} (not desktop)`);
+      }
+    }
   }
 
   /**
@@ -897,19 +944,22 @@ export class ActionHelpers {
    * @param {Object} overlay - Overlay configuration
    * @param {Object} actionConfig - Action configuration
    * @param {Object} cardInstance - Card instance for action handling
+   * @param {Object} options - Optional parameters
+   * @param {Object} options.animationManager - AnimationManager instance for triggering animations
    * @static
    */
-  static attachActions(element, overlay, actionConfig, cardInstance) {
+  static attachActions(element, overlay, actionConfig, cardInstance, options = {}) {
     if (!element || !actionConfig || !cardInstance) {
       cblcarsLog.debug(`[ActionHelpers] Missing required parameters for action attachment`);
       return;
     }
 
-    cblcarsLog.debug(`[ActionHelpers] 🔗 Attaching actions to ${overlay.type || 'overlay'} ${overlay.id}`);
+    const hasAnimationManager = !!options.animationManager;
+    cblcarsLog.debug(`[ActionHelpers] 🔗 Attaching actions to ${overlay.type || 'overlay'} ${overlay.id} (animationManager: ${hasAnimationManager})`);
 
     // Attach simple actions (tap, hold, double_tap)
     if (actionConfig.simple) {
-      ActionHelpers._attachSimpleActions(element, actionConfig.simple, cardInstance);
+      ActionHelpers._attachSimpleActions(element, actionConfig.simple, cardInstance, options);
     }
 
     // Handle enhanced actions (element-specific or multi-target)

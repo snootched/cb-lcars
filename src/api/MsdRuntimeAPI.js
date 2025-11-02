@@ -608,30 +608,214 @@ export class MsdRuntimeAPI {
       },
 
       /**
-       * Play a named animation
-       * @param {string} [cardId] - Card ID (optional)
-       * @param {string} animationId - Animation ID
-       * @returns {Object} NOT_IMPLEMENTED response
+       * Play an animation on an overlay
+       *
+       * @param {string} [cardId] - Card ID (optional, ignored in Phase 0)
+       * @param {string} overlayId - Overlay identifier
+       * @param {string} presetName - Animation preset name
+       * @param {Object} [params] - Additional animation parameters
+       * @returns {Object|null} Animation instance or error response
+       *
+       * @example
+       * // Simple usage
+       * window.cblcars.msd.animate('cpu_status', 'pulse');
+       *
+       * @example
+       * // With parameters
+       * window.cblcars.msd.animate('cpu_status', 'pulse', {
+       *   duration: 500,
+       *   color: 'var(--lcars-red)'
+       * });
+       *
+       * @example
+       * // With cardId (future multi-instance support)
+       * window.cblcars.msd.animate('card-123', 'cpu_status', 'glow', { duration: 800 });
        */
-      animate(cardId, animationId) {
-        // Handle flexible arguments: animate(animationId) or animate(cardId, animationId)
-        if (typeof cardId === 'string' && animationId === undefined) {
-          animationId = cardId;
+      animate(cardId, overlayId, presetName, params = {}) {
+        // Handle flexible arguments
+        if (typeof cardId === 'string' && typeof overlayId === 'string' &&
+            typeof presetName === 'string' && typeof params === 'object') {
+          // animate(cardId, overlayId, presetName, params) - full form
+        } else if (typeof cardId === 'string' && typeof overlayId === 'string' &&
+                   (typeof presetName === 'object' || presetName === undefined)) {
+          // animate(overlayId, presetName, params) - no cardId
+          params = presetName || {};
+          presetName = overlayId;
+          overlayId = cardId;
+          cardId = null;
+        } else {
+          cblcarsLog.error('[RuntimeAPI] animate() invalid arguments');
+          return {
+            error: 'INVALID_ARGUMENTS',
+            message: 'Expected: animate(overlayId, preset, [params]) or animate(cardId, overlayId, preset, [params])'
+          };
+        }
+
+        try {
+          const instance = MsdRuntimeAPI.create().getInstance(cardId);
+          if (!instance) {
+            cblcarsLog.warn('[RuntimeAPI] animate() - No MSD instance available');
+            return {
+              error: 'NO_INSTANCE',
+              message: 'MSD instance not available'
+            };
+          }
+
+          const systemsManager = instance?.systemsManager;
+          const animationManager = systemsManager?.animationManager;
+
+          if (!animationManager) {
+            cblcarsLog.warn('[RuntimeAPI] animate() - AnimationManager not available');
+            return {
+              error: 'NO_ANIMATION_MANAGER',
+              message: 'Animation system not initialized'
+            };
+          }
+
+          // Play animation
+          const result = animationManager.playAnimation(overlayId, {
+            preset: presetName,
+            ...params,
+            trigger_source: 'runtime_api'
+          });
+
+          if (result) {
+            cblcarsLog.debug(`[RuntimeAPI] Animation triggered: ${overlayId} / ${presetName}`);
+            return {
+              success: true,
+              overlayId,
+              preset: presetName,
+              params
+            };
+          } else {
+            return {
+              error: 'ANIMATION_FAILED',
+              message: 'Failed to play animation',
+              overlayId,
+              preset: presetName
+            };
+          }
+        } catch (error) {
+          cblcarsLog.error('[RuntimeAPI] animate() error:', error);
+          return {
+            error: 'EXCEPTION',
+            message: error.message
+          };
+        }
+      },
+
+      /**
+       * Stop all animations on an overlay
+       *
+       * @param {string} [cardId] - Card ID (optional, ignored in Phase 0)
+       * @param {string} overlayId - Overlay identifier
+       * @returns {Object} Result object
+       *
+       * @example
+       * window.cblcars.msd.stopAnimation('cpu_status');
+       */
+      stopAnimation(cardId, overlayId) {
+        // Handle flexible arguments
+        if (typeof cardId === 'string' && overlayId === undefined) {
+          overlayId = cardId;
           cardId = null;
         }
 
-        cblcarsLog.warn('[RuntimeAPI] animate() not yet implemented - planned for Phase 5');
-        cblcarsLog.info('[RuntimeAPI] This will enable programmatic animation control');
-        return {
-          error: 'NOT_IMPLEMENTED',
-          message: 'Feature planned for Phase 5',
-          animationId,
-          plannedFeatures: [
-            'Trigger animations from scripts',
-            'Control animation playback',
-            'Chain animation sequences'
-          ]
-        };
+        try {
+          const instance = MsdRuntimeAPI.create().getInstance(cardId);
+          if (!instance) {
+            return { error: 'NO_INSTANCE', message: 'MSD instance not available' };
+          }
+
+          const animationManager = instance?.systemsManager?.animationManager;
+          if (!animationManager) {
+            return { error: 'NO_ANIMATION_MANAGER', message: 'Animation system not initialized' };
+          }
+
+          animationManager.stopAnimation(overlayId);
+
+          cblcarsLog.debug(`[RuntimeAPI] Animation stopped: ${overlayId}`);
+          return { success: true, overlayId };
+        } catch (error) {
+          cblcarsLog.error('[RuntimeAPI] stopAnimation() error:', error);
+          return { error: 'EXCEPTION', message: error.message };
+        }
+      },
+
+      /**
+       * Pause animations on an overlay
+       *
+       * @param {string} [cardId] - Card ID (optional, ignored in Phase 0)
+       * @param {string} overlayId - Overlay identifier
+       * @returns {Object} Result object
+       *
+       * @example
+       * window.cblcars.msd.pauseAnimation('cpu_status');
+       */
+      pauseAnimation(cardId, overlayId) {
+        // Handle flexible arguments
+        if (typeof cardId === 'string' && overlayId === undefined) {
+          overlayId = cardId;
+          cardId = null;
+        }
+
+        try {
+          const instance = MsdRuntimeAPI.create().getInstance(cardId);
+          if (!instance) {
+            return { error: 'NO_INSTANCE', message: 'MSD instance not available' };
+          }
+
+          const animationManager = instance?.systemsManager?.animationManager;
+          if (!animationManager) {
+            return { error: 'NO_ANIMATION_MANAGER', message: 'Animation system not initialized' };
+          }
+
+          animationManager.pauseOverlay(overlayId);
+
+          cblcarsLog.debug(`[RuntimeAPI] Animation paused: ${overlayId}`);
+          return { success: true, overlayId };
+        } catch (error) {
+          cblcarsLog.error('[RuntimeAPI] pauseAnimation() error:', error);
+          return { error: 'EXCEPTION', message: error.message };
+        }
+      },
+
+      /**
+       * Resume animations on an overlay
+       *
+       * @param {string} [cardId] - Card ID (optional, ignored in Phase 0)
+       * @param {string} overlayId - Overlay identifier
+       * @returns {Object} Result object
+       *
+       * @example
+       * window.cblcars.msd.resumeAnimation('cpu_status');
+       */
+      resumeAnimation(cardId, overlayId) {
+        // Handle flexible arguments
+        if (typeof cardId === 'string' && overlayId === undefined) {
+          overlayId = cardId;
+          cardId = null;
+        }
+
+        try {
+          const instance = MsdRuntimeAPI.create().getInstance(cardId);
+          if (!instance) {
+            return { error: 'NO_INSTANCE', message: 'MSD instance not available' };
+          }
+
+          const animationManager = instance?.systemsManager?.animationManager;
+          if (!animationManager) {
+            return { error: 'NO_ANIMATION_MANAGER', message: 'Animation system not initialized' };
+          }
+
+          animationManager.resumeOverlay(overlayId);
+
+          cblcarsLog.debug(`[RuntimeAPI] Animation resumed: ${overlayId}`);
+          return { success: true, overlayId };
+        } catch (error) {
+          cblcarsLog.error('[RuntimeAPI] resumeAnimation() error:', error);
+          return { error: 'EXCEPTION', message: error.message };
+        }
       }
     };
   }

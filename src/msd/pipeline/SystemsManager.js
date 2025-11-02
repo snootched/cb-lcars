@@ -23,6 +23,10 @@ import { StatusGridRenderer } from '../renderer/StatusGridRenderer.js';
 import { ButtonOverlay } from '../overlays/ButtonOverlay.js';
 import { TextOverlay } from '../overlays/TextOverlay.js';
 
+// ✨ ADDED: Import animation system components
+import { AnimationManager } from '../animation/AnimationManager.js';
+import { processAnimationConfig } from '../animation/AnimationConfigProcessor.js';
+
 export class SystemsManager {
   constructor() {
     // Initialize core managers
@@ -37,6 +41,7 @@ export class SystemsManager {
     this.hudManager = null;
     this.router = null;
     this.animRegistry = null;
+    this.animationManager = null; // ✨ NEW: Phase 5 - Animation system
     this.rulesEngine = null;
     this.debugManager = new DebugManager();
     this.overlayUpdater = null; // ADDED: Unified overlay update system
@@ -308,6 +313,21 @@ export class SystemsManager {
     this.overlayUpdater = new BaseOverlayUpdater(this);
     cblcarsLog.debug('[SystemsManager] BaseOverlayUpdater initialized for unified overlay updates');
 
+    // ✨ NEW: Phase 5 - Initialize AnimationManager
+    cblcarsLog.debug('[SystemsManager] 🎬 Phase 5: Initializing AnimationManager');
+    this.animationManager = new AnimationManager(this);
+
+    // Process animation configuration from merged config
+    const animationConfig = processAnimationConfig(mergedConfig);
+
+    // Initialize with processed configuration
+    await this.animationManager.initialize(mergedConfig.overlays || [], {
+      customPresets: animationConfig.customPresets,
+      timelines: animationConfig.timelines
+    });
+
+    cblcarsLog.debug('[SystemsManager] ✅ AnimationManager initialized');
+
     cblcarsLog.debug('[SystemsManager] ✅ All systems initialization complete', {
       hasThemeManager: !!this.themeManager,
       hasStyleResolver: !!this.styleResolver,  // ✅ NEW: Phase 6
@@ -316,6 +336,7 @@ export class SystemsManager {
       hasRenderer: !!this.renderer,
       hasRulesEngine: !!this.rulesEngine,
       hasAnimRegistry: !!this.animRegistry,
+      hasAnimationManager: !!this.animationManager,  // ✨ NEW
       hasDebugManager: !!this.debugManager,
       hasControlsRenderer: !!this.controlsRenderer,
       hasDebugRenderer: !!this.debugRenderer

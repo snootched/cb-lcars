@@ -227,11 +227,15 @@ export class AdvancedRenderer {
 
       if (element) {
         try {
+          // Get animationManager from systemsManager to support animation triggers
+          const animationManager = this.systemsManager?.animationManager;
+
           ActionHelpers.attachActions(
             element,
             actionInfo.overlay,
             actionInfo.config,
-            actionInfo.cardInstance
+            actionInfo.cardInstance,
+            { animationManager }
           );
           element.setAttribute('data-actions-attached', 'true');
           cblcarsLog.debug(`[AdvancedRenderer] ✅ Attached Phase 1 actions to ${overlayId}`);
@@ -476,6 +480,9 @@ export class AdvancedRenderer {
 
       if (element && !element.hasAttribute('data-actions-attached')) {
         try {
+          // Get animationManager from systemsManager to support animation triggers
+          const animationManager = this.systemsManager?.animationManager;
+
           // CHANGED: Handle different action config types
           if (actionInfo.config.simple) {
             // Simple overlay-level actions (text, buttons)
@@ -483,7 +490,8 @@ export class AdvancedRenderer {
               element,
               overlay,
               actionInfo.config,
-              cardInstance
+              cardInstance,
+              { animationManager }
             );
           } else if (actionInfo.config.enhanced) {
             // Enhanced cell-level actions (status grids)
@@ -515,7 +523,8 @@ export class AdvancedRenderer {
                 element,
                 overlay,
                 fallbackConfig,
-                cardInstance
+                cardInstance,
+                { animationManager }
               );
             }
           }
@@ -1310,7 +1319,16 @@ export class AdvancedRenderer {
             // Re-attach actions if present
             if (result.actionInfo && !newElement.hasAttribute('data-actions-attached')) {
               try {
-                ActionHelpers.attachActions(newElement, overlay, result.actionInfo.config, this.routerCore);
+                // Get animationManager from systemsManager to support animation triggers
+                const animationManager = this.systemsManager?.animationManager;
+
+                ActionHelpers.attachActions(
+                  newElement,
+                  overlay,
+                  result.actionInfo.config,
+                  this.routerCore,
+                  { animationManager }
+                );
                 newElement.setAttribute('data-actions-attached', 'true');
                 cblcarsLog.debug(`[AdvancedRenderer] 🎯 Re-attached actions for: ${overlay.id}`);
               } catch (actionError) {
@@ -2291,11 +2309,16 @@ export class AdvancedRenderer {
       if (hadActions && actionInfo) {
         try {
           cblcarsLog.debug(`[AdvancedRenderer] 🔄 Re-attaching actions after font stabilization for ${overlay.id}`);
+
+          // Get animationManager from systemsManager to support animation triggers
+          const animationManager = this.systemsManager?.animationManager;
+
           ActionHelpers.attachActions(
             newGroup,
             actionInfo.overlay,
             actionInfo.config,
-            actionInfo.cardInstance
+            actionInfo.cardInstance,
+            { animationManager }
           );
           newGroup.setAttribute('data-actions-attached', 'true');
           cblcarsLog.debug(`[AdvancedRenderer] ✅ Actions re-attached to ${overlay.id}`);

@@ -86,9 +86,17 @@ export const animPresets = {
 
         // Prefer pulse config from params.pulse, then options.pulse, then options, then defaults
         const pulseCfg = params.pulse || options.pulse || options || {};
+
+        // Check if element is a text element or a group containing text
+        const isText = element.tagName === 'text' || element.tagName === 'TEXT';
+        const isTextGroup = element.tagName === 'g' && element.querySelector('text');
+
+        // Support both 'scale' and 'max_scale' parameters
         const maxScale = pulseCfg.max_scale !== undefined
             ? pulseCfg.max_scale
-            : (element.tagName === 'text' || element.tagName === 'TEXT' ? 1.1 : 1.5);
+            : (pulseCfg.scale !== undefined
+                ? pulseCfg.scale
+                : ((isText || isTextGroup) ? 1.2 : 1.5));
         const minOpacity = pulseCfg.min_opacity !== undefined
             ? pulseCfg.min_opacity
             : 0.7;
@@ -103,7 +111,20 @@ export const animPresets = {
         const loop = params.loop ?? options.loop ?? true;
         const alternate = params.alternate ?? options.alternate ?? true;
 
-        if (element.tagName === 'text' || element.tagName === 'TEXT') {
+        if (isText || isTextGroup) {
+            // For text groups, we need to animate the actual text element, not the wrapper
+            let targetElement = element;
+            if (isTextGroup) {
+                const textEl = element.querySelector('text');
+                if (textEl) {
+                    targetElement = textEl;
+                    cblcarsLog.debug('[pulse preset] Animating text child instead of group wrapper:', {
+                        groupId: element.id,
+                        textElement: textEl
+                    });
+                }
+            }
+
             Object.assign(params, {
                 scale: [1, maxScale],
                 opacity: [1, minOpacity],
@@ -112,11 +133,20 @@ export const animPresets = {
                 loop,
                 alternate
             });
-            element.style.transformOrigin = 'center';
-            element.style.transformBox = 'fill-box';
-            cblcarsLog.debug('[pulse preset] Set transformOrigin/transformBox for text:', {
+
+            // Apply transform settings to the target element
+            targetElement.style.transformOrigin = 'center';
+            targetElement.style.transformBox = 'fill-box';
+
+            // Override the params to use the text element as target
+            params.targets = targetElement;
+
+            cblcarsLog.debug('[pulse preset] Set transformOrigin/transformBox for text/group:', {
                 id: element.id,
-                style: element.style.cssText
+                tagName: element.tagName,
+                isTextGroup,
+                targetElement: targetElement.tagName,
+                style: targetElement.style.cssText
             });
         } else if (element.hasAttribute('stroke-width')) {
             // Pulse lines: animate stroke-width and opacity

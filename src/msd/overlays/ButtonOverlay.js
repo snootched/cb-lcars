@@ -132,8 +132,20 @@ export class ButtonOverlay extends OverlayBase {
       // Use cached content or resolve fresh
       const buttonContent = this._cachedContent || this._resolveButtonContent(overlay);
 
-      // Check for actions at overlay level
-      const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action);
+      // Check for actions at overlay level OR interactive animation triggers
+      const hasInteractiveAnimations = overlay.animations?.some(anim =>
+        ['on_tap', 'on_hold', 'on_hover', 'on_double_tap'].includes(anim.trigger)
+      );
+      const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action || hasInteractiveAnimations);
+
+      cblcarsLog.debug(`[ButtonOverlay] 🎯 Actions check for ${overlay.id}:`, {
+        hasTapAction: !!overlay.tap_action,
+        hasHoldAction: !!overlay.hold_action,
+        hasDoubleTapAction: !!overlay.double_tap_action,
+        hasInteractiveAnimations,
+        hasActions,
+        animations: overlay.animations
+      });
 
       // Resolve card instance
       if (!cardInstance) {
@@ -163,7 +175,8 @@ export class ButtonOverlay extends OverlayBase {
         {
           cellId: overlay.id,
           gridContext: false,
-          cardInstance: cardInstance
+          cardInstance: cardInstance,
+          hasInteractiveAnimations: hasInteractiveAnimations  // Pass animation info to ButtonRenderer
         }
       );
 
@@ -182,12 +195,14 @@ export class ButtonOverlay extends OverlayBase {
       }
 
       // Wrap in overlay group with proper data attributes
+      // Always enable pointer-events to support animation triggers (hover, tap, etc.)
+      // Even if no explicit actions are defined, animations may need pointer events
       const overlayMarkup = `<g id="${overlay.id}"
                 data-overlay-id="${overlay.id}"
                 data-overlay-type="button"
                 ${hasActions ? 'data-has-actions="true"' : ''}
                 data-animation-ready="${!!buttonStyle.animatable}"
-                style="pointer-events: ${hasActions ? 'all' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};">
+                style="pointer-events: all; cursor: ${hasActions ? 'pointer' : 'default'};">
                 ${result.markup}
               </g>`;
 

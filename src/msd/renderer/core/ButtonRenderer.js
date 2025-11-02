@@ -147,8 +147,11 @@ export class ButtonRenderer extends BaseRenderer {
       // Check if button has actions
       const hasActions = !!(config.tap_action || config.hold_action || config.double_tap_action || buttonStyle.actions);
 
-      // CRITICAL: Use 'visiblePainted' for grid cells with actions (matches working button pattern)
-      const pointerEvents = hasActions ? 'visiblePainted' : 'none';
+      // Always enable pointer events to support:
+      // 1. Explicit actions (tap, hold, double_tap)
+      // 2. Animation triggers (on_hover, on_tap, etc.) - animations are registered separately in AnimationManager
+      // Using 'visiblePainted' allows events to pass through to filled areas
+      const pointerEvents = 'visiblePainted';
       const cursor = hasActions ? 'pointer' : 'default';
 
       // Start building the button SVG

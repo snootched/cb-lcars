@@ -362,6 +362,62 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
         return { success: false, error: renderError.message, phase: 'advanced_renderer' };
       }
 
+      // ANIMATION INTEGRATION: Notify AnimationManager about rendered overlays
+      if (systemsManager.animationManager) {
+        cblcarsLog.debug('[PipelineCore] 🎬 Notifying AnimationManager about rendered overlays...');
+
+        // Track text overlays for re-initialization after font stabilization
+        const textOverlays = [];
+
+        for (const overlay of resolvedModel.overlays) {
+          // Check if AnimationManager has animations registered for this overlay
+          const hasAnimations = systemsManager.animationManager.registeredAnimations.has(overlay.id);
+          if (hasAnimations) {
+            // Find the rendered element
+            const element = mountEl.querySelector(`[data-overlay-id="${overlay.id}"]`);
+            if (element) {
+              try {
+                await systemsManager.animationManager.onOverlayRendered(overlay.id, element, overlay);
+                cblcarsLog.debug(`[PipelineCore] ✅ Initialized animations for overlay: ${overlay.id}`);
+
+                // Track text overlays for re-initialization after font stabilization
+                if (overlay.type === 'text') {
+                  textOverlays.push({ id: overlay.id, overlay });
+                }
+              } catch (animError) {
+                cblcarsLog.error(`[PipelineCore] ❌ Failed to initialize animations for ${overlay.id}:`, animError);
+              }
+            } else {
+              cblcarsLog.warn(`[PipelineCore] ⚠️ Could not find element for animated overlay: ${overlay.id}`);
+            }
+          }
+        }
+
+        // Re-initialize text overlay animations after font stabilization completes
+        // Font stabilization happens async and re-renders text elements
+        if (textOverlays.length > 0) {
+          setTimeout(async () => {
+            cblcarsLog.debug('[PipelineCore] 🔄 Re-initializing animations after font stabilization...', {
+              overlays: textOverlays.map(t => t.id)
+            });
+
+            for (const { id, overlay } of textOverlays) {
+              const element = mountEl.querySelector(`[data-overlay-id="${id}"]`);
+              if (element) {
+                try {
+                  await systemsManager.animationManager.onOverlayRendered(id, element, overlay);
+                  cblcarsLog.debug(`[PipelineCore] ✅ Re-initialized animations for text overlay: ${id}`);
+                } catch (animError) {
+                  cblcarsLog.error(`[PipelineCore] ❌ Failed to re-initialize animations for ${id}:`, animError);
+                }
+              }
+            }
+          }, 1000); // Wait for font stabilization to complete (typically 3-10 passes)
+        }
+
+        cblcarsLog.debug('[PipelineCore] ✅ AnimationManager notified about all rendered overlays');
+      }
+
       cblcarsLog.debug('[PipelineCore] 🎮 Starting renderDebugAndControls()...');
       // CHANGED: Make debug and controls rendering more defensive
       try {
@@ -830,6 +886,11 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
       // Store in SystemsManager too for broader access
       systemsManager.cardInstance = cardInstance;
       cblcarsLog.debug('[PipelineCore] Card instance set via API for action system');
+
+      // Attach any pending ActionHelpers for animated overlays
+      if (systemsManager.animationManager) {
+        systemsManager.animationManager.attachPendingActionHelpers();
+      }
     }
   };
 

@@ -1245,44 +1245,56 @@ export class MsdDebugAPI {
         /**
          * Get active animations
          *
-         * Returns list of currently running or registered animations.
+         * Returns list of currently running animations across all overlays.
          *
-         * @returns {Array|null} Active animations
+         * @returns {Array} Active animations with overlay, state, and progress info
          *
          * @example
          * const active = window.cblcars.debug.msd.animations.active();
-         * active.forEach(anim => console.log(anim.id, anim.state));
+         * active.forEach(anim => console.log(anim.overlayId, anim.state, anim.progress));
          */
         active() {
           try {
             const dbg = window.__msdDebug;
-            if (!dbg?.animations?.active) {
-              cblcarsLog.warn('[DebugAPI] Animations active not available');
-              return null;
+            const animationManager = dbg?.pipelineInstance?.systemsManager?.animationManager;
+
+            if (!animationManager) {
+              cblcarsLog.warn('[DebugAPI] AnimationManager not available');
+              return [];
             }
 
-            return dbg.animations.active();
+            return animationManager.getActiveAnimations();
           } catch (error) {
             cblcarsLog.error('[DebugAPI] Error getting active animations:', error);
-            return null;
+            return [];
           }
         },
 
         /**
-         * Dump animation registry (future enhancement)
+         * Dump all animation definitions
          *
-         * Returns complete animation registry state.
+         * Returns complete animation configuration including custom presets,
+         * overlay animations, and timelines.
          *
-         * @returns {Object|null} Animation registry dump
+         * @returns {Object} Animation definitions
          *
          * @example
          * const dump = window.cblcars.debug.msd.animations.dump();
+         * console.log('Custom presets:', dump.customPresets);
+         * console.log('Overlay animations:', dump.overlayAnimations);
+         * console.log('Timelines:', dump.timelines);
          */
         dump() {
           try {
             const dbg = window.__msdDebug;
-            const systemsManager = dbg?.pipelineInstance?.systemsManager;
-            return systemsManager?.animRegistry || null;
+            const animationManager = dbg?.pipelineInstance?.systemsManager?.animationManager;
+
+            if (!animationManager) {
+              cblcarsLog.warn('[DebugAPI] AnimationManager not available');
+              return null;
+            }
+
+            return animationManager.getAllAnimationDefinitions();
           } catch (error) {
             cblcarsLog.error('[DebugAPI] Error dumping animations:', error);
             return null;
@@ -1290,7 +1302,68 @@ export class MsdDebugAPI {
         },
 
         /**
-         * Get timeline details (future enhancement)
+         * Get AnimationRegistry statistics
+         *
+         * Returns cache performance metrics, hit rates, and stored animations.
+         *
+         * @returns {Object} Registry statistics
+         *
+         * @example
+         * const stats = window.cblcars.debug.msd.animations.registryStats();
+         * console.log('Cache hit rate:', stats.hitRate);
+         * console.log('Stored animations:', stats.size);
+         */
+        registryStats() {
+          try {
+            const dbg = window.__msdDebug;
+            const registry = dbg?.pipelineInstance?.systemsManager?.animRegistry;
+
+            if (!registry) {
+              cblcarsLog.warn('[DebugAPI] AnimationRegistry not available');
+              return null;
+            }
+
+            return registry.getStats();
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error getting registry stats:', error);
+            return null;
+          }
+        },
+
+        /**
+         * Inspect overlay animations
+         *
+         * Returns detailed animation state for a specific overlay including
+         * scope info, active animations, and registered triggers.
+         *
+         * @param {string} overlayId - Overlay identifier
+         * @returns {Object|null} Overlay animation state
+         *
+         * @example
+         * const state = window.cblcars.debug.msd.animations.inspect('cpu_status');
+         * console.log('Scope:', state.scope);
+         * console.log('Active animations:', state.activeAnimations);
+         * console.log('Triggers:', state.triggers);
+         */
+        inspect(overlayId) {
+          try {
+            const dbg = window.__msdDebug;
+            const animationManager = dbg?.pipelineInstance?.systemsManager?.animationManager;
+
+            if (!animationManager) {
+              cblcarsLog.warn('[DebugAPI] AnimationManager not available');
+              return null;
+            }
+
+            return animationManager.inspectOverlay(overlayId);
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error inspecting overlay:', error);
+            return null;
+          }
+        },
+
+        /**
+         * Get timeline details
          *
          * Returns details for a specific animation timeline.
          *
@@ -1298,7 +1371,7 @@ export class MsdDebugAPI {
          * @returns {Object|null} Timeline details
          *
          * @example
-         * const timeline = window.cblcars.debug.msd.animations.timeline('tl_1');
+         * const timeline = window.cblcars.debug.msd.animations.timeline('startup_sequence');
          */
         timeline(timelineId) {
           try {
@@ -1313,28 +1386,55 @@ export class MsdDebugAPI {
         },
 
         /**
-         * Trigger animation manually (future enhancement)
+         * Trigger animation manually
          *
          * Manually trigger an animation for testing.
          *
-         * @param {string} animId - Animation ID
-         * @returns {Object} NOT_IMPLEMENTED response
+         * @param {string} overlayId - Overlay identifier
+         * @param {string} presetName - Animation preset name
+         * @param {Object} [params] - Additional animation parameters
+         * @returns {Object} Result object
          *
          * @example
-         * window.cblcars.debug.msd.animations.trigger('anim_1');
+         * window.cblcars.debug.msd.animations.trigger('cpu_status', 'pulse', { duration: 500 });
          */
-        trigger(animId) {
-          cblcarsLog.warn('[DebugAPI] animations.trigger() not yet implemented - planned for Phase 5');
-          cblcarsLog.info('[DebugAPI] This will enable manual animation triggering for testing');
-          return {
-            error: 'NOT_IMPLEMENTED',
-            message: 'Feature planned for Phase 5',
-            plannedFeatures: [
-              'Manually trigger animations',
-              'Test animation sequences',
-              'Preview animation effects'
-            ]
-          };
+        trigger(overlayId, presetName, params = {}) {
+          try {
+            const dbg = window.__msdDebug;
+            const animationManager = dbg?.pipelineInstance?.systemsManager?.animationManager;
+
+            if (!animationManager) {
+              cblcarsLog.warn('[DebugAPI] AnimationManager not available');
+              return {
+                error: 'NO_ANIMATION_MANAGER',
+                message: 'Animation system not initialized'
+              };
+            }
+
+            const result = animationManager.playAnimation(overlayId, {
+              preset: presetName,
+              ...params,
+              trigger_source: 'debug_api'
+            });
+
+            if (result) {
+              cblcarsLog.debug(`[DebugAPI] Animation triggered: ${overlayId} / ${presetName}`);
+              return { success: true, overlayId, preset: presetName, params };
+            } else {
+              return {
+                error: 'ANIMATION_FAILED',
+                message: 'Failed to trigger animation',
+                overlayId,
+                preset: presetName
+              };
+            }
+          } catch (error) {
+            cblcarsLog.error('[DebugAPI] Error triggering animation:', error);
+            return {
+              error: 'EXCEPTION',
+              message: error.message
+            };
+          }
         }
       },
 

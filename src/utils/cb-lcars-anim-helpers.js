@@ -188,8 +188,26 @@ export async function animateElement(scope, options, hass = null) {
           continue;
         }
 
-        window.cblcars.anim.anime(element, params);
-        cblcarsLog.debug(`[animateElement] Animation constructor added to scope: ${scope.id}`, { params, element: element.id });
+        // Check if preset overrode the target element (only if it's a DOM element)
+        let targetElement = element;
+        let animeParams = { ...params };
+
+        if (params.targets && params.targets instanceof Element) {
+          // Preset wants to animate a different element (e.g., text child of group)
+          targetElement = params.targets;
+          // Remove targets from params since it's passed as first argument
+          const { targets: _, ...rest } = params;
+          animeParams = rest;
+        }
+
+        const animeInstance = window.cblcars.anim.anime(targetElement, animeParams);
+        cblcarsLog.debug(`[animateElement] Animation instance created:`, {
+          scopeId: scope.id || 'no-id',
+          element: element.id || element.tagName,
+          targetElement: targetElement?.id || targetElement?.tagName || typeof targetElement,
+          animeInstance: !!animeInstance,
+          params: animeParams
+        });
       }
     } catch (error) {
       cblcarsLog.error('[animateElement] Failed to animate element(s):', { targets, type, error });

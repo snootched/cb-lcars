@@ -83,6 +83,7 @@ async function processSinglePass(layers) {
     rules: [],
     animations: [],
     timelines: [],
+    animation_presets: {},
     routing: {},
     data_sources: {},
     base_svg: null,
@@ -593,6 +594,22 @@ async function processLayer(merged, layer) {
 
   if (layer.data.data_sources) {
     merged.data_sources = { ...merged.data_sources, ...layer.data.data_sources };
+  }
+
+  // Process animation_presets configuration
+  if (layer.data.animation_presets) {
+    merged.animation_presets = { ...merged.animation_presets, ...layer.data.animation_presets };
+
+    // Track animation_presets provenance
+    if (!merged.__provenance.animation_presets) {
+      merged.__provenance.animation_presets = {
+        origin_pack: layer.pack,
+        overridden: false
+      };
+    } else {
+      merged.__provenance.animation_presets.overridden = true;
+      merged.__provenance.animation_presets.override_layer = layer.pack;
+    }
   }
 
   // Process base_svg configuration
