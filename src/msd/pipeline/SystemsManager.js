@@ -1179,6 +1179,19 @@ export class SystemsManager {
         });
       }
 
+      // ✨ NEW: Process animations from rule patches (Phase 2)
+      if (patch.animations && Array.isArray(patch.animations) && patch.animations.length > 0) {
+        cblcarsLog.debug(`[SystemsManager] 🎬 Triggering ${patch.animations.length} animation(s) for ${patch.id} from rule`);
+
+        if (this.animationManager) {
+          patch.animations.forEach(animDef => {
+            this.animationManager.playAnimation(patch.id, animDef);
+          });
+        } else {
+          cblcarsLog.warn(`[SystemsManager] AnimationManager not available - cannot trigger animations for ${patch.id}`);
+        }
+      }
+
       // Get renderer for this overlay type
       const RendererClass = this._getRendererForType(overlay.type);
       if (!RendererClass) {

@@ -221,7 +221,7 @@ function processOverlayAnimations(overlayId, animations, customPresets, issues =
       'on_hold',
       'on_redraw',
       'on_exit',
-      'on_datasource_change'
+      'on_datasource_change'  // ✨ NEW: Phase 2 - reactive animations
     ];
 
     if (animDef.trigger && !validTriggers.includes(animDef.trigger)) {
@@ -231,6 +231,29 @@ function processOverlayAnimations(overlayId, animations, customPresets, issues =
         overlayId,
         trigger: animDef.trigger,
         validTriggers
+      });
+    }
+
+    // ✨ NEW: Phase 2 - Validate datasource property for on_datasource_change
+    if (animDef.trigger === 'on_datasource_change') {
+      if (!animDef.datasource) {
+        issues.push({
+          severity: 'error',
+          message: `Animation ${index} for overlay "${overlayId}" uses on_datasource_change but missing 'datasource' property`,
+          overlayId,
+          animationIndex: index
+        });
+      }
+    }
+
+    // ✨ NEW: Phase 2 - Warn about deprecated 'when' property
+    if (animDef.when) {
+      issues.push({
+        severity: 'warning',
+        message: `Animation ${index} for overlay "${overlayId}" uses 'when' property - conditions should be defined in rules instead. This property will be ignored.`,
+        overlayId,
+        animationIndex: index,
+        suggestion: 'Move conditions to a rule in the rules section with apply.overlays[].animations'
       });
     }
 

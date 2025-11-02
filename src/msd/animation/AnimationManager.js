@@ -214,6 +214,93 @@ export class AnimationManager {
     if (trigger === 'on_load') {
       await this.playAnimation(overlayId, resolvedAnimDef);
     }
+
+    // ✨ NEW: For on_datasource_change triggers, setup datasource listener
+    if (trigger === 'on_datasource_change') {
+      this.setupDatasourceListenerForAnimation(overlayId, resolvedAnimDef);
+    }
+  }
+
+  /**
+   * Setup datasource change listener for a single animation
+   * Called when registering on_datasource_change animations
+   *
+   * @param {string} overlayId - Overlay identifier
+   * @param {Object} animDef - Animation definition with trigger: on_datasource_change
+   */
+  setupDatasourceListenerForAnimation(overlayId, animDef) {
+    const dataSourceManager = this.systemsManager?.dataSourceManager;
+
+    if (!dataSourceManager) {
+      cblcarsLog.warn('[AnimationManager] DataSourceManager not available for datasource triggers');
+      return;
+    }
+
+    if (!animDef.datasource) {
+      cblcarsLog.warn(`[AnimationManager] on_datasource_change animation missing 'datasource' property for overlay: ${overlayId}`, animDef);
+      return;
+    }
+
+    const datasourceName = animDef.datasource;
+
+    // Handle dot notation (datasource_name.transformations.celsius)
+    const [sourceName, ...pathParts] = datasourceName.split('.');
+    const source = dataSourceManager.getSource(sourceName);
+
+    if (!source) {
+      cblcarsLog.warn(`[AnimationManager] Datasource not found: ${sourceName} (overlay: ${overlayId})`);
+      return;
+    }
+
+    // Create unique subscription key
+    const subscriptionKey = `${overlayId}:${datasourceName}`;
+
+    // Check if we already have a subscription for this overlay+datasource combo
+    if (this.datasourceSubscriptions.has(subscriptionKey)) {
+      cblcarsLog.debug(`[AnimationManager] Subscription already exists for ${subscriptionKey}`);
+      return;
+    }
+
+    // Subscribe to datasource updates
+    const unsubscribe = source.subscribe((data) => {
+      cblcarsLog.debug(`[AnimationManager] 📊 Datasource change: ${datasourceName} (overlay: ${overlayId})`, data);
+
+      // Extract value based on path if needed
+      let value = data.v;
+      if (pathParts.length > 0) {
+        value = this._extractValueFromPath(data, pathParts);
+      }
+
+      // Trigger the animation (no filtering - always plays on change)
+      cblcarsLog.debug(`[AnimationManager] 🎬 Triggering animation for ${overlayId} on datasource change`);
+      this.playAnimation(overlayId, animDef);
+    });
+
+    // Store unsubscribe function
+    this.datasourceSubscriptions.set(subscriptionKey, unsubscribe);
+    cblcarsLog.debug(`[AnimationManager] ✅ Setup datasource listener: ${subscriptionKey}`);
+  }
+
+  /**
+   * Extract value from datasource using dot notation path
+   * @param {Object} data - Datasource data object
+   * @param {Array<string>} pathParts - Path parts (e.g., ['transformations', 'celsius'])
+   * @returns {*} Extracted value
+   * @private
+   */
+  _extractValueFromPath(data, pathParts) {
+    let value = data;
+
+    for (const part of pathParts) {
+      if (value && typeof value === 'object' && part in value) {
+        value = value[part];
+      } else {
+        cblcarsLog.warn(`[AnimationManager] Path not found in datasource: ${pathParts.join('.')}`);
+        return undefined;
+      }
+    }
+
+    return value;
   }
 
   /**
@@ -844,6 +931,23 @@ export class AnimationManager {
     }
 
     try {
+      // ✨ NEW: Cleanup datasource subscriptions for this overlay
+      const keysToRemove = [];
+      this.datasourceSubscriptions.forEach((cleanup, key) => {
+        if (key.startsWith(`${overlayId}:`)) {
+          if (typeof cleanup === 'function') {
+            try {
+              cleanup();
+              cblcarsLog.debug(`[AnimationManager] Unsubscribed datasource listener: ${key}`);
+            } catch (error) {
+              cblcarsLog.warn(`[AnimationManager] Error unsubscribing datasource ${key}:`, error);
+            }
+          }
+          keysToRemove.push(key);
+        }
+      });
+      keysToRemove.forEach(key => this.datasourceSubscriptions.delete(key));
+
       // Cleanup trigger manager
       if (scopeData.triggerManager) {
         scopeData.triggerManager.destroy();
@@ -939,10 +1043,16 @@ export class AnimationManager {
   dispose() {
     cblcarsLog.info('[AnimationManager] 🧹 Disposing animation system');
 
-    // Cleanup all datasource subscriptions
-    this.datasourceSubscriptions.forEach(cleanup => {
+    // ✨ NEW: Cleanup all datasource subscriptions
+    cblcarsLog.debug(`[AnimationManager] Cleaning up ${this.datasourceSubscriptions.size} datasource subscriptions`);
+    this.datasourceSubscriptions.forEach((cleanup, key) => {
       if (typeof cleanup === 'function') {
-        cleanup();
+        try {
+          cleanup();
+          cblcarsLog.debug(`[AnimationManager] Unsubscribed datasource listener: ${key}`);
+        } catch (error) {
+          cblcarsLog.warn(`[AnimationManager] Error unsubscribing from datasource ${key}:`, error);
+        }
       }
     });
     this.datasourceSubscriptions.clear();
