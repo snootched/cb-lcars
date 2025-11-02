@@ -126,7 +126,7 @@ export async function animateWithRoot(options) {
  * Animates element(s) using anime.js with special handling for SVG animations.
  * Unchanged behavior, v4-native through window.cblcars.anim.anime
  */
-export async function animateElement(scope, options, hass = null) {
+export async function animateElement(scope, options, hass = null, onInstanceCreated = null) {
   const { type, targets, root = document, ...animOptions } = options;
   if (!type || !targets || !scope) {
     cblcarsLog.warn('[animateElement] Animation missing type, targets, or scope.', { options, scope });
@@ -208,6 +208,11 @@ export async function animateElement(scope, options, hass = null) {
           animeInstance: !!animeInstance,
           params: animeParams
         });
+
+        // Call callback with the created instance (for tracking)
+        if (onInstanceCreated && typeof onInstanceCreated === 'function') {
+          onInstanceCreated(animeInstance);
+        }
       }
     } catch (error) {
       cblcarsLog.error('[animateElement] Failed to animate element(s):', { targets, type, error });

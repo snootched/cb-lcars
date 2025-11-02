@@ -216,6 +216,8 @@ function processOverlayAnimations(overlayId, animations, customPresets, issues =
       'on_load',
       'on_tap',
       'on_hover',
+      'on_leave',         // ✨ NEW: Phase 1.5 - stops hover animations
+      'on_double_tap',    // Already supported in Phase 1
       'on_hold',
       'on_redraw',
       'on_exit',

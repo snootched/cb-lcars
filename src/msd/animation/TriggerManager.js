@@ -68,8 +68,8 @@ export class TriggerManager {
    * @param {string} trigger - Trigger type
    */
   setupTriggerListener(trigger) {
-    // Interactive triggers (tap, hold, hover, double_tap) are handled by ActionHelpers
-    const interactiveTriggers = ['on_tap', 'on_hold', 'on_hover', 'on_double_tap'];
+    // Interactive triggers (tap, hold, hover, leave, double_tap) are handled by ActionHelpers
+    const interactiveTriggers = ['on_tap', 'on_hold', 'on_hover', 'on_leave', 'on_double_tap'];
     if (interactiveTriggers.includes(trigger)) {
       cblcarsLog.debug(`[TriggerManager] ${trigger} handled by ActionHelpers (skipping)`);
       return;

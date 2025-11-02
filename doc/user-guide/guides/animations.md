@@ -30,9 +30,16 @@ These triggers respond to user interactions:
 - **`on_tap`** - Fires when the overlay is tapped/clicked
 - **`on_hold`** - Fires when the overlay is held for 500ms
 - **`on_hover`** - Fires when the mouse enters the overlay (desktop only)
+- **`on_leave`** - Fires when the mouse leaves the overlay (desktop only)
 - **`on_double_tap`** - Fires on double-tap/double-click
 
 **Note:** Interactive triggers work automatically - **you don't need to define `tap_action`** or other actions for animations to work! The system will automatically enable pointer events for overlays with interactive animation triggers.
+
+**Hover/Leave Behavior:**
+- Hover animations with `loop: true` **automatically stop** when the pointer leaves
+- The element returns to its original visual state (no frozen frames)
+- `on_leave` animations can run when the pointer leaves
+- Leave animations work even without hover animations
 
 Example:
 ```yaml
@@ -44,6 +51,7 @@ overlays:
     animations:
       - preset: glow
         trigger: on_hover  # No tap_action needed!
+        loop: true         # Stops automatically on leave
         duration: 300
 ```
 
@@ -238,9 +246,10 @@ overlays:
 
 ## Desktop vs Mobile
 
-- `on_hover` only works on desktop (devices with mouse pointers)
+- `on_hover` and `on_leave` only work on desktop (devices with mouse pointers)
 - Touch devices support `on_tap`, `on_hold`, and `on_double_tap`
 - The system automatically detects device capabilities
+- Hover animations with `loop: true` automatically stop when the pointer leaves
 
 ## Common Patterns
 
@@ -251,6 +260,51 @@ animations:
     trigger: on_hover
     duration: 200
     color: var(--lcars-ui-03)
+```
+
+### Hover with auto-stop
+```yaml
+animations:
+  - preset: glow
+    trigger: on_hover
+    loop: true         # Loops while hovering
+    duration: 1000     # Stops automatically on leave
+    color: var(--lcars-blue)
+```
+
+### Hover + leave animations
+```yaml
+animations:
+  - preset: pulse
+    trigger: on_hover
+    loop: true
+    duration: 800
+  - preset: fade       # Plays when pointer leaves
+    trigger: on_leave
+    opacity: 1.0
+    duration: 200
+```
+
+### Scale on hover, reset on leave
+```yaml
+animations:
+  - trigger: on_hover
+    scale: 1.1
+    duration: 300
+    easing: easeOutElastic(1, .5)
+  - trigger: on_leave
+    scale: 1.0
+    duration: 200
+    easing: easeOutQuad
+```
+
+### Leave-only animation
+```yaml
+animations:
+  - preset: fade       # No hover animation needed
+    trigger: on_leave
+    opacity: 0.5
+    duration: 300
 ```
 
 ### Attention-grabbing pulse
@@ -294,6 +348,11 @@ animations:
 - Verify you're on a desktop device (hover doesn't work on touch devices)
 - Check browser console for errors
 - Ensure the overlay doesn't have `pointer-events: none` in custom styles
+
+### Hover animation won't stop
+- This should no longer happen! Looping hover animations automatically stop on `mouseleave`
+- If issues persist, check that you're using the latest version
+- Verify the animation has a proper `trigger: on_hover` setting
 
 ### Animation jumps or glitches
 - Reduce `duration` or simplify the animation

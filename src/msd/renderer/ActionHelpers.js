@@ -179,14 +179,28 @@ export class ActionHelpers {
       cblcarsLog.debug(`[ActionHelpers] 🖱️ Hover handler check for ${overlayId}: {hasAnimationManager: true, isDesktop: ${isDesktop}}`);
 
       if (isDesktop) {
+        // On hover - start animations
         const hoverHandler = () => {
           cblcarsLog.debug(`[ActionHelpers] 🖱️ Hover triggered on ${overlayId}`);
           animationManager.triggerAnimations(overlayId, 'on_hover');
         };
         element.addEventListener('mouseenter', hoverHandler, { capture: false });
-        cblcarsLog.debug(`[ActionHelpers] ✅ Hover handler attached for ${overlayId}`);
+
+        // ✨ NEW: On leave - stop hover animations and trigger leave animations
+        const leaveHandler = () => {
+          cblcarsLog.debug(`[ActionHelpers] 🖱️ Leave triggered on ${overlayId}`);
+
+          // Stop any looping hover animations
+          animationManager.stopAnimations(overlayId, 'on_hover');
+
+          // Trigger on_leave animations (if configured)
+          animationManager.triggerAnimations(overlayId, 'on_leave');
+        };
+        element.addEventListener('mouseleave', leaveHandler, { capture: false });
+
+        cblcarsLog.debug(`[ActionHelpers] ✅ Hover/leave handlers attached for ${overlayId}`);
       } else {
-        cblcarsLog.debug(`[ActionHelpers] ⏭️ Skipping hover handler for ${overlayId} (not desktop)`);
+        cblcarsLog.debug(`[ActionHelpers] ⏭️ Skipping hover handlers for ${overlayId} (not desktop)`);
       }
     }
   }

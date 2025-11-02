@@ -141,7 +141,10 @@ export class AnimationManager {
         overlay: overlayConfig,
         element: element,
         activeAnimations: new Set(),
-        triggerManager: triggerManager
+        triggerManager: triggerManager,
+        // Track running animation instances by trigger type for stopAnimations()
+        // Structure: Map<trigger, Array<animeInstance>>
+        runningInstances: new Map()
       });
 
       // Get registered animations for this overlay
@@ -255,6 +258,124 @@ export class AnimationManager {
   }
 
   /**
+   * Stop animations for a specific overlay and optional trigger type
+   * Used primarily to stop looping hover animations when pointer leaves
+   *
+   * @param {string} overlayId - Overlay identifier
+   * @param {string} [trigger] - Optional trigger type to stop (stops all if not specified)
+   */
+  stopAnimations(overlayId, trigger = null) {
+    const scopeData = this.scopes.get(overlayId);
+
+    if (!scopeData || !scopeData.scope) {
+      cblcarsLog.debug(`[AnimationManager] No scope found for ${overlayId}`);
+      return;
+    }
+
+    cblcarsLog.debug(`[AnimationManager] stopAnimations called for ${overlayId}, trigger=${trigger}`);
+
+    if (trigger) {
+      // Get anime instances tracked for this trigger
+      const instances = scopeData.runningInstances.get(trigger) || [];
+
+      if (instances.length === 0) {
+        cblcarsLog.debug(`[AnimationManager] No tracked instances for trigger ${trigger} on ${overlayId}`);
+        // Fallback: try scope.children
+        this._stopAnimationsFromScopeChildren(scopeData, trigger);
+        return;
+      }
+
+      // Pause and complete each tracked instance
+      let stopped = 0;
+      instances.forEach(instance => {
+        try {
+          if (instance && !instance.completed) {
+            // Revert animation - removes all transformations and returns to original state
+            // This is better than seek(0) which goes to first animation frame
+            if (instance.revert) {
+              instance.revert();
+              stopped++;
+            } else {
+              // Fallback: pause if revert not available
+              cblcarsLog.warn(`[AnimationManager] Instance has no revert() method, using pause()`);
+              instance.complete = true;
+              instance.pause();
+              stopped++;
+            }
+          }
+        } catch (error) {
+          cblcarsLog.warn(`[AnimationManager] Error stopping instance:`, error);
+        }
+      });
+
+      // Clear tracked instances for this trigger
+      scopeData.runningInstances.delete(trigger);
+
+      cblcarsLog.debug(`[AnimationManager] ⏸️ Stopped ${stopped} animation(s) for trigger ${trigger} on ${overlayId}`);
+
+    } else {
+      // Stop all animations
+      let stopped = 0;
+      scopeData.runningInstances.forEach((instances, trig) => {
+        instances.forEach(instance => {
+          try {
+            if (instance && !instance.completed) {
+              // Revert to remove all transformations
+              if (instance.revert) {
+                instance.revert();
+                stopped++;
+              } else {
+                instance.complete = true;
+                instance.pause();
+                stopped++;
+              }
+            }
+          } catch (error) {
+            cblcarsLog.warn(`[AnimationManager] Error stopping instance:`, error);
+          }
+        });
+      });
+
+      scopeData.runningInstances.clear();
+      cblcarsLog.debug(`[AnimationManager] ⏹️ Stopped ${stopped} animation(s) on ${overlayId}`);
+    }
+  }
+
+  /**
+   * Fallback: Try to stop animations by inspecting scope.children
+   * @private
+   */
+  _stopAnimationsFromScopeChildren(scopeData, trigger) {
+    const children = scopeData.scope.children || [];
+
+    if (children.length === 0) {
+      return;
+    }
+
+    let stopped = 0;
+    children.forEach(child => {
+      try {
+        // Anime instances have .completed, .paused, .pause(), .play() methods
+        if (child && !child.completed && !child.paused) {
+          // Use revert to return to original state
+          if (child.revert) {
+            child.revert();
+            stopped++;
+          } else {
+            child.complete = true;
+            child.pause();
+            stopped++;
+          }
+        }
+      } catch (error) {
+        // Silently ignore - might not be an anime instance
+      }
+    });
+
+    if (stopped > 0) {
+      cblcarsLog.debug(`[AnimationManager] ⏸️ Stopped ${stopped} animation(s) via scope.children (fallback)`);
+    }
+  }  /**
    * Check if overlay needs ActionHelpers integration for interactive triggers
    *
    * @param {Array} animations - Array of animation definitions
@@ -263,7 +384,8 @@ export class AnimationManager {
    */
   overlayNeedsActionHelpers(animations, overlayConfig) {
     // Check if any animation uses interactive triggers
-    const interactiveTriggers = ['on_tap', 'on_hold', 'on_hover', 'on_double_tap'];
+    // Include on_leave since it needs mouseleave handler
+    const interactiveTriggers = ['on_tap', 'on_hold', 'on_hover', 'on_leave', 'on_double_tap'];
     const hasInteractiveTrigger = animations.some(anim =>
       interactiveTriggers.includes(anim.trigger)
     );
@@ -503,9 +625,23 @@ export class AnimationManager {
         ...finalAnimDef
       };
 
-      // Execute animation via animateElement
+      // Prepare array to collect anime instances created by animateElement
+      if (!scopeData.runningInstances.has(animDef.trigger)) {
+        scopeData.runningInstances.set(animDef.trigger, []);
+      }
+      const instancesArray = scopeData.runningInstances.get(animDef.trigger);
+
+      // Callback to track instances as they're created
+      const onInstanceCreated = (instance) => {
+        if (instance) {
+          instancesArray.push(instance);
+          cblcarsLog.debug(`[AnimationManager] 📌 Tracked anime instance for trigger: ${animDef.trigger}`);
+        }
+      };
+
+      // Execute animation via animateElement with callback
       // Pass scopeData (which has .scope property) not just the raw scope
-      await animateElement(scopeData, animOptions, hass);
+      await animateElement(scopeData, animOptions, hass, onInstanceCreated);
 
       cblcarsLog.debug(`[AnimationManager] ▶️ Playing animation on ${overlayId}:`, {
         preset: finalAnimDef.preset,
@@ -513,7 +649,7 @@ export class AnimationManager {
         duration: finalAnimDef.duration
       });
 
-      // Track active animation
+      // Track active animation definition
       scopeData.activeAnimations.add(finalAnimDef);
 
       return finalAnimDef; // Return for API access
