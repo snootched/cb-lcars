@@ -132,20 +132,8 @@ export class ButtonOverlay extends OverlayBase {
       // Use cached content or resolve fresh
       const buttonContent = this._cachedContent || this._resolveButtonContent(overlay);
 
-      // Check for actions at overlay level OR interactive animation triggers
-      const hasInteractiveAnimations = overlay.animations?.some(anim =>
-        ['on_tap', 'on_hold', 'on_hover', 'on_double_tap'].includes(anim.trigger)
-      );
-      const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action || hasInteractiveAnimations);
-
-      cblcarsLog.debug(`[ButtonOverlay] 🎯 Actions check for ${overlay.id}:`, {
-        hasTapAction: !!overlay.tap_action,
-        hasHoldAction: !!overlay.hold_action,
-        hasDoubleTapAction: !!overlay.double_tap_action,
-        hasInteractiveAnimations,
-        hasActions,
-        animations: overlay.animations
-      });
+      // Check for actions at overlay level
+      const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action);
 
       // Resolve card instance
       if (!cardInstance) {
@@ -175,8 +163,7 @@ export class ButtonOverlay extends OverlayBase {
         {
           cellId: overlay.id,
           gridContext: false,
-          cardInstance: cardInstance,
-          hasInteractiveAnimations: hasInteractiveAnimations  // Pass animation info to ButtonRenderer
+          cardInstance: cardInstance
         }
       );
 

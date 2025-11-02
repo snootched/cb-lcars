@@ -164,30 +164,19 @@ export class AnimationManager {
       // Check if this overlay needs ActionHelpers integration for interactive triggers
       const needsActionHelpers = this.overlayNeedsActionHelpers(animations, overlayConfig);
 
-      cblcarsLog.debug(`[AnimationManager] 🔍 Checking ActionHelpers need for ${overlayId}`, {
-        needsActionHelpers,
-        animationCount: animations.length,
-        triggers: animations.map(a => a.trigger || 'on_load')
-      });
-
       if (needsActionHelpers) {
         const cardInstance = this.systemsManager?.cardInstance;
 
         if (cardInstance) {
           // Card instance available - attach immediately
-          cblcarsLog.debug(`[AnimationManager] ⚡ Immediate ActionHelpers attachment for ${overlayId}`);
           this.attachActionHelpersForOverlay(overlayId, element, overlayConfig);
         } else {
           // Card instance not yet set - defer attachment
           // Store overlayId and config, NOT the element (element reference may become stale)
           const actionConfig = this.buildActionConfigForOverlay(overlayConfig);
           this.pendingActionHelpers.set(overlayId, { overlayId, overlayConfig, actionConfig });
-          cblcarsLog.info(`[AnimationManager] 📌 DEFERRED ActionHelpers attachment for ${overlayId} (waiting for cardInstance)`, {
-            pendingCount: this.pendingActionHelpers.size
-          });
+          cblcarsLog.debug(`[AnimationManager] 📌 Deferred ActionHelpers attachment for ${overlayId} (waiting for cardInstance)`);
         }
-      } else {
-        cblcarsLog.debug(`[AnimationManager] ⏭️ Skipping ActionHelpers for ${overlayId} - not needed`);
       }
 
     } catch (error) {
@@ -347,13 +336,7 @@ export class AnimationManager {
    * This is typically called from setCardInstance() in the pipeline API
    */
   attachPendingActionHelpers() {
-    cblcarsLog.info(`[AnimationManager] 🔄 attachPendingActionHelpers called`, {
-      pendingCount: this.pendingActionHelpers.size,
-      pendingIds: Array.from(this.pendingActionHelpers.keys())
-    });
-
     if (this.pendingActionHelpers.size === 0) {
-      cblcarsLog.debug(`[AnimationManager] No pending ActionHelpers to attach`);
       return;
     }
 
@@ -381,12 +364,6 @@ export class AnimationManager {
 
         // Verify the element is still in the DOM
         if (!element || !element.isConnected) {
-          cblcarsLog.debug(`[AnimationManager] Element not connected for ${overlayId}, querying DOM...`, {
-            hasElement: !!element,
-            isConnected: element?.isConnected,
-            hasMountEl: !!this.mountEl
-          });
-
           // Use stored mountEl for reliable queries
           if (this.mountEl) {
             element = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"]`);
@@ -398,20 +375,9 @@ export class AnimationManager {
         }
 
         if (!element) {
-          cblcarsLog.warn(`[AnimationManager] Cannot attach ActionHelpers for ${overlayId} - element not found in DOM`, {
-            hasScopeElement: !!scopeData.element,
-            hasMountEl: !!this.mountEl
-          });
+          cblcarsLog.warn(`[AnimationManager] Cannot attach ActionHelpers for ${overlayId} - element not found in DOM`);
           return;
-        }
-
-        cblcarsLog.debug(`[AnimationManager] 🔗 Attaching deferred ActionHelpers for ${overlayId}`, {
-          hasElement: !!element,
-          isConnected: element.isConnected,
-          tagName: element.tagName
-        });
-
-        ActionHelpers.attachActions(
+        }        ActionHelpers.attachActions(
           element,
           overlayConfig,
           actionConfig,
