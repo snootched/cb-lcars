@@ -22,6 +22,7 @@
 import { BaseRenderer } from '../renderer/BaseRenderer.js';
 import { TemplateProcessor } from '../utils/TemplateProcessor.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { isHAEntity } from '../utils/HADomains.js';
 
 /**
  * Base class for all overlay instances
@@ -89,16 +90,22 @@ export class OverlayBase extends BaseRenderer {
     cblcarsLog.debug(`[${this.rendererName}] Initializing overlay:`, this.overlay.id);
 
     try {
-      // Extract DataSource references from overlay config
-      const dataSourceRefs = this._extractDataSourceReferences();
+      // Get explicit update triggers from overlay config
+      const updateTriggers = this._getUpdateTriggers();
 
-      if (dataSourceRefs.length > 0) {
-        cblcarsLog.debug(`[${this.rendererName}] Subscribing to DataSources:`, dataSourceRefs);
+      if (updateTriggers.length > 0) {
+        cblcarsLog.debug(`[${this.rendererName}] Subscribing to update triggers:`, updateTriggers);
 
-        // Subscribe to each DataSource
-        for (const sourceId of dataSourceRefs) {
-          this._subscribeToDataSource(sourceId);
+        // Subscribe to each trigger (HA entity or MSD datasource)
+        for (const triggerRef of updateTriggers) {
+          if (isHAEntity(triggerRef)) {
+            this._subscribeToEntity(triggerRef);
+          } else {
+            this._subscribeToDataSource(triggerRef);
+          }
         }
+      } else {
+        cblcarsLog.debug(`[${this.rendererName}] No triggers_update specified for overlay:`, this.overlay.id);
       }
 
       // Create animation scope if overlay has animations
@@ -237,48 +244,31 @@ export class OverlayBase extends BaseRenderer {
   }
 
   /**
-   * Extract DataSource references from overlay config
+   * Get explicit update triggers from overlay configuration
    * @protected
-   * @returns {Array<string>} Array of DataSource IDs
+   * @returns {Array<string>} Array of trigger references (HA entities or MSD datasources)
    */
-  _extractDataSourceReferences() {
-    const refs = new Set();
-
-    // Check source property
-    if (this.overlay.source) {
-      refs.add(this.overlay.source);
+  _getUpdateTriggers() {
+    if (!this.overlay.triggers_update || !Array.isArray(this.overlay.triggers_update)) {
+      return [];
     }
 
-    // Check content for templates
-    if (this.overlay.content && typeof this.overlay.content === 'string') {
-      const templateRefs = TemplateProcessor.extractReferences(this.overlay.content);
+    return this.overlay.triggers_update;
+  }
 
-      // Extract dataSource from MSD templates
-      templateRefs.forEach(ref => {
-        if (ref.type === 'msd' && ref.dataSource) {
-          refs.add(ref.dataSource);
-        }
-      });
-    }
+  /**
+   * Subscribe to Home Assistant entity updates
+   * @protected
+   * @param {string} entityId - Entity ID (e.g., 'sensor.temperature')
+   */
+  _subscribeToEntity(entityId) {
+    // TODO: Implement HA entity subscription
+    // This would integrate with MsdTemplateEngine or Home Assistant connection
+    cblcarsLog.debug(`[${this.rendererName}] HA entity subscription requested:`, entityId);
+    cblcarsLog.warn(`[${this.rendererName}] HA entity subscriptions not yet implemented - ${entityId} will not auto-update`);
 
-    // Check cells (for statusgrid, etc.)
-    if (this.overlay.cells && Array.isArray(this.overlay.cells)) {
-      this.overlay.cells.forEach(cell => {
-        if (cell.source) {
-          refs.add(cell.source);
-        }
-        if (cell.content && typeof cell.content === 'string') {
-          const cellRefs = TemplateProcessor.extractReferences(cell.content);
-          cellRefs.forEach(ref => {
-            if (ref.type === 'msd' && ref.dataSource) {
-              refs.add(ref.dataSource);
-            }
-          });
-        }
-      });
-    }
-
-    return Array.from(refs);
+    // Note: For now, HA entity updates are handled by MsdTemplateEngine separately
+    // Full integration would require connecting to HA's WebSocket API
   }
 
   /**

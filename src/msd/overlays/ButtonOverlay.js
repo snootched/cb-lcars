@@ -252,6 +252,26 @@ export class ButtonOverlay extends OverlayBase {
 
       let updated = false;
 
+      // CRITICAL: Coordinate with AnimationManager to handle content updates during animations
+      const animationManager = this.systemsManager?.animationManager;
+      let hadActiveAnimations = false;
+
+      if (animationManager) {
+        const scopeData = animationManager.scopes?.get(overlay.id);
+        if (scopeData && scopeData.runningInstances) {
+          let totalRunning = 0;
+          scopeData.runningInstances.forEach(instances => {
+            totalRunning += instances.filter(inst => inst && !inst.completed).length;
+          });
+
+          if (totalRunning > 0) {
+            hadActiveAnimations = true;
+            cblcarsLog.debug(`[ButtonOverlay] 🎬 Pausing ${totalRunning} active animations for content update on ${overlay.id}`);
+            animationManager.stopAnimations(overlay.id);
+          }
+        }
+      }
+
       // 1. Check for CONTENT changes
       const newContent = this._resolveButtonContent(overlay);
       const contentChanged = this._cachedContent?.label !== newContent.label ||
@@ -261,8 +281,18 @@ export class ButtonOverlay extends OverlayBase {
         cblcarsLog.debug(`[ButtonOverlay] Content changed for ${overlay.id}`);
         this._cachedContent = newContent;
 
+        // ✅ FIX: Create proper config object with label/content for ButtonRenderer
+        const updateConfig = {
+          id: overlay.id,
+          label: overlay._raw?.label || overlay.label,
+          content: overlay._raw?.content || overlay.content,
+          texts: overlay.texts, // Also pass texts array if present
+          _raw: overlay._raw || overlay,
+          _originalContent: newContent.originalContent
+        };
+
         // Update button content/text
-        const contentUpdated = ButtonRenderer.updateButtonData(overlayElement, overlay, sourceData);
+        const contentUpdated = ButtonRenderer.updateButtonData(overlayElement, updateConfig, sourceData);
         if (contentUpdated) updated = true;
       }
 
@@ -293,6 +323,10 @@ export class ButtonOverlay extends OverlayBase {
 
       if (!updated) {
         cblcarsLog.debug(`[ButtonOverlay] No changes detected for overlay ${overlay.id}`);
+      }
+
+      if (hadActiveAnimations) {
+        cblcarsLog.debug(`[ButtonOverlay] 🎬 Content updated, animations will restart on next trigger`);
       }
 
       return updated;

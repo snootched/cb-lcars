@@ -4,6 +4,7 @@ import { resolveDesiredAnimations } from '../animation/resolveAnimations.js';
 import { resolveDesiredTimelines } from '../animation/resolveTimelines.js';
 import { perfTime } from '../perf/PerfCounters.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { isHAEntity } from '../utils/HADomains.js';
 
 export class ModelBuilder {
   constructor(mergedConfig, cardModel, systemsManager) {
@@ -27,8 +28,8 @@ export class ModelBuilder {
     // REMOVED: _subscribeOverlaysToDataSources (sparkline/ribbon/historybar specific)
     // this._subscribeOverlaysToDataSources(baseOverlays);
 
-    // Subscribe text overlays to data sources
-    this._subscribeTextOverlaysToDataSources(baseOverlays);
+    // Subscribe overlays with triggers_update to data sources
+    this._subscribeOverlaysToUpdates(baseOverlays);
 
     // Apply rules
     const ruleResult = this._applyRules();
@@ -120,6 +121,9 @@ export class ModelBuilder {
         if (o.raw?.source) resolvedOverlay.source = o.raw.source;
         if (o.raw?.route) resolvedOverlay.route = o.raw.route;
         if (o.raw?.data_source) resolvedOverlay.data_source = o.raw.data_source;
+
+        // Preserve triggers_update for overlay subscriptions
+        if (o.raw?.triggers_update) resolvedOverlay.triggers_update = o.raw.triggers_update;
 
         // Preserve action properties
         if (o.raw?.tap_action) resolvedOverlay.tap_action = o.raw.tap_action;
@@ -348,44 +352,44 @@ export class ModelBuilder {
   }
 
   /**
-   * Set up DataSource subscriptions for text overlays that use template strings
+   * Set up subscriptions for overlays with triggers_update
    * @param {Array} overlays - Array of overlay configurations
    * @private
    */
-  _subscribeTextOverlaysToDataSources(overlays) {
+  _subscribeOverlaysToUpdates(overlays) {
     overlays.forEach(overlay => {
-      if (overlay.type === 'text') {
-        // Check if text content contains DataSource references
-        const textContent = overlay.text || overlay.content || overlay.finalStyle?.value || '';
-        const dataSourceRef = overlay.data_source || overlay._raw?.data_source || overlay.finalStyle?.data_source;
+      // Check for explicit triggers_update array
+      if (!overlay.triggers_update || !Array.isArray(overlay.triggers_update)) {
+        return;
+      }
 
-        // Extract DataSource references from template strings like {temperature_enhanced.transformations.celsius}
-        const templateRefs = this._extractDataSourceReferences(textContent);
+      cblcarsLog.debug(`[ModelBuilder] Setting up subscriptions for ${overlay.id}:`, overlay.triggers_update);
 
-        // Subscribe to direct DataSource references
-        if (dataSourceRef) {
-          this._subscribeTextOverlayToDataSource(overlay.id, dataSourceRef);
+      overlay.triggers_update.forEach(ref => {
+        // Use HADomains utility to distinguish HA entities from MSD datasources
+        if (isHAEntity(ref)) {
+          // HA entity - skip for now (handled by MsdTemplateEngine)
+          cblcarsLog.debug(`[ModelBuilder] Skipping HA entity: ${ref} (handled by MsdTemplateEngine)`);
+          return;
         }
 
-        // Subscribe to template string DataSource references
-        templateRefs.forEach(ref => {
-          this._subscribeTextOverlayToDataSource(overlay.id, ref);
-        });
-      }
+        // MSD datasource - subscribe
+        this._subscribeOverlayToDataSource(overlay.id, ref);
+      });
     });
   }
 
   /**
-   * Subscribe a text overlay to a specific DataSource
-   * @param {string} overlayId - ID of the text overlay
-   * @param {string} dataSourceRef - DataSource reference (e.g., 'temperature_enhanced')
+   * Subscribe an overlay to a specific DataSource
+   * @param {string} overlayId - ID of the overlay
+   * @param {string} dataSourceRef - DataSource reference (e.g., 'temperature' or 'cpu.transformations.celsius')
    * @private
    */
-  _subscribeTextOverlayToDataSource(overlayId, dataSourceRef) {
+  _subscribeOverlayToDataSource(overlayId, dataSourceRef) {
     try {
       const dataSourceManager = this.systems?.dataSourceManager;
       if (!dataSourceManager) {
-        cblcarsLog.warn(`[ModelBuilder] DataSourceManager not available for text overlay subscription: ${overlayId}`);
+        cblcarsLog.warn(`[ModelBuilder] DataSourceManager not available for overlay subscription: ${overlayId}`);
         return;
       }
 
@@ -394,7 +398,7 @@ export class ModelBuilder {
       const dataSource = dataSourceManager.getSource(sourceName);
 
       if (!dataSource) {
-        cblcarsLog.warn(`[ModelBuilder] DataSource '${sourceName}' not found for text overlay: ${overlayId}`);
+        cblcarsLog.warn(`[ModelBuilder] DataSource '${sourceName}' not found for overlay: ${overlayId}`);
         return;
       }
 
@@ -409,9 +413,9 @@ export class ModelBuilder {
 
       // Create subscription callback
       const callback = (data) => {
-        cblcarsLog.debug(`[ModelBuilder] 📊 Text overlay ${overlayId} received DataSource update from ${sourceName}`);
+        cblcarsLog.debug(`[ModelBuilder] 📊 Overlay ${overlayId} received DataSource update from ${sourceName}`);
 
-        // Notify AdvancedRenderer to update the text overlay
+        // Notify AdvancedRenderer to update the overlay
         if (this.systems.renderer && this.systems.renderer.updateOverlayData) {
           this.systems.renderer.updateOverlayData(overlayId, data);
         } else {
@@ -424,49 +428,10 @@ export class ModelBuilder {
       const unsubscribe = dataSource.subscribe(callback);
       this._overlayUnsubscribers.get(overlayId).push(unsubscribe);
 
-      //dataSource.subscribe(overlayId, callback);
-
-      cblcarsLog.debug(`[ModelBuilder] ✅ Subscribed text overlay ${overlayId} to DataSource ${sourceName}`);
+      cblcarsLog.debug(`[ModelBuilder] ✅ Subscribed overlay ${overlayId} to DataSource ${sourceName}`);
 
     } catch (error) {
-      cblcarsLog.error(`[ModelBuilder] Failed to subscribe text overlay ${overlayId} to DataSource ${dataSourceRef}:`, error);
+      cblcarsLog.error(`[ModelBuilder] Failed to subscribe overlay ${overlayId} to DataSource ${dataSourceRef}:`, error);
     }
-  }
-
-  /**
-   * Extract DataSource references from template strings
-   * @param {string} content - Text content that may contain template strings
-   * @returns {Array<string>} Array of DataSource references
-   * @private
-   */
-  _extractDataSourceReferences(content) {
-    if (!content || typeof content !== 'string') {
-      return [];
-    }
-
-    const references = [];
-    const regex = /\{([^}:]+)/g;
-    let match;
-
-    while ((match = regex.exec(content)) !== null) {
-      const ref = match[1].trim();
-
-      // Check if it's a DataSource reference (not a HA entity)
-      if (ref.includes('.')) {
-        const parts = ref.split('.');
-        const sourceName = parts[0];
-
-        // Check if this looks like a DataSource reference
-        // (has transformations, aggregations, or is a known source)
-        if (parts.includes('transformations') ||
-            parts.includes('aggregations') ||
-            this.systems?.dataSourceManager?.getSource(sourceName)) {
-          references.push(sourceName);
-        }
-      }
-    }
-
-    // Return unique references
-    return [...new Set(references)];
   }
 }

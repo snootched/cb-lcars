@@ -1162,84 +1162,70 @@ export class ButtonRenderer extends BaseRenderer {
    */
   updateButton(buttonElement, config, sourceData) {
     try {
-      // NEW APPROACH: If using texts array, update each text element
-      if (config.texts && Array.isArray(config.texts)) {
-        cblcarsLog.debug(`[ButtonRenderer] 🔤 Using texts array path for ${config.id}`);
-        return this._updateButtonTextsArray(buttonElement, config, sourceData);
-      }
+      // ✅ SIMPLIFIED APPROACH: Query DOM for all text elements and update them
+      // Don't rely on show_labels/show_values - if DOM elements exist, update them
 
-      // LEGACY APPROACH: Since rendering converts legacy to texts array,
-      // we need to find the text element with textType="value"
-      cblcarsLog.debug(`[ButtonRenderer] 📝 Legacy content update for ${config.id}`, {
-        hasConfig: !!config,
-        configKeys: Object.keys(config || {}),
-        configContent: config?.content,
-        config_raw_content: config?._raw?.content
+      let anyUpdated = false;
+      const textGroups = buttonElement.querySelectorAll('[data-button-text-index], [data-button-text-type]');
+
+      cblcarsLog.debug(`[ButtonRenderer] � Found ${textGroups.length} text group(s) in button ${config.id}`, {
+        hasLabel: !!config.label,
+        hasContent: !!config.content,
+        hasTextsArray: !!(config.texts && config.texts.length)
       });
 
-      const rawContent = this._getCellContentFromSources(config);
-      cblcarsLog.debug(`[ButtonRenderer] 📥 Got rawContent: "${rawContent}" (source: ${
-        config._originalContent ? '_originalContent' :
-        config._raw?.content ? '_raw.content' :
-        config.content ? 'content' :
-        config.label ? 'label' : 'unknown'
-      })`);
+      textGroups.forEach((textGroup) => {
+        try {
+          const textElement = textGroup.querySelector('text');
+          if (!textElement) return;
 
-      const resolvedContent = this._resolveCellContent(rawContent, sourceData);
-      cblcarsLog.debug(`[ButtonRenderer] 🎯 Resolved content: "${resolvedContent}" (hasTemplates: ${rawContent !== resolvedContent})`);
+          // Determine what content this text element should display
+          const textIndex = textGroup.getAttribute('data-button-text-index');
+          const textType = textGroup.getAttribute('data-button-text-type');
 
+          let rawContent = '';
 
-      // CRITICAL FIX: Look for text element with textType="value" (from legacy content field)
-      // During rendering, legacy content is converted to texts array with textType markers
-      const textGroup = buttonElement.querySelector(`[data-button-text-type="value"]`);
+          // Priority: texts array > textType (label/content)
+          if (textIndex !== null && config.texts && config.texts[textIndex]) {
+            rawContent = config.texts[textIndex].content || config.texts[textIndex]._originalContent || '';
+          } else if (textType === 'label') {
+            rawContent = config.label || '';
+          } else if (textType === 'value') {
+            rawContent = config.content || '';
+          }
 
-      if (!textGroup) {
-        cblcarsLog.debug(`[ButtonRenderer] ❌ No value text group found for ${config.id}`);
-        return false;
-      }
+          if (!rawContent) {
+            cblcarsLog.debug(`[ButtonRenderer] ⏭️ No content for text (index: ${textIndex}, type: ${textType})`);
+            return;
+          }
 
-      const contentElement = textGroup.querySelector('text');
-      cblcarsLog.debug(`[ButtonRenderer] 🔍 Found text element:`, {
-        cellId: config.id,
-        hasGroup: !!textGroup,
-        hasTextElement: !!contentElement
-      });
+          // Resolve content with current datasource values
+          const resolvedContent = this._resolveCellContent(rawContent, sourceData);
 
-      if (contentElement && resolvedContent !== undefined) {
-        const oldContent = contentElement.textContent?.trim();
-        let newContent = String(resolvedContent);
+          if (resolvedContent !== undefined) {
+            const oldContent = textElement.textContent?.trim();
+            const newContent = String(resolvedContent);
 
-        cblcarsLog.debug(`[ButtonRenderer] 🔄 Content comparison:`, {
-          cellId: config.id,
-          oldContent,
-          newContent,
-          areEqual: newContent === oldContent
-        });
+            if (newContent !== oldContent) {
+              // Preserve text alignment attributes
+              const textAnchor = textElement.getAttribute('text-anchor');
+              const dominantBaseline = textElement.getAttribute('dominant-baseline');
 
-        if (newContent !== oldContent) {
-          cblcarsLog.debug(`[ButtonRenderer] ✅ Updating button ${config.id}: "${oldContent}" → "${newContent}"`);
+              textElement.textContent = this._escapeXml(newContent);
 
-          // CRITICAL: Preserve text attributes when updating
-          const textAnchor = contentElement.getAttribute('text-anchor');
-          const dominantBaseline = contentElement.getAttribute('dominant-baseline');
+              if (textAnchor) textElement.setAttribute('text-anchor', textAnchor);
+              if (dominantBaseline) textElement.setAttribute('dominant-baseline', dominantBaseline);
 
-          contentElement.textContent = this._escapeXml(newContent);
-
-          if (textAnchor) contentElement.setAttribute('text-anchor', textAnchor);
-          if (dominantBaseline) contentElement.setAttribute('dominant-baseline', dominantBaseline);
-
-          return true;
-        } else {
-          cblcarsLog.debug(`[ButtonRenderer] ⏭️ Content unchanged for ${config.id}, skipping update`);
+              cblcarsLog.debug(`[ButtonRenderer] ✅ Updated text (index: ${textIndex}, type: ${textType}) for ${config.id}: "${oldContent}" → "${newContent}"`);
+              anyUpdated = true;
+            }
+          }
+        } catch (error) {
+          cblcarsLog.warn(`[ButtonRenderer] Error updating text element:`, error);
         }
-      } else {
-        cblcarsLog.debug(`[ButtonRenderer] ❌ Cannot update ${config.id}:`, {
-          hasElement: !!contentElement,
-          hasContent: resolvedContent !== undefined
-        });
-      }
+      });
 
-      return false;
+      return anyUpdated;
     } catch (error) {
       cblcarsLog.error(`[ButtonRenderer] Error updating button ${config.id}:`, error);
       return false;
