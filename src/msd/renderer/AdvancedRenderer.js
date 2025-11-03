@@ -1620,10 +1620,26 @@ export class AdvancedRenderer {
         hasAggregations: !!sourceData?.aggregations
       });
 
-      // Get the overlay element from cache
-      const overlayElement = this.overlayElementCache?.get(overlayId);
+      // Get the overlay element from cache, with fallback to DOM query
+      let overlayElement = this.overlayElementCache?.get(overlayId);
+
+      // CRITICAL FIX: Cache can be stale after font stabilization re-renders
+      // If cached element is disconnected, query DOM directly
+      if (!overlayElement || !overlayElement.isConnected) {
+        const overlayGroup = this.mountEl.querySelector('#msd-overlay-container');
+        if (overlayGroup) {
+          overlayElement = overlayGroup.querySelector(`[data-overlay-id="${overlayId}"]`);
+
+          // Update cache with fresh element
+          if (overlayElement && overlayElement.isConnected) {
+            this.overlayElementCache.set(overlayId, overlayElement);
+            cblcarsLog.debug(`[AdvancedRenderer] 🔄 Refreshed stale cache entry for ${overlayId}`);
+          }
+        }
+      }
+
       if (!overlayElement) {
-        cblcarsLog.warn(`[AdvancedRenderer] Overlay element not found in cache: ${overlayId}`);
+        cblcarsLog.warn(`[AdvancedRenderer] Overlay element not found for: ${overlayId}`);
         return;
       }
 

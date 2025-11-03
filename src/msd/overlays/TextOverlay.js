@@ -272,22 +272,80 @@ ${renderResult.markup}
       // Invalidate cached content to force re-resolution with new data
       this._cachedTextContent = null;
 
-      // Re-resolve content with new data
+      // Get raw text content (without template processing)
       const style = overlay.finalStyle || overlay.style || {};
-      const textContent = this._resolveTextContent(overlay, style, sourceData);
+      let rawContent = style.value || overlay.text || overlay.content || '';
+      if (!rawContent && overlay._raw?.content) rawContent = overlay._raw.content;
+      if (!rawContent && overlay._raw?.text) rawContent = overlay._raw.text;
+
+      cblcarsLog.debug(`[TextOverlay] 📝 Raw content for ${overlay.id}: "${rawContent}"`);
+
+      // Process templates with current datasource values using the same method as ButtonRenderer
+      const textContent = DataSourceMixin.processUnifiedTemplateStrings(rawContent, 'TextOverlay');
+
+      cblcarsLog.debug(`[TextOverlay] 🎯 Processed content for ${overlay.id}: "${textContent}"`);
 
       if (!textContent) {
         cblcarsLog.warn(`[TextOverlay] ⚠️ Update produced empty content for ${overlay.id}`);
         return false;
       }
 
+      // CRITICAL: Coordinate with AnimationManager to handle content updates during animations
+      // Get AnimationManager from systemsManager
+      const animationManager = this.systemsManager?.animationManager;
+      let hadActiveAnimations = false;
+
+      if (animationManager) {
+        // Check if there are active animations on this overlay
+        const scopeData = animationManager.scopes?.get(overlay.id);
+        if (scopeData && scopeData.runningInstances) {
+          // Count total running instances across all triggers
+          let totalRunning = 0;
+          scopeData.runningInstances.forEach(instances => {
+            totalRunning += instances.filter(inst => inst && !inst.completed).length;
+          });
+
+          if (totalRunning > 0) {
+            hadActiveAnimations = true;
+            cblcarsLog.debug(`[TextOverlay] 🎬 Pausing ${totalRunning} active animations for content update on ${overlay.id}`);
+
+            // Temporarily revert all animations to clear inline styles
+            // This allows the content update to be visible
+            animationManager.stopAnimations(overlay.id);
+          }
+        }
+      }
+
       // Update the text content in the DOM
       const textElement = overlayElement.querySelector('text');
       if (textElement) {
-        // Simply update the text content - templates have been processed
-        textElement.textContent = textContent;
+        const oldContent = textElement.textContent;
 
-        cblcarsLog.debug(`[TextOverlay] ✅ Updated text overlay ${overlay.id} with processed content`);
+        // Check if text has tspan children (multi-line)
+        const tspans = textElement.querySelectorAll('tspan');
+        if (tspans.length > 0) {
+          // Multi-line text - update all tspans with the new content
+          cblcarsLog.debug(`[TextOverlay] 📋 Found ${tspans.length} tspan elements for ${overlay.id}`);
+
+          // For now, just replace the first tspan's content
+          // TODO: Proper multi-line handling if content has line breaks
+          tspans[0].textContent = textContent;
+
+          cblcarsLog.debug(`[TextOverlay] ✅ Updated tspan in text overlay ${overlay.id}: "${oldContent}" → "${textContent}"`);
+        } else {
+          // Single-line text - update text element directly
+          textElement.textContent = textContent;
+
+          cblcarsLog.debug(`[TextOverlay] ✅ Updated text overlay ${overlay.id}: "${oldContent}" → "${textContent}"`);
+        }
+
+        // Force browser repaint by triggering a reflow
+        void textElement.getBBox();
+
+        if (hadActiveAnimations) {
+          cblcarsLog.debug(`[TextOverlay] 🎬 Content updated, animations will restart on next trigger`);
+        }
+
         return true;
       }
 
