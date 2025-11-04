@@ -18,6 +18,51 @@ overlays:
         duration: 500
 ```
 
+### Animation Targeting (New!)
+
+Target specific parts of composed overlays like buttons:
+
+```yaml
+overlays:
+  my_button:
+    type: button
+    texts:
+      - text: "POWER"
+        type: label
+      - text: "{{sensor.power}}"
+        type: value
+    animations:
+      # Animate just the label
+      - preset: pulse
+        trigger: on_tap
+        target: label
+
+      # Animate just the value/content
+      - preset: glow
+        trigger: on_datasource
+        target: content
+
+      # Animate multiple elements
+      - preset: fade
+        trigger: on_hover
+        targets: [label, content]
+
+      # Animate by array index
+      - preset: shimmer
+        trigger: on_load
+        target: texts[0]
+```
+
+**Supported Targets:**
+- **Buttons:** `label`, `content`/`value`, `texts[0]`, `texts[1]`, etc., `overlay`/`self`
+- **Text:** `text`, `overlay`/`self`
+- **Other overlays:** Use default (entire overlay) or CSS selectors
+- **Multiple:** Use `targets: [...]` for array of targets
+
+**Smart Defaults:**
+- Buttons animate entire button when no target specified
+- Text overlays animate text element (not wrapper) by default
+
 ### Custom Presets
 
 ```yaml

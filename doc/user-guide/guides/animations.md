@@ -60,24 +60,53 @@ overlays:
 These triggers respond to data or lifecycle changes:
 
 - **`on_load`** - Fires once when the overlay is rendered
-- **`on_datasource_change`** - Fires when a datasource value changes (requires `watch` property)
+- **`on_datasource_change`** - Fires when a datasource value changes (requires `datasource` property)
 
-Example with datasource:
+**Simple Datasource Animation:**
+
+Use `on_datasource_change` for animations that should play on **every** data update:
+
 ```yaml
-datasources:
-  - id: my_sensor
-    source: sensor.temperature
+data_sources:
+  cpu_temp:
+    type: entity
+    entity: sensor.cpu_temperature
 
 overlays:
-  - id: temp_display
-    type: text
-    content: "{{ my_sensor }}"
+  - id: cpu_display
+    type: button
+    label: "CPU"
+    content: "{cpu_temp}"
     animations:
       - preset: pulse
         trigger: on_datasource_change
-        watch: my_sensor  # Watch this datasource
-        duration: 500
+        datasource: cpu_temp  # Pulse on every update
+        duration: 300
 ```
+
+**Conditional Animations via Rules:**
+
+For animations that should only play when conditions are met, use rules:
+
+```yaml
+rules:
+  - id: high_temp_alert
+    when:
+      entity: cpu_temp  # Use entity: for datasources
+      above: 80
+    apply:
+      overlays:
+        cpu_display:  # Overlay ID as key (not array!)
+          animations:
+            - preset: glow
+              color: var(--lcars-red)
+              duration: 1000
+              loop: true
+          style:
+            color: var(--lcars-red)
+```
+
+**Important:** Rules use object syntax for overlays (overlay ID as key), not array syntax.
 
 ## Built-in Animation Presets
 
@@ -251,6 +280,237 @@ overlays:
 - The system automatically detects device capabilities
 - Hover animations with `loop: true` automatically stop when the pointer leaves
 
+## Reactive Animations
+
+Reactive animations respond to data changes in your Home Assistant system. They're perfect for visual feedback when sensors change, thresholds are exceeded, or system states transition.
+
+### Basic Datasource Animation
+
+The simplest reactive animation uses `on_datasource_change` to trigger whenever a datasource updates:
+
+```yaml
+overlays:
+  - id: cpu_indicator
+    type: elbow
+    datasource: cpu_temp
+    animations:
+      - preset: pulse
+        trigger: on_datasource_change
+        datasource: cpu_temp
+        duration: 500
+        color: var(--lcars-gold)
+```
+
+**Key Points:**
+- The `datasource` property is **required** for `on_datasource_change` trigger
+- Animation plays every time the datasource value changes
+- No conditions - it triggers on ANY change
+- Great for simple "data updated" indicators
+
+### Conditional Animations with Rules
+
+For animations that should only play under certain conditions, use the Rules system:
+
+```yaml
+datasources:
+  - name: cpu_temp
+    entity: sensor.processor_temperature
+
+overlays:
+  - id: cpu_display
+    type: elbow
+    text: "CPU: {cpu_temp}°C"
+
+rules:
+  - when:
+      entity: cpu_temp
+      above: 80
+    apply:
+      overlays:
+        cpu_display:         # Overlay ID as key (NOT array syntax!)
+          style:
+            fill: var(--lcars-red)
+          animations:
+            - preset: glow
+              color: var(--lcars-red)
+              duration: 1000
+              loop: true
+```
+
+**Critical Syntax:**
+- Rules use `overlays:` as an **object with overlay IDs as keys**
+- ❌ WRONG: `overlays: [{ id: cpu_display, ... }]` (array syntax)
+- ✅ CORRECT: `overlays: { cpu_display: { ... } }` (object syntax)
+- Use `entity:` in conditions to reference datasources (not `source:`)
+
+### Multiple Conditions
+
+Combine multiple rules for different visual states:
+
+```yaml
+rules:
+  - when:
+      entity: cpu_temp
+      above: 90
+    apply:
+      overlays:
+        cpu_display:
+          style:
+            fill: var(--lcars-red)
+          animations:
+            - preset: glow
+              color: var(--lcars-red)
+              duration: 500
+              loop: true
+
+  - when:
+      entity: cpu_temp
+      above: 75
+      below: 90
+    apply:
+      overlays:
+        cpu_display:
+          style:
+            fill: var(--lcars-orange)
+          animations:
+            - preset: pulse
+              color: var(--lcars-orange)
+              duration: 800
+```
+
+### Tag-Based Targeting
+
+Animate multiple overlays at once using tags:
+
+```yaml
+overlays:
+  - id: sensor_1
+    type: elbow
+    tags: [temperature_sensor]
+    datasource: room_temp
+
+  - id: sensor_2
+    type: elbow
+    tags: [temperature_sensor]
+    datasource: outdoor_temp
+
+rules:
+  - when:
+      entity: alarm_state
+      equals: triggered
+    apply:
+      tags:
+        temperature_sensor:    # Applies to ALL tagged overlays
+          animations:
+            - preset: glow
+              color: var(--lcars-red)
+              loop: true
+```
+
+### Type-Based Targeting
+
+Apply animations to all overlays of a certain type:
+
+```yaml
+rules:
+  - when:
+      entity: system_alert
+      equals: critical
+    apply:
+      types:
+        button:              # All button overlays
+          animations:
+            - preset: pulse
+              color: var(--lcars-red)
+              duration: 1000
+              loop: true
+```
+
+### Combining Interactive and Reactive
+
+Overlays can have both interactive (hover/tap) and reactive (datasource/rules) animations:
+
+```yaml
+overlays:
+  - id: warning_button
+    type: button
+    datasource: warning_level
+    animations:
+      # Interactive
+      - preset: glow
+        trigger: on_hover
+        duration: 200
+
+      # Reactive (simple)
+      - preset: flash
+        trigger: on_datasource_change
+        datasource: warning_level
+        duration: 300
+
+rules:
+  # Reactive (conditional)
+  - when:
+      entity: warning_level
+      above: 8
+    apply:
+      overlays:
+        warning_button:
+          animations:
+            - preset: glow
+              color: var(--lcars-red)
+              loop: true
+```
+
+### Template Syntax in Text
+
+When displaying datasource values in text, use **single braces** for datasources:
+
+```yaml
+overlays:
+  - id: cpu_display
+    type: text
+    text: "CPU: {cpu_temp}°C"     # ✅ Datasource: single braces
+
+  - id: sensor_display
+    type: text
+    text: "Temp: {{entity:sensor.temperature}} °C"  # ✅ HA Entity: double braces
+```
+
+**Important:** Text content does NOT auto-update when datasources change. To update text, you must use rules:
+
+```yaml
+rules:
+  - when:
+      entity: cpu_temp
+      above: 0  # Always true - forces update on any change
+    apply:
+      overlays:
+        cpu_display:
+          text: "CPU: {cpu_temp}°C"  # Text re-evaluated with new value
+```
+
+### Common Gotchas
+
+1. **Array vs Object Syntax in Rules:**
+   - Rules always use object syntax: `overlays: { id: { patch } }`
+   - NOT array syntax: `overlays: [{ id: id, patch }]`
+
+2. **Template Braces:**
+   - Datasources: `{datasource_name}` (single braces)
+   - HA Entities: `{{entity:sensor.name}}` (double braces)
+
+3. **Text Updates:**
+   - Text content doesn't auto-update on datasource changes
+   - Must use rules to force re-evaluation of text templates
+
+4. **Datasource Property:**
+   - `on_datasource_change` requires `datasource:` property
+   - Configuration validator will error if missing
+
+5. **Rules Conditions:**
+   - Use `entity:` to reference datasources (not `source:`)
+   - RulesEngine resolves datasources automatically
+
 ## Common Patterns
 
 ### Button hover feedback
@@ -329,12 +589,107 @@ animations:
 
 ### Data change indicator
 ```yaml
-animations:
-  - preset: pulse
-    trigger: on_datasource_change
-    watch: my_datasource
-    duration: 400
-    scale: 1.1
+overlays:
+  - id: sensor_indicator
+    type: elbow
+    datasource: my_sensor
+    animations:
+      - preset: pulse
+        trigger: on_datasource_change
+        datasource: my_sensor  # Required for on_datasource_change
+        duration: 400
+        scale: 1.1
+```
+
+### Threshold warning with animation
+```yaml
+datasources:
+  - name: temperature
+    entity: sensor.temperature
+
+overlays:
+  - id: temp_display
+    type: text
+    text: "Temp: {temperature}°C"
+
+rules:
+  - when:
+      entity: temperature
+      above: 30
+    apply:
+      overlays:
+        temp_display:
+          style:
+            fill: var(--lcars-red)
+          animations:
+            - preset: glow
+              color: var(--lcars-red)
+              duration: 1000
+              loop: true
+```
+
+### Multi-state visual feedback
+```yaml
+rules:
+  - when:
+      entity: system_status
+      equals: normal
+    apply:
+      overlays:
+        status_indicator:
+          style:
+            fill: var(--lcars-green)
+
+  - when:
+      entity: system_status
+      equals: warning
+    apply:
+      overlays:
+        status_indicator:
+          style:
+            fill: var(--lcars-orange)
+          animations:
+            - preset: pulse
+              duration: 1000
+
+  - when:
+      entity: system_status
+      equals: critical
+    apply:
+      overlays:
+        status_indicator:
+          style:
+            fill: var(--lcars-red)
+          animations:
+            - preset: glow
+              color: var(--lcars-red)
+              loop: true
+```
+
+### Coordinated tag-based alerts
+```yaml
+overlays:
+  - id: door_1
+    type: elbow
+    tags: [security]
+  - id: door_2
+    type: elbow
+    tags: [security]
+  - id: window_1
+    type: elbow
+    tags: [security]
+
+rules:
+  - when:
+      entity: alarm_state
+      equals: triggered
+    apply:
+      tags:
+        security:
+          animations:
+            - preset: flash
+              duration: 500
+              iterations: infinite
 ```
 
 ## Troubleshooting
@@ -342,7 +697,30 @@ animations:
 ### Animation not triggering
 - Check that the `trigger` is spelled correctly
 - For interactive triggers, ensure the overlay is rendered (check browser DevTools)
-- For `on_datasource_change`, verify the `watch` property matches a datasource ID
+- For `on_datasource_change`, verify the `datasource` property is set and matches a datasource name
+- For rules-based animations, check that rule conditions are being met (enable debug logging)
+
+### Rules not applying animations
+- **Most common issue:** Using array syntax instead of object syntax
+  - ❌ WRONG: `overlays: [{ id: my_overlay, animations: [...] }]`
+  - ✅ CORRECT: `overlays: { my_overlay: { animations: [...] } }`
+- Verify overlay IDs match exactly (case-sensitive)
+- Check that conditions are being met (test with simpler conditions)
+- Ensure `entity:` is used in conditions (not `source:`)
+
+### Text not updating with datasource changes
+- Text content does NOT auto-update when datasources change
+- You must use rules to force text re-evaluation:
+  ```yaml
+  rules:
+    - when:
+        entity: my_datasource
+        above: 0  # Always true - updates on any change
+      apply:
+        overlays:
+          my_text:
+            text: "Value: {my_datasource}"
+  ```
 
 ### Hover not working
 - Verify you're on a desktop device (hover doesn't work on touch devices)
