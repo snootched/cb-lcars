@@ -979,6 +979,59 @@ ${renderResult.markup}
   // INCREMENTAL UPDATE SUPPORT
   // ============================================================================
 
+  // ============================================================================
+  // ANIMATION TARGETING API
+  // ============================================================================
+
+  /**
+   * Get the default animation target for text overlays
+   * Text overlays default to animating the text element, not the wrapper group
+   *
+   * @returns {Element} The text element (or wrapper as fallback)
+   */
+  getDefaultAnimationTarget() {
+    // Smart default: animate the text element, not the wrapper
+    if (this.element) {
+      const textElement = this.element.querySelector('text');
+      if (textElement) {
+        return textElement;
+      }
+    }
+    // Fallback to wrapper if text element not found
+    return this.element;
+  }
+
+  /**
+   * Get a specific animation target within the text overlay
+   *
+   * Supported targets:
+   * - 'text' - The text element (default, same as no spec)
+   * - 'overlay' or 'self' - The wrapper group element
+   * - Any CSS selector - Queried within overlay element
+   *
+   * @param {string} targetSpec - Target specification
+   * @returns {Element|null} The target element or null if not found
+   */
+  getAnimationTarget(targetSpec) {
+    if (!this.element) {
+      return null;
+    }
+
+    // No spec or 'text' = the text element (smart default)
+    if (!targetSpec || targetSpec === 'text') {
+      const textElement = this.element.querySelector('text');
+      return textElement || this.element;
+    }
+
+    // Explicit wrapper reference
+    if (targetSpec === 'overlay' || targetSpec === 'self') {
+      return this.element;
+    }
+
+    // CSS selector fallback
+    return super.getAnimationTarget(targetSpec);
+  }
+
   /**
    * Check if this overlay type supports incremental updates
    * @static

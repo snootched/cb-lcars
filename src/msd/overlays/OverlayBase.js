@@ -405,6 +405,56 @@ export class OverlayBase extends BaseRenderer {
       hasAnimationScope: !!this._animationScope
     };
   }
+
+  /**
+   * Get the default animation target for this overlay type
+   * Subclasses should override to provide smart defaults
+   *
+   * Examples:
+   * - TextOverlay: Returns the <text> element (not the wrapper)
+   * - ButtonOverlay: Returns the entire button group
+   * - LineOverlay: Returns the <line> or <path> element
+   *
+   * @returns {Element} The element to animate by default
+   */
+  getDefaultAnimationTarget() {
+    // Base implementation: return the root element
+    return this.element;
+  }
+
+  /**
+   * Get a specific animation target within this overlay
+   *
+   * Supports:
+   * - 'overlay' or 'self' - The root overlay element
+   * - 'label', 'content', etc. - Named sub-elements (overlay-specific)
+   * - 'texts[n]' - Array index syntax (overlay-specific)
+   * - CSS selector - Any valid selector (queried within overlay)
+   *
+   * @param {string} targetSpec - Target specification
+   * @returns {Element|null} The target element or null if not found
+   */
+  getAnimationTarget(targetSpec) {
+    // No spec or explicit self-reference = root element
+    if (!targetSpec || targetSpec === 'overlay' || targetSpec === 'self') {
+      return this.element;
+    }
+
+    // Try CSS selector within this overlay's element
+    if (this.element) {
+      try {
+        return this.element.querySelector(targetSpec);
+      } catch (error) {
+        cblcarsLog.warn(
+          `[${this.rendererName}] Invalid target selector "${targetSpec}":`,
+          error
+        );
+        return null;
+      }
+    }
+
+    return null;
+  }
 }
 
 // Export for use by overlay subclasses

@@ -1,5 +1,6 @@
 import { cblcarsLog } from './cb-lcars-logging.js';
 import { animPresets } from './cb-lcars-anim-presets.js';
+import { getAnimationPreset } from '../msd/animation/presets.js';
 
 /**
  * Waits for an element to be present in the DOM.
@@ -163,23 +164,50 @@ export async function animateElement(scope, options, hass = null, onInstanceCrea
         if (Array.isArray(type)) {
           applyPresets(type, params, element, options);
         } else {
-          const presetFn = animPresets[String(type).toLowerCase()];
-          if (presetFn) {
-            await presetFn(params, element, options);
-          } else if (String(type).toLowerCase() === 'morph') {
-            if (!options.morph_to_selector) {
-              cblcarsLog.error('[animateElement] morph animation requires a `morph_to_selector`.', { options });
-              continue;
+          // Try new MSD preset system first
+          const msdPresetFn = getAnimationPreset(String(type).toLowerCase());
+
+          if (msdPresetFn) {
+            // Use new MSD preset system
+            cblcarsLog.debug(`[animateElement] Using MSD preset: ${type}`);
+
+            try {
+              const presetResult = msdPresetFn({ params: params, ...options });
+
+              // Apply anime.js parameters
+              if (presetResult.anime) {
+                Object.assign(params, presetResult.anime);
+              }
+
+              // Apply CSS styles to target element
+              if (presetResult.styles && element) {
+                Object.assign(element.style, presetResult.styles);
+              }
+            } catch (error) {
+              cblcarsLog.error(`[animateElement] Error applying MSD preset ${type}:`, error);
             }
-            const morphTarget = await waitForElement(options.morph_to_selector, root);
-            if (!morphTarget) {
-              cblcarsLog.error(`[animateElement] morph could not find target shape for selector: ${options.morph_to_selector}`);
-              continue;
-            }
-            const precision = options.precision ? parseInt(options.precision, 10) : undefined;
-            Object.assign(params, { d: window.cblcars.animejs.svg.morphTo(morphTarget, precision) });
           } else {
-            cblcarsLog.debug(`[animateElement] Using standard animation for type: ${type}`, { params });
+            // Fallback to legacy preset system
+            const legacyPresetFn = animPresets[String(type).toLowerCase()];
+
+            if (legacyPresetFn) {
+              cblcarsLog.debug(`[animateElement] Using legacy preset: ${type}`);
+              await legacyPresetFn(params, element, options);
+            } else if (String(type).toLowerCase() === 'morph') {
+              if (!options.morph_to_selector) {
+                cblcarsLog.error('[animateElement] morph animation requires a `morph_to_selector`.', { options });
+                continue;
+              }
+              const morphTarget = await waitForElement(options.morph_to_selector, root);
+              if (!morphTarget) {
+                cblcarsLog.error(`[animateElement] morph could not find target shape for selector: ${options.morph_to_selector}`);
+                continue;
+              }
+              const precision = options.precision ? parseInt(options.precision, 10) : undefined;
+              Object.assign(params, { d: window.cblcars.animejs.svg.morphTo(morphTarget, precision) });
+            } else {
+              cblcarsLog.debug(`[animateElement] Using standard animation for type: ${type}`, { params });
+            }
           }
         }
 

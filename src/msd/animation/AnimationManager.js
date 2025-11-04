@@ -687,6 +687,101 @@ export class AnimationManager {
       const resolvedParams = await this.resolveDatasourceParams(animDef);
       const finalAnimDef = { ...animDef, ...resolvedParams };
 
+      // Get overlay instance from AdvancedRenderer for target resolution
+      // SystemsManager stores AdvancedRenderer as this.renderer
+      const overlayInstance = this.systemsManager.renderer?.overlayRenderers?.get(overlayId);
+
+      cblcarsLog.debug(`[AnimationManager] Target resolution for ${overlayId}:`, {
+        hasRenderer: !!this.systemsManager.renderer,
+        hasOverlayRenderers: !!this.systemsManager.renderer?.overlayRenderers,
+        hasOverlayInstance: !!overlayInstance,
+        overlayInstanceType: overlayInstance?.constructor?.name,
+        hasGetAnimationTarget: typeof overlayInstance?.getAnimationTarget === 'function',
+        target: finalAnimDef.target,
+        targets: finalAnimDef.targets
+      });
+
+      // Resolve animation target(s) using overlay's targeting API
+      let targetElements = [];
+      const overlayElement = scopeData.element;
+
+      if (finalAnimDef.targets) {
+        // Multiple targets specified (array)
+        const targetSpecs = Array.isArray(finalAnimDef.targets) ? finalAnimDef.targets : [finalAnimDef.targets];
+
+        for (const spec of targetSpecs) {
+          let el = null;
+
+          if (overlayInstance && typeof overlayInstance.getAnimationTarget === 'function') {
+            // Pass the overlay element to the instance for querying
+            overlayInstance.element = overlayElement;
+            el = overlayInstance.getAnimationTarget(spec);
+          }
+
+          // Fallback to CSS selector if overlay doesn't resolve it
+          if (!el && overlayElement) {
+            el = overlayElement.querySelector(spec);
+          }
+
+          if (el) {
+            targetElements.push(el);
+          } else {
+            cblcarsLog.warn(`[AnimationManager] Target not found: "${spec}" for overlay ${overlayId}`);
+          }
+        }
+      } else if (finalAnimDef.target) {
+        // Single target specified (string)
+        let el = null;
+
+        if (overlayInstance && typeof overlayInstance.getAnimationTarget === 'function') {
+          // Pass the overlay element to the instance for querying
+          // (overlay instance might not have this.element set during animation)
+          overlayInstance.element = overlayElement;
+          el = overlayInstance.getAnimationTarget(finalAnimDef.target);
+        }
+
+        // Fallback to CSS selector if overlay doesn't resolve it
+        if (!el && overlayElement) {
+          el = overlayElement.querySelector(finalAnimDef.target);
+        }
+
+        if (el) {
+          targetElements.push(el);
+        } else {
+          cblcarsLog.warn(`[AnimationManager] Target not found: "${finalAnimDef.target}" for overlay ${overlayId}`);
+        }
+      } else {
+        // No target specified - use overlay's smart default
+        let el = null;
+
+        if (overlayInstance && typeof overlayInstance.getDefaultAnimationTarget === 'function') {
+          // Pass the overlay element to the instance for querying
+          overlayInstance.element = overlayElement;
+          el = overlayInstance.getDefaultAnimationTarget();
+        }
+
+        // Fallback to overlay element
+        if (!el) {
+          el = overlayElement;
+        }
+
+        if (el) {
+          targetElements.push(el);
+        }
+      }
+
+      // If we resolved nothing, fall back to overlay element
+      if (targetElements.length === 0) {
+        cblcarsLog.warn(`[AnimationManager] No targets resolved, using overlay element for ${overlayId}`);
+        targetElements.push(overlayElement);
+      }
+
+      cblcarsLog.debug(`[AnimationManager] Resolved ${targetElements.length} target(s) for overlay ${overlayId}:`, {
+        hasTarget: !!finalAnimDef.target,
+        hasTargets: !!finalAnimDef.targets,
+        targetCount: targetElements.length
+      });
+
       // Use existing animateElement helper for consistency
       const { animateElement } = window.cblcars.anim;
 
@@ -699,9 +794,10 @@ export class AnimationManager {
       const hass = this.systemsManager.getHass?.() || this.systemsManager._hass;
 
       // Build animation options for animateElement
+      // Pass resolved targets (single element or array)
       const animOptions = {
         type: finalAnimDef.preset || finalAnimDef.type,
-        targets: scopeData.element,
+        targets: targetElements.length === 1 ? targetElements[0] : targetElements,
         root: scopeData.element.getRootNode(),
         duration: finalAnimDef.duration,
         easing: finalAnimDef.easing,

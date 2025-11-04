@@ -749,6 +749,79 @@ export class ButtonOverlay extends OverlayBase {
   }
 
   // ============================================================================
+  // ANIMATION TARGETING API
+  // ============================================================================
+
+  /**
+   * Get the default animation target for button overlays
+   * Buttons default to animating the entire button group
+   *
+   * @returns {Element} The button element (entire group)
+   */
+  getDefaultAnimationTarget() {
+    // Default: animate the entire button element
+    return this.element;
+  }
+
+  /**
+   * Get a specific animation target within the button
+   *
+   * Supported targets:
+   * - 'overlay' or 'self' - The entire button group
+   * - 'label' - The label text element
+   * - 'content' or 'value' - The content/value text element
+   * - 'texts[n]' - Specific text by index (e.g., 'texts[0]', 'texts[1]')
+   * - Any CSS selector - Queried within button element
+   *
+   * @param {string} targetSpec - Target specification
+   * @returns {Element|null} The target element or null if not found
+   */
+  getAnimationTarget(targetSpec) {
+    cblcarsLog.debug(`[ButtonOverlay] getAnimationTarget called for ${this.overlay.id}:`, {
+      targetSpec,
+      hasElement: !!this.element,
+      elementId: this.element?.id,
+      elementTag: this.element?.tagName
+    });
+
+    if (!this.element) {
+      cblcarsLog.warn(`[ButtonOverlay] No element available for target resolution: ${this.overlay.id}`);
+      return null;
+    }
+
+    // No spec or explicit self-reference = entire button
+    if (!targetSpec || targetSpec === 'overlay' || targetSpec === 'self') {
+      return this.element;
+    }
+
+    // Named targets for button text elements
+    if (targetSpec === 'label') {
+      const el = this.element.querySelector('[data-button-text-type="label"]');
+      cblcarsLog.debug(`[ButtonOverlay] Label target search result:`, { found: !!el, element: el });
+      return el;
+    }
+
+    if (targetSpec === 'content' || targetSpec === 'value') {
+      const el = this.element.querySelector('[data-button-text-type="value"]');
+      cblcarsLog.debug(`[ButtonOverlay] Content/value target search result:`, { found: !!el, element: el });
+      return el;
+    }
+
+    // Array index syntax: texts[0], texts[1], etc.
+    const arrayMatch = targetSpec.match(/^texts\[(\d+)\]$/);
+    if (arrayMatch) {
+      const idx = parseInt(arrayMatch[1], 10);
+      const el = this.element.querySelector(`[data-button-text-index="${idx}"]`);
+      cblcarsLog.debug(`[ButtonOverlay] Array index target search result:`, { idx, found: !!el, element: el });
+      return el;
+    }
+
+    // Fallback: CSS selector within button element
+    cblcarsLog.debug(`[ButtonOverlay] Using CSS selector fallback: ${targetSpec}`);
+    return super.getAnimationTarget(targetSpec);
+  }
+
+  // ============================================================================
   // STATIC METHODS FOR INCREMENTAL UPDATE SYSTEM (Phase 3)
   // ============================================================================
 
