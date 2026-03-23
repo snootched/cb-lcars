@@ -1,3 +1,22 @@
+> [!NOTE]
+> **CB-LCARS** will soon be superceded by a new project: [**LCARdS**](https://github.com/snootched/lcards)
+> 
+> **LCARdS** has a completely new design with much more capability that just can't be brought to CB-LCARS.
+> <br>It is in early release stages - but just about all [CB-LCARS functionaly has already been ported](https://lcards.unimatrix01.ca/getting-started/cb-lcars-migration.html)
+>
+> Please check it out!
+> 
+> [GitHub Repo](https://github.com/snootched/lcards)
+> 
+> [Documentation](https://lcards.unimatrix01.ca)
+>
+> [**HACS** - Coming Soon!](https://github.com/hacs/default/pull/6392)
+> 
+> <br>
+> CB-LCARS will remain at the current version and can be used side-by-side if desired.
+
+<br>
+
 <p align="center">
 
 ![cb-lcars](images/screenshots/cb-lcars-banner-4.gif)
